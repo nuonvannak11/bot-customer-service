@@ -1,20 +1,19 @@
-import express, { Request, Response } from 'express';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import express from "express";
+import router from "./routes";
+import middlewares from "./middleware";
+import { get_env } from "./utils/util";
+import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = get_env("PORT", "3000");
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-app.get('/health', (req: Request, res: Response) => {
-  res.status(200).json({ status: 'ok' });
-});
+middlewares(app);
 
-app.get('/', (req: Request, res: Response) => {
-  res.send('Hello from Express + TypeScript!');
-});
+app.use(router);
+app.use(errorHandler);
 
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
