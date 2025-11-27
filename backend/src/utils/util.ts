@@ -14,40 +14,72 @@ export const getIP = (req: Request, type: "v4" | "v6" = "v4"): string => {
         req.socket.remoteAddress ||
         "";
 
-    // Remove IPv6 mapped prefix
     if (ip.startsWith("::ffff:")) {
         ip = ip.replace("::ffff:", "");
     }
 
-    // Remove port for IPv4 and IPv6
     if (ip.includes(":")) {
-        // IPv6 case: keep full address before port
         if (!/^\d+\.\d+\.\d+\.\d+/.test(ip)) {
             ip = ip.split(":")[0] || ip;
         } else {
-            // IPv4 case
             ip = ip.split(":")[0];
         }
     }
-
     ip = ip.trim();
-
-    // IPv4 detection
     const ipv4Regex =
         /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
-
-    // IPv6 detection
     const ipv6Regex =
         /^(([0-9A-Fa-f]{1,4}:){1,7}[0-9A-Fa-f]{1,4}|::1)$/;
-
-    // --- MODE SELECTOR ---
     if (type === "v4") {
         return ipv4Regex.test(ip) ? ip : "unknown";
     }
-
     if (type === "v6") {
         return ipv6Regex.test(ip) ? ip : "unknown";
     }
-
     return "unknown";
 };
+
+export function empty(data: any): boolean {
+    if (data == null) return true;
+
+    const type = typeof data;
+
+    switch (type) {
+        case "string":
+            return data.trim().length === 0;
+
+        case "boolean":
+            return data === false;
+
+        case "number":
+            return data === 0 || Number.isNaN(data);
+
+        case "bigint":
+            return data === BigInt(0);
+
+        case "function":
+            return false;
+
+        case "object":
+            if (Array.isArray(data)) return data.length === 0;
+            if (data instanceof Map || data instanceof Set) return data.size === 0;
+            if (data instanceof Date) return isNaN(data.getTime());
+            if (data instanceof RegExp) return false;
+            return Object.keys(data).length === 0;
+
+        default:
+            return false;
+    }
+}
+
+export function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export function random_number(digits: number): string {
+    let result = '';
+    for (let i = 0; i < digits; i++) {
+        result += Math.floor(Math.random() * 10).toString();
+    }
+    return result;
+}
