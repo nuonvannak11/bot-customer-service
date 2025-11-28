@@ -83,3 +83,15 @@ export function random_number(digits: number): string {
     }
     return result;
 }
+
+export function eLog(data: any): void {
+    if (get_env('NODE_ENV', 'development') === 'development') {
+        console.log(data);
+    }
+}
+
+export function expiresAt (minutes: number): Date {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + minutes);
+    return now;
+}
