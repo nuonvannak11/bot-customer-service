@@ -1,5 +1,6 @@
 import { Request } from "express";
 import dotenv from 'dotenv';
+import { MAX_TIMEOUT } from "../constants";
 dotenv.config();
 
 export function get_env(key: string, defaultValue: string = ''): string {
@@ -90,8 +91,26 @@ export function eLog(data: any): void {
     }
 }
 
-export function expiresAt (minutes: number): Date {
+export function expiresAt(minutes: number): Date {
     const now = new Date();
     now.setMinutes(now.getMinutes() + minutes);
     return now;
+}
+
+export async function safeWithTimeout<T>(
+    promise: Promise<T>,
+    next: (err: any) => void,
+    timeout: number = MAX_TIMEOUT
+): Promise<T | void> {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("TIMEOUT")), timeout);
+    });
+    try {
+        return await Promise.race([promise, timeoutPromise]);
+    } catch (error: any) {
+        if (error instanceof Error && error.message === "TIMEOUT") {
+            throw new Error("Request timed out");
+        }
+        next(error);
+    }
 }
