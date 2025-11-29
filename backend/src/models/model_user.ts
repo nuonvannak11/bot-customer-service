@@ -12,6 +12,9 @@ const AppUserSchema = new mongoose.Schema(
 
         google_id: { type: String, unique: true, sparse: true },
 
+        access_token: { type: String },
+        refresh_token: { type: String },
+
         plan: {
             type: String,
             enum: ["free", "basic", "pro"],
