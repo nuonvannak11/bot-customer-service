@@ -1,0 +1,14 @@
+{
+  "hello": "សួស្តី",
+  "login": "ចូលគណនី",
+  "register": "បង្កើតគណនី",
+  "welcome_back": "សូមស្វាគមន៍ការត្រឡប់មកវិញ",
+  "email_address": "អាសយដ្ឋានអ៊ីមែល",
+  "password": "ពាក្យសម្ងាត់",
+  "log_in": "ចូលគណនី",
+  "full_name": "ឈ្មោះពេញ",
+  "register_account": "បង្កើតគណនី",
+  "auth_tagline": "សូមចូលប្រើប្រាស់ ឬបង្កើតគណនីដើម្បីបន្ត។",
+  "or_continue": "ឬបន្តជាមួយ",
+  "google_login": "បន្តជាមួយ Google"
+}

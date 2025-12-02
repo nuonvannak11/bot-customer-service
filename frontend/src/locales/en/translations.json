@@ -1,0 +1,14 @@
+{
+  "hello": "Hello",
+  "login": "Login",
+  "register": "Register",
+  "welcome_back": "Welcome Back",
+  "email_address": "Email Address",
+  "password": "Password",
+  "log_in": "Log In",
+  "full_name": "Full Name",
+  "register_account": "Register Account",
+  "auth_tagline": "Sign in or create your account to continue.",
+  "or_continue": "or continue with",
+  "google_login": "Continue with Google"
+}
