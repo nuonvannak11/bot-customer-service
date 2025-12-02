@@ -10,7 +10,6 @@ export const allowIP = (allowedIPs: string[]) => {
                 message: "Access denied: your IP is not allowed",
             });
         }
-
         next();
     };
 };

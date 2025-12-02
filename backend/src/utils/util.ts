@@ -1,6 +1,7 @@
 import { Request } from "express";
 import dotenv from 'dotenv';
 import { MAX_TIMEOUT } from "../constants";
+import { Console } from "console";
 dotenv.config();
 
 export function get_env(key: string, defaultValue: string = ''): string {
@@ -14,7 +15,9 @@ export const getIP = (req: Request, type: "v4" | "v6" = "v4"): string => {
         (req.headers["x-forwarded-for"] as string)?.split(",")[0] ||
         req.socket.remoteAddress ||
         "";
-
+    if (ip === "::1") {
+        return "127.0.0.1";
+    }
     if (ip.startsWith("::ffff:")) {
         ip = ip.replace("::ffff:", "");
     }
@@ -27,10 +30,8 @@ export const getIP = (req: Request, type: "v4" | "v6" = "v4"): string => {
         }
     }
     ip = ip.trim();
-    const ipv4Regex =
-        /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
-    const ipv6Regex =
-        /^(([0-9A-Fa-f]{1,4}:){1,7}[0-9A-Fa-f]{1,4}|::1)$/;
+    const ipv4Regex = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+    const ipv6Regex = /^(([0-9A-Fa-f]{1,4}:){1,7}[0-9A-Fa-f]{1,4}|::1)$/;
     if (type === "v4") {
         return ipv4Regex.test(ip) ? ip : "unknown";
     }

@@ -3,7 +3,7 @@ import { logger } from "./logger";
 import { allowIP } from "../config/ipWhitelist";
 import { corsMiddleware } from "../config/cors";
 
-const allowedIPs = ["127.0.0.1", "::1"]; // Add your allowed IPs here
+const allowedIPs = ["127.0.0.1", "::1"];
 
 const middlewares = (app: Express) => {
     app.use(logger);
