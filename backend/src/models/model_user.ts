@@ -37,3 +37,4 @@ const AppUserSchema = new mongoose.Schema(
 );
 AppUserSchema.index({ name: 1, phone: 1, email: 1 });
 export default mongoose.model("AppUser", AppUserSchema);
+//# sourceMappingURL=model_user.js.map
