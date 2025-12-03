@@ -25,7 +25,7 @@ jobs:
       - name: Add GitLab Remote
         run: |
           git remote remove gitlab || true
-          git remote add gitlab https://${{ secrets.GITLAB_USERNAME }}:${{ secrets.GITLAB_TOKEN }}@${{ secrets.GITLAB_URL##https:// }}
+          git remote add gitlab https://${{ secrets.GITLAB_USERNAME }}:${{ secrets.GITLAB_TOKEN }}@${{ secrets.GITLAB_URL }}
 
       - name: Push to GitLab
         run: |
