@@ -1,0 +1,32 @@
+name: Mirror to GitLab
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - '**'   # mirror all branches
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout GitHub Repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Git Credentials
+        run: |
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
+
+      - name: Add GitLab Remote
+        run: |
+          git remote remove gitlab || true
+          git remote add gitlab https://${{ secrets.GITLAB_USERNAME }}:${{ secrets.GITLAB_TOKEN }}@${{ secrets.GITLAB_URL##https:// }}
+
+      - name: Push to GitLab
+        run: |
+          git push --mirror gitlab
