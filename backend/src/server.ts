@@ -20,4 +20,5 @@ app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
 });
 
-// Export app
+// Export app for testing purposes
+//export default app;
