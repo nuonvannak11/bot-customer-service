@@ -1,7 +1,6 @@
 import { Request } from "express";
 import dotenv from 'dotenv';
 import { MAX_TIMEOUT } from "../constants";
-import { Console } from "console";
 dotenv.config();
 
 export function get_env(key: string, defaultValue: string = ''): string {
