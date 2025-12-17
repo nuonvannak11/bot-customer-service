@@ -2,6 +2,7 @@ import { NextFunction, Request, Response, Router, Application } from "express";
 import tiktokRoutes from "./api/tiktok";
 import facebookRoutes from "./api/facebook";
 import telegramRoutes from "./api/telegram";
+// import googleCallback from "./auth/google/callback";
 import UserController from "../controller/controller_user";
 import { safeWithTimeout } from "../utils/util";
 
@@ -31,6 +32,7 @@ router.post("/resend_code", async (req: Request, res: Response, next: NextFuncti
 router.use("/tiktok", tiktokRoutes);
 router.use("/facebook", facebookRoutes);
 router.use("/telegram", telegramRoutes);
+// router.use("/auth/google", googleCallback);
 
 export default function setUpRoutes(app: Application) {
     app.use(router);

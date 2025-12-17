@@ -9,6 +9,7 @@ import SendSMS from "../services/send_sms";
 import Platform from "../models/model_platform";
 import { PHONE_REGEX, EMAIL_REGEX, GOOGLE_TOKEN_REGEX, EXPIRE_TOKEN_TIME } from "../constants";
 import { get_env, empty, random_number, expiresAt, eLog } from "../utils/util";
+import { loginSchema } from "../helper";
 
 class UserController {
     private phoneRegex: RegExp;
@@ -24,7 +25,11 @@ class UserController {
     }
 
     async login(req: Request, res: Response) {
-        const { phone, password } = req.body;
+        const parsed = loginSchema.safeParse(req.body);
+        if (!parsed.success) {
+            return res.status(200).json({ code: 400, message: "Invalid request" });
+        }
+        const { phone, password } = parsed.data;
         try {
             const formatPhone = this.hashData.decryptData(phone);
             const formatPassword = this.hashData.decryptData(password);
