@@ -1,5 +1,5 @@
 import { Socket, Server as SocketIOServer } from 'socket.io';
-
+import { eLog } from './utils/util';
 export function registerSocketEvents(socket: Socket, io: SocketIOServer) {
 	socket.on('join', (room: string) => {
 		socket.join(room);
@@ -22,8 +22,7 @@ export function registerSocketEvents(socket: Socket, io: SocketIOServer) {
 	});
 
 	socket.on('disconnect', (reason) => {
-		// eslint-disable-next-line no-console
-		console.log(`Socket ${socket.id} disconnected: ${reason}`);
+		eLog(`Socket ${socket.id} disconnected: ${reason}`);
 	});
 }
 

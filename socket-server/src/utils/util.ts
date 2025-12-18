@@ -1,10 +1,18 @@
 import { Request } from "express";
 import dotenv from 'dotenv';
-import { MAX_TIMEOUT } from "../constants";
+import { MAX_TIMEOUT } from "../constants/index";
 dotenv.config();
 
-export function get_env(key: string, defaultValue: string = ''): string {
-    return process.env[key] || defaultValue;
+export function get_env(key: string, defaultValue: any = ""): any {
+    const val = process.env[key];
+    // Use nullish coalescing so empty string or '0' are preserved if intentionally set
+    const out = val ?? defaultValue;
+    // If default is a number, coerce to number when possible
+    if (typeof defaultValue === 'number') {
+        const num = Number(out);
+        return Number.isNaN(num) ? defaultValue : num;
+    }
+    return out;
 }
 
 export const getIP = (req: Request, type: "v4" | "v6" = "v4"): string => {

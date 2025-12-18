@@ -1,5 +1,5 @@
 import Redis from 'ioredis';
-import { get_env } from "../utils/util";
+import { get_env,eLog } from "../utils/util";
 
 const portStr = get_env("REDIS_PORT", "6379");
 const port = Number.parseInt(portStr, 10);
@@ -11,7 +11,7 @@ const redis = new Redis({
   connectTimeout: 10000
 });
 
-redis.on('connect', () => console.log('✅ Connected to Redis!'));
-redis.on('error', (err) => console.error('❌ Redis Error:', err));
+redis.on('connect', () => eLog('✅ Connected to Redis!'));
+redis.on('error', (err) => eLog('❌ Redis Error:', err));
 
 export default redis;
