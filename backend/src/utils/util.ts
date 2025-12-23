@@ -114,3 +114,8 @@ export async function safeWithTimeout<T>(
         next(error);
     }
 }
+
+export function str_lower(str: string): string {
+    if (!str) return "";
+    return str.toLowerCase();
+}

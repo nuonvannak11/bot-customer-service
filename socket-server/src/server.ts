@@ -3,13 +3,15 @@ import http from 'http';
 import cors from 'cors';
 import { initSocket } from './socket';
 import { get_env ,eLog} from './utils/util';
+import setUpRoutes from './routes';
 
 const PORT = get_env("PORT", 3000);
 console.log(PORT);
 const app = express();
 
 app.use(cors());
-app.get('/', (_req, res) => res.send({ ok: true, message: 'Socket server running' }));
+
+setUpRoutes(app);
 
 const server = http.createServer(app);
 const io = initSocket(server);

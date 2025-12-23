@@ -5,6 +5,11 @@ import { errorHandler } from "./middleware/errorHandler";
 import connectDB from "./config/db";
 import setUpRoutes from "./routes";
 import redis from "./config/redis";
+import ControllerR2 from "./controller/controller_r2";
+import fs from "fs/promises";
+import path from "path";
+
+
 
 const app = express();
 const port = get_env("PORT", "3100");
@@ -14,8 +19,26 @@ app.use(express.urlencoded({ extended: true }));
 
 middlewares(app);
 setUpRoutes(app);
+app.get('/r2', async (req, res) => {
+  const r2Controller = new ControllerR2();
+  try {
+    const filePath = path.resolve(__dirname, '../test.png');
+    const data = await fs.readFile(filePath);
+    const file = {
+      buffer: Buffer.from(data),
+      mimetype: 'image/png',
+      size: data.length,
+      originalname: 'test.png'
+    } as Express.Multer.File;
 
-
+    const result = await r2Controller.deleteFile("uploads/test.webp");
+    console.log(result);
+    return res.status(200).json(result);
+  } catch (error: any) {
+    console.error('R2 test upload error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
 
 app.get('/set', async (req, res) => {
   try {
