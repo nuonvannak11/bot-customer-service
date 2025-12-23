@@ -1,14 +1,15 @@
-import { NextFunction, Request, Response, Router, Application } from "express";
-import { safeWithTimeout } from "../utils/util";
+import type { Application } from 'express';
+import { createInternalRouter } from './internal';
+import type { IoServer } from '../socket';
+import { SessionStore } from '../sessionStore';
 
-
-const router = Router();
-
-router.post("/post-emit", async (req: Request, res: Response, next: NextFunction) => {
-    
-});
-
-export default function setUpRoutes(app: Application) {
-    app.use(router);
+export default function setUpRoutes(
+	app: Application,
+	options: {
+		io: IoServer;
+		sessionStore: SessionStore;
+		internalSecret: string;
+	}
+) {
+	app.use('/internal', createInternalRouter(options));
 }
-

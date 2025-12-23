@@ -5,9 +5,7 @@ dotenv.config();
 
 export function get_env(key: string, defaultValue: any = ""): any {
     const val = process.env[key];
-    // Use nullish coalescing so empty string or '0' are preserved if intentionally set
     const out = val ?? defaultValue;
-    // If default is a number, coerce to number when possible
     if (typeof defaultValue === 'number') {
         const num = Number(out);
         return Number.isNaN(num) ? defaultValue : num;

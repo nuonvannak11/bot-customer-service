@@ -1,24 +1,39 @@
 import express from 'express';
 import http from 'http';
-import cors from 'cors';
 import { initSocket } from './socket';
 import { get_env ,eLog} from './utils/util';
 import setUpRoutes from './routes';
+import { SessionStore } from './sessionStore';
 
 const PORT = get_env("PORT", 3000);
-console.log(PORT);
+const INTERNAL_SECRET = get_env('INTERNAL_SECRET') || get_env('AUTH_TOKEN') || get_env('SECRET_KEY');
+if (!INTERNAL_SECRET) {
+	throw new Error('Missing INTERNAL_SECRET (or AUTH_TOKEN / SECRET_KEY) required to access /internal/* routes');
+}
+
 const app = express();
 
-app.use(cors());
+app.use(express.json({ limit: '1mb' }));
 
-setUpRoutes(app);
+const sessionStore = new SessionStore();
 
 const server = http.createServer(app);
-const io = initSocket(server);
+const io = initSocket(server, sessionStore);
+
+setUpRoutes(app, { io, sessionStore, internalSecret: INTERNAL_SECRET });
 
 server.listen(PORT, () => {
 	eLog(`Server listening on port ${PORT}`);
 });
 
-export { app, server, io };
+function shutdown(signal: string) {
+	eLog(`Shutting down (${signal})...`);
+	io.close();
+	server.close(() => process.exit(0));
+	setTimeout(() => process.exit(1), 10_000).unref();
+}
 
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
+export { app, server, io };
