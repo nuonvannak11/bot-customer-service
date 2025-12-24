@@ -1,6 +1,7 @@
 import { PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import sharp from "sharp";
-import { get_env, empty, str_lower, eLog } from "../utils/util";
+import { get_env } from "../utils/get_env";
+import { empty, str_lower, eLog } from "../utils/util";
 import r2 from "../config/r2";
 
 class R2Controller {

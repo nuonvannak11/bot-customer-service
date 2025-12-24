@@ -1,5 +1,6 @@
 import axios from "axios";
-import { get_env, eLog } from "../utils/util";
+import { get_env } from "../utils/get_env";
+import { eLog } from "../utils/util";
 
 class ChatGPT {
   private url: string;

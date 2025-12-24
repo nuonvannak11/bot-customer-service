@@ -1,5 +1,6 @@
 import axios, { AxiosError } from "axios";
-import { get_env, empty } from "../utils/util";
+import { get_env } from "../utils/get_env";
+import { empty } from "../utils/util";
 
 interface SMSResponse {
     success?: boolean;

@@ -1,5 +1,6 @@
-import jwt, { SignOptions } from "jsonwebtoken";
-import { get_env, empty, eLog } from "../utils/util";
+import jwt, { SignOptions, type VerifyOptions } from "jsonwebtoken";
+import { empty, eLog } from "../utils/util";
+import { get_env } from '../utils/get_env';
 
 class CheckJWT {
     private secretKey: string;
@@ -8,10 +9,10 @@ class CheckJWT {
         this.secretKey = get_env("JWT_SECRET");
     }
 
-    public verifyToken(token: string): any | null {
+    public verifyToken(token: string, options?: VerifyOptions): any | null {
         if (empty(token)) return { status: false, decoded: null };
         try {
-            const decoded = jwt.verify(token, this.secretKey);
+            const decoded = jwt.verify(token, this.secretKey, options);
             if (decoded) {
                 return { status: true, decoded };
             }
@@ -49,4 +50,4 @@ class CheckJWT {
     }
 }
 
-export default CheckJWT;
+export default  CheckJWT;

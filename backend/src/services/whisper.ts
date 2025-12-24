@@ -1,7 +1,8 @@
 import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
-import { get_env } from "../utils/util";
+import { get_env } from "../utils/get_env";
+    
 
 export async function transcribe(filePath: string): Promise<string> {
     const openai = new OpenAI({ apiKey: get_env("OPENAI_API_KEY") });

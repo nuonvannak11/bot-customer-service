@@ -40,7 +40,6 @@ export function createSocketAuthMiddleware(options: {
 	sessionStore: SessionStore;
 }) {
 	const { jwtAlgorithms, sessionStore } = options;
-
 	return (socket: Socket<any, any, any, SocketData>, next: (err?: Error) => void) => {
 		void (async () => {
 			const token = readHandshakeToken(socket);
@@ -61,7 +60,6 @@ export function createSocketAuthMiddleware(options: {
 			} catch {
 				return next(new Error('AUTH_UNAVAILABLE'));
 			}
-
 			socket.data.user_id = userId;
 			socket.data.session_id = sessionId;
 			socket.user_id = userId;

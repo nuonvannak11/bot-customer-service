@@ -1,15 +1,16 @@
 import mongoose from "mongoose";
-import { eLog, get_env } from "../utils/util";
+import { get_env } from "../utils/get_env";
+import { eLog } from "../utils/util";
 
 const connectDB = async () => {
     try {
         const uri = get_env("MONGO_URI");
         await mongoose.connect(uri, {
-            autoIndex: true, 
-            maxPoolSize: 50,  
-            minPoolSize: 5,   
-            serverSelectionTimeoutMS: 5000, 
-            socketTimeoutMS: 45000,     
+            autoIndex: true,
+            maxPoolSize: 50,
+            minPoolSize: 5,
+            serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 45000,
         });
         eLog('✅ Connected to MongoDB!');
     } catch (err) {

@@ -1,5 +1,6 @@
 import Redis from 'ioredis';
-import { get_env, eLog } from "../utils/util";
+import { get_env } from "../utils/get_env";
+import { eLog } from "../utils/util";
 
 const portStr = get_env("REDIS_PORT", "6379");
 const port = Number.parseInt(portStr, 10);

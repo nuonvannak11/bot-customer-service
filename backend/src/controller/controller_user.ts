@@ -8,21 +8,17 @@ import PhoneVerify from "../models/model_phone_verify";
 import SendSMS from "../services/send_sms";
 import Platform from "../models/model_platform";
 import { PHONE_REGEX, EMAIL_REGEX, GOOGLE_TOKEN_REGEX, EXPIRE_TOKEN_TIME } from "../constants";
-import { get_env, empty, random_number, expiresAt, eLog } from "../utils/util";
+import { get_env } from "../utils/get_env";
+import { empty, random_number, expiresAt, eLog, generate_string } from "../utils/util";
 import { loginSchema } from "../helper";
+import { get } from "http";
+
+const hashData = new HashData();
+const checkJWT = new CheckJWT();
 
 class UserController {
-    private phoneRegex: RegExp;
-    private emailRegex: RegExp;
-    private hashData: HashData;
-    private checkJWT: CheckJWT;
-
-    constructor() {
-        this.phoneRegex = PHONE_REGEX;
-        this.emailRegex = EMAIL_REGEX;
-        this.hashData = new HashData();
-        this.checkJWT = new CheckJWT();
-    }
+    private readonly phoneRegex = PHONE_REGEX;
+    private readonly emailRegex = EMAIL_REGEX;
 
     async login(req: Request, res: Response) {
         const parsed = loginSchema.safeParse(req.body);
@@ -31,8 +27,8 @@ class UserController {
         }
         const { phone, password } = parsed.data;
         try {
-            const formatPhone = this.hashData.decryptData(phone);
-            const formatPassword = this.hashData.decryptData(password);
+            const formatPhone = hashData.decryptData(phone);
+            const formatPassword = hashData.decryptData(password);
             const validate = () => {
                 const errors: string[] = [];
                 if (empty(formatPhone)) errors.push("Phone is required");
@@ -46,7 +42,7 @@ class UserController {
             if (validationErrors.length > 0) {
                 return res.status(200).json({ code: 400, message: validationErrors[0] });
             }
-            const user = await AppUser.findOne({ phone: formatPhone });
+            const user = await AppUser.findOne({ phone: formatPhone }).select("+password +access_token_hash");
             if (!user) {
                 return res.status(200).json({ code: 401, message: "Invalid user not found" });
             }
@@ -57,49 +53,47 @@ class UserController {
             if (!isMatch) {
                 return res.status(200).json({ code: 401, message: "Invalid password" });
             }
-            const get_token = user.access_token;
-            const check_token = this.checkJWT.verifyToken(get_token || "");
+
+            const get_token = user.access_token_hash;
+            const check_token = checkJWT.verifyToken(get_token || "");
+
             if (!check_token.status) {
-                const token = this.checkJWT.generateToken(
-                    { userId: String(user._id) },
+                const token = checkJWT.generateToken(
+                    { user_id: String(user.user_id) },
                     EXPIRE_TOKEN_TIME
                 );
                 const updatedUser = await AppUser.updateOne(
                     { _id: user._id },
                     {
                         $set: {
-                            access_token: token,
+                            access_token_hash: token,
                         },
                     }
                 );
                 if (updatedUser.modifiedCount === 0) {
                     return res.status(200).json({ code: 500, message: "User update failed" });
                 }
-                const collections = {
-                    platforms: await Platform.find({ userId: user._id }),
-                    user,
-                }
-                const encryptedCollections = this.hashData.encryptData(JSON.stringify(collections));
-                res.status(200).json({ token, data: encryptedCollections });
+                const get_platform = await Platform.find({ user_id: user.user_id });
+                const collections = { platforms: get_platform, user }
+                const encryptedCollections = hashData.encryptData(JSON.stringify(collections));
+                return res.status(200).json({ token, data: encryptedCollections });
             } else {
-                const collections = {
-                    platforms: await Platform.find({ userId: user._id }),
-                    user,
-                }
-                const encryptedCollections = this.hashData.encryptData(JSON.stringify(collections));
-                res.status(200).json({ token: get_token, data: encryptedCollections });
+                const get_platform = await Platform.find({ user_id: user.user_id });
+                const collections = { platforms: get_platform, user }
+                const encryptedCollections = hashData.encryptData(JSON.stringify(collections));
+                return res.status(200).json({ token: get_token, data: encryptedCollections });
             }
         } catch (error) {
-            res.status(200).json({ code: 500, message: "Internal server error" });
+            return res.status(200).json({ code: 500, message: "Internal server error" });
         }
     }
 
     async register(req: Request, res: Response) {
         const { name, phone, password } = req.body;
         try {
-            const formatPhone = this.hashData.decryptData(phone);
-            const formatPassword = this.hashData.decryptData(password);
-            const formatName = this.hashData.decryptData(name);
+            const formatPhone = hashData.decryptData(phone);
+            const formatPassword = hashData.decryptData(password);
+            const formatName = hashData.decryptData(name);
             const validate = () => {
                 const errors: string[] = [];
                 if (empty(formatName)) errors.push("Name is required");
@@ -147,13 +141,13 @@ class UserController {
     async verifyPhone(req: Request, res: Response) {
         const { phone, code } = req.body;
         try {
-            const formatPhone = this.hashData.decryptData(phone);
-            const formatCode = this.hashData.decryptData(code);
+            const formatPhone = hashData.decryptData(phone);
+            const formatCode = hashData.decryptData(code);
             const validate = () => {
                 const errors: string[] = [];
                 if (empty(formatPhone)) errors.push("Phone is required");
                 if (empty(formatCode)) errors.push("Verification code is required");
-                if (!empty(formatPhone) && this.phoneRegex && !this.phoneRegex.test(formatPhone)) {
+                if (!empty(formatPhone) && !this.phoneRegex.test(formatPhone)) {
                     errors.push("Invalid phone number format");
                 }
                 return errors;
@@ -180,7 +174,13 @@ class UserController {
             }
 
             const { name, passwordHash } = record.tempData;
-            const newUser = new AppUser({ name, phone: formatPhone, password: passwordHash, phone_verified: true });
+            const newUser = new AppUser({
+                user_id: generate_string(),
+                name,
+                phone: formatPhone,
+                password: passwordHash,
+                phone_verified: true
+            });
             await newUser.save();
             await PhoneVerify.deleteOne({ phone: formatPhone });
             const user = await AppUser.findOne({ phone: formatPhone });
@@ -188,22 +188,23 @@ class UserController {
                 return res.status(200).json({ code: 500, message: "User creation failed" });
             }
 
-            const token = this.checkJWT.generateToken(
-                { userId: String(user._id) },
+            const token = checkJWT.generateToken(
+                { user_id: String(user.user_id) },
                 EXPIRE_TOKEN_TIME
             );
 
             await AppUser.updateOne(
                 { _id: user._id },
-                { $set: { access_token: token } }
+                { $set: { access_token_hash: token } }
             );
+
 
             const collections = {
                 platforms: await Platform.find({ userId: user._id }),
                 user,
             };
 
-            const encryptedCollections = this.hashData.encryptData(JSON.stringify(collections));
+            const encryptedCollections = hashData.encryptData(JSON.stringify(collections));
             res.status(200).json({
                 code: 200,
                 message: "Phone verified and user registered successfully",
@@ -219,7 +220,7 @@ class UserController {
     async resendCode(req: Request, res: Response) {
         const { phone } = req.body;
         try {
-            const formatPhone = this.hashData.decryptData(phone);
+            const formatPhone = hashData.decryptData(phone);
             if (!formatPhone || (this.phoneRegex && !this.phoneRegex.test(formatPhone))) {
                 return res.status(200).json({ code: 400, message: "Invalid phone number format" });
             }
@@ -249,7 +250,7 @@ class UserController {
     async googleLogin(req: Request, res: Response) {
         try {
             const { googleToken } = req.body;
-            const formatGoogleToken = this.hashData.decryptData(googleToken);
+            const formatGoogleToken = hashData.decryptData(googleToken);
             const validate = () => {
                 const errors: string[] = [];
                 if (empty(formatGoogleToken)) errors.push("Google token is required");
@@ -274,14 +275,14 @@ class UserController {
                 return res.status(200).json({ code: 400, message: "Invalid Google token" });
             }
             const { sub: google_id, email, name, picture } = payload;
-            let user = await AppUser.findOne({ $or: [{ google_id }, { email }] });
+            let user = await AppUser.findOne({ $or: [{ google_id }, { email }] }).select("+access_token_hash");
 
             if (user) {
-                const check_token = this.checkJWT.verifyToken(user.access_token || "");
-                let token = user.access_token;
+                const check_token = checkJWT.verifyToken(user.access_token_hash || "");
+                let token = user.access_token_hash;
 
                 if (!check_token.status) {
-                    token = this.checkJWT.generateToken({ userId: String(user._id) }, EXPIRE_TOKEN_TIME);
+                    token = checkJWT.generateToken({ user_id: String(user.user_id) }, EXPIRE_TOKEN_TIME);
                     await AppUser.updateOne(
                         { _id: user._id },
                         { $set: { access_token: token, name, avatar: picture } }
@@ -289,10 +290,10 @@ class UserController {
                 }
 
                 const collections = {
-                    platforms: await Platform.find({ userId: user._id }),
+                    platforms: await Platform.find({ user_id: user.user_id }),
                     user,
                 };
-                const encryptedCollections = this.hashData.encryptData(JSON.stringify(collections));
+                const encryptedCollections = hashData.encryptData(JSON.stringify(collections));
                 return res.status(200).json({
                     code: 200,
                     message: "Google login successful",
@@ -308,8 +309,8 @@ class UserController {
                 phone_verified: false,
             });
 
-            const token = this.checkJWT.generateToken(
-                { userId: String(user._id) },
+            const token = checkJWT.generateToken(
+                { user_id: String(user.user_id) },
                 EXPIRE_TOKEN_TIME
             );
 
@@ -323,7 +324,7 @@ class UserController {
                 user,
             };
 
-            const encryptedCollections = this.hashData.encryptData(JSON.stringify(collections));
+            const encryptedCollections = hashData.encryptData(JSON.stringify(collections));
             return res.status(200).json({
                 code: 200,
                 message: "Google login successful",

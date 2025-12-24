@@ -1,5 +1,5 @@
 import { S3Client } from "@aws-sdk/client-s3";
-import { get_env } from "../utils/util";
+import { get_env } from "../utils/get_env";
 
 const CF_ACCOUNT_ID = get_env("CF_ACCOUNT_ID");
 const CF_ACCESS_KEY = get_env("CF_ACCESS_KEY");
