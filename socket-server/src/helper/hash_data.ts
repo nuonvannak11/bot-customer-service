@@ -1,5 +1,6 @@
 import crypto from "crypto";
-import { get_env, empty } from "../utils/util";
+import { empty } from "../utils/util";
+import { get_env } from '../utils/get_envs';
 
 class HashData {
     private Algorithm = "aes-256-cbc";
@@ -39,4 +40,4 @@ class HashData {
     }
 }
 
-export default HashData;
+export default new HashData;

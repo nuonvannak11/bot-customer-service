@@ -1,5 +1,6 @@
 import Redis from "ioredis";
-import { get_env, eLog } from "../utils/util";
+import { eLog } from "../utils/util";
+import { get_env } from '../utils/get_envs';
 
 const port = get_env("REDIS_PORT", 6379);
 
@@ -11,6 +12,6 @@ const redis = new Redis({
 });
 
 redis.on("connect", () => eLog("Connected to Redis"));
-redis.on("error", (err) =>eLog("Redis Error:", err));
+redis.on("error", (err) => eLog("Redis Error:", err));
 
 export default redis;

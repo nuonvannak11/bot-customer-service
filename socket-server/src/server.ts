@@ -1,16 +1,16 @@
 import express from 'express';
 import http from 'http';
 import { initSocket } from './socket';
-import { get_env ,eLog} from './utils/util';
+import { eLog } from './utils/util';
+import { get_env } from './utils/get_envs';
 import setUpRoutes from './routes';
 import { SessionStore } from './sessionStore';
 
-const PORT = get_env("PORT", 3000);
-const INTERNAL_SECRET = get_env('INTERNAL_SECRET') || get_env('AUTH_TOKEN') || get_env('SECRET_KEY');
+const PORT = get_env("PORT", 3200);
+const INTERNAL_SECRET = get_env("SECRET_KEY");
 if (!INTERNAL_SECRET) {
-	throw new Error('Missing INTERNAL_SECRET (or AUTH_TOKEN / SECRET_KEY) required to access /internal/* routes');
+	throw new Error('Missing SECRET_KEY) required to access /internal/* routes');
 }
-
 const app = express();
 
 app.use(express.json({ limit: '1mb' }));

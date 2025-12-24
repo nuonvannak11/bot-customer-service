@@ -1,50 +1,6 @@
-import { Request } from "express";
-import dotenv from 'dotenv';
+import crypto from "crypto";
 import { MAX_TIMEOUT } from "../constants/index";
-dotenv.config();
-
-export function get_env(key: string, defaultValue: any = ""): any {
-    const val = process.env[key];
-    const out = val ?? defaultValue;
-    if (typeof defaultValue === 'number') {
-        const num = Number(out);
-        return Number.isNaN(num) ? defaultValue : num;
-    }
-    return out;
-}
-
-export const getIP = (req: Request, type: "v4" | "v6" = "v4"): string => {
-    let ip =
-        (req.headers["cf-connecting-ip"] as string) ||
-        (req.headers["x-real-ip"] as string) ||
-        (req.headers["x-forwarded-for"] as string)?.split(",")[0] ||
-        req.socket.remoteAddress ||
-        "";
-    if (ip === "::1") {
-        return "127.0.0.1";
-    }
-    if (ip.startsWith("::ffff:")) {
-        ip = ip.replace("::ffff:", "");
-    }
-
-    if (ip.includes(":")) {
-        if (!/^\d+\.\d+\.\d+\.\d+/.test(ip)) {
-            ip = ip.split(":")[0] || ip;
-        } else {
-            ip = ip.split(":")[0];
-        }
-    }
-    ip = ip.trim();
-    const ipv4Regex = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
-    const ipv6Regex = /^(([0-9A-Fa-f]{1,4}:){1,7}[0-9A-Fa-f]{1,4}|::1)$/;
-    if (type === "v4") {
-        return ipv4Regex.test(ip) ? ip : "unknown";
-    }
-    if (type === "v6") {
-        return ipv6Regex.test(ip) ? ip : "unknown";
-    }
-    return "unknown";
-};
+import { get_env } from "./get_envs";
 
 export function empty(data: any): boolean {
     if (data == null) return true;
@@ -119,4 +75,11 @@ export async function safeWithTimeout<T>(
         }
         next(error);
     }
+}
+
+export function generateSessionId(): string {
+    const random = crypto.randomBytes(16);
+    const time = process.hrtime.bigint().toString();
+    const hash = crypto.createHash("sha256").update(random).update(time).digest("hex");
+    return hash.slice(0, 16);
 }

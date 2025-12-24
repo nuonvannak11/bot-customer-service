@@ -1,21 +1,15 @@
 import crypto from 'crypto';
 import { Router, type NextFunction, type Request, type Response } from 'express';
 import type { IoServer } from '../socket';
+import userController from '../controller/controller_user';
+import { safeWithTimeout } from '../utils/util';
 import { SessionStore } from '../sessionStore';
-import type { SupportedUserEvent } from '../types/socket';
 
-const OBJECT_ID_REGEX = /^[a-f0-9]{24}$/i;
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-const SUPPORTED_USER_EVENTS: ReadonlySet<SupportedUserEvent> = new Set([
-	'profile:update',
-	'account:update',
-	'auth:logout',
-]);
-
-function userRoom(userId: string) {
-	return `user:${userId}`;
-}
+interface Options {
+	io: IoServer;
+	sessionStore: SessionStore;
+	internalSecret: string
+};
 
 function timingSafeEqual(a: string, b: string): boolean {
 	const aBuf = Buffer.from(a);
@@ -46,55 +40,17 @@ function internalAuth(internalSecret: string) {
 	};
 }
 
-export function createInternalRouter(options: { io: IoServer; sessionStore: SessionStore; internalSecret: string }) {
+export function createInternalRouter(options: Options) {
 	const { io, sessionStore, internalSecret } = options;
 	const router = Router();
 	router.use(internalAuth(internalSecret));
 
-	router.post('/emit', (req: Request, res: Response) => {
-		const { userId, event, payload } = (req.body || {}) as Record<string, unknown>;
-		if (typeof userId !== 'string' || !OBJECT_ID_REGEX.test(userId)) {
-			return res.status(400).json({ ok: false, error: 'INVALID_USER_ID' });
-		}
-		if (typeof event !== 'string' || !SUPPORTED_USER_EVENTS.has(event as SupportedUserEvent)) {
-			return res.status(400).json({ ok: false, error: 'INVALID_EVENT' });
-		}
-
-		io.to(userRoom(userId)).emit(event as SupportedUserEvent, payload);
-		return res.json({ ok: true });
+	router.post('/emit', async (req: Request, res: Response, next: NextFunction) => {
+		return await safeWithTimeout(userController.emit_event(io, req, res), next);
 	});
 
-	router.post('/force-logout', async (req: Request, res: Response) => {
-		const { userId, sessionId } = (req.body || {}) as Record<string, unknown>;
-		if (typeof userId !== 'string' || !OBJECT_ID_REGEX.test(userId)) {
-			return res.status(400).json({ ok: false, error: 'INVALID_USER_ID' });
-		}
-		if (typeof sessionId !== 'string' || !UUID_REGEX.test(sessionId)) {
-			return res.status(400).json({ ok: false, error: 'INVALID_SESSION_ID' });
-		}
-
-		try {
-			await sessionStore.setActiveSession(userId, sessionId);
-		} catch {
-			return res.status(503).json({ ok: false, error: 'REDIS_UNAVAILABLE' });
-		}
-
-		let sockets: Awaited<ReturnType<IoServer['fetchSockets']>>;
-		try {
-			sockets = await io.in(userRoom(userId)).fetchSockets();
-		} catch {
-			return res.status(500).json({ ok: false, error: 'FETCH_SOCKETS_FAILED' });
-		}
-		let disconnected = 0;
-
-		for (const socket of sockets) {
-			if (socket.data?.session_id === sessionId) continue;
-			socket.emit('auth:logout', { reason: 'SESSION_REPLACED' });
-			setTimeout(() => socket.disconnect(true), 10);
-			disconnected += 1;
-		}
-
-		return res.json({ ok: true, disconnected });
+	router.post('/force-logout', async (req: Request, res: Response, next: NextFunction) => {
+		return await safeWithTimeout(userController.force_logout(io, sessionStore, req, res), next);
 	});
 
 	return router;

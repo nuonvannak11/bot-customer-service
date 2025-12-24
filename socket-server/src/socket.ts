@@ -4,7 +4,8 @@ import { registerSocketEvents } from './events';
 import { createSocketAuthMiddleware } from './middleware';
 import type { ClientToServerEvents, InterServerEvents, ServerToClientEvents, SocketData } from './types/socket';
 import { SessionStore } from './sessionStore';
-import { get_env, eLog } from './utils/util';
+import { eLog } from './utils/util';
+import { get_env } from './utils/get_envs';
 import type { Algorithm } from 'jsonwebtoken';
 
 function getUserRoom(userId: string) {

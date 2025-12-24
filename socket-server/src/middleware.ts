@@ -4,9 +4,6 @@ import checkJwt from './helper/check_jwt';
 import { SessionStore } from './sessionStore';
 import type { SocketData } from './types/socket';
 
-const OBJECT_ID_REGEX = /^[a-f0-9]{24}$/i;
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
 type JwtAuthPayload = {
 	user_id: string;
 	session_id: string;
@@ -47,7 +44,7 @@ export function createSocketAuthMiddleware(options: {
 	return (socket: Socket<any, any, any, SocketData>, next: (err?: Error) => void) => {
 		void (async () => {
 			const token = readHandshakeToken(socket);
-			if (!token) return next(new Error('TOKEN_MISSING'));
+			if (!token) return next(new Error('UNAUTHORIZED'));
 
 			const verified = checkJwt.verifyToken(token, jwtAlgorithms ? { algorithms: jwtAlgorithms } : undefined);
 			if (!verified?.status) return next(new Error('TOKEN_INVALID'));
@@ -57,9 +54,6 @@ export function createSocketAuthMiddleware(options: {
 
 			const userId = decoded.user_id.trim();
 			const sessionId = decoded.session_id.trim();
-
-			if (!OBJECT_ID_REGEX.test(userId)) return next(new Error('TOKEN_INVALID'));
-			if (!UUID_REGEX.test(sessionId)) return next(new Error('TOKEN_INVALID'));
 
 			try {
 				const sessionCheck = await sessionStore.assertOrAdopt(userId, sessionId);

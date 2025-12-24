@@ -1,40 +1,35 @@
+
 import mongoose from "mongoose";
 
-const AppUserSchema = new mongoose.Schema(
+export const AppUserSchema = new mongoose.Schema(
     {
-        name: { type: String, required: true },
-        avatar: { type: String },
+        user_id: { type: String, required: true, unique: true },
         email: { type: String, unique: true, sparse: true },
-        password: { type: String },
-
         phone: { type: String, unique: true, sparse: true },
+        name: { type: String, required: true },
+        avatar: String,
+        password: { type: String, select: false },
         phone_verified: { type: Boolean, default: false },
-
         google_id: { type: String, unique: true, sparse: true },
-
-        access_token: { type: String },
-        refresh_token: { type: String },
-
+        access_token_hash: { type: String, select: false },
+        refresh_token_hash: { type: String, select: false },
         plan: {
             type: String,
             enum: ["free", "basic", "pro"],
-            default: "free",
+            default: "free"
         },
-
         role: {
             type: String,
-            enum: ["owner", "admin", "staff"],
-            default: "owner",
+            enum: ["owner", "admin", "user"],
+            default: "user"
         },
-        
         connectedAccountsCount: {
             facebook: { type: Number, default: 0 },
             tiktok: { type: Number, default: 0 },
             telegram: { type: Number, default: 0 },
-        }
+        },
     },
     { timestamps: true }
 );
-AppUserSchema.index({ name: 1, phone: 1, email: 1 });
+
 export default mongoose.model("AppUser", AppUserSchema);
-//# sourceMappingURL=model_user.js.map

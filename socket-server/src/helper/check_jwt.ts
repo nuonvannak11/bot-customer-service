@@ -1,5 +1,6 @@
 import jwt, { SignOptions, type VerifyOptions } from "jsonwebtoken";
-import { get_env, empty, eLog } from "../utils/util";
+import { empty, eLog } from "../utils/util";
+import { get_env } from '../utils/get_envs';
 
 class CheckJWT {
     private secretKey: string;

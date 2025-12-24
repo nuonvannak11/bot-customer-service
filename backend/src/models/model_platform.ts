@@ -1,36 +1,58 @@
 import mongoose from "mongoose";
 
-const PlatformSchema = new mongoose.Schema(
-    {
-        userId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "AppUser",
-            required: true,
-        },
-        platform: {
-            type: String,
-            enum: ["facebook", "telegram", "tiktok"],
-            required: true,
-        },
-
-        page_id: { type: String },
-        page_name: { type: String },
-        page_access_token: { type: String },
-        token_expire_at: { type: Date },
-
-        bot_token: { type: String },
-        bot_username: { type: String },
-        api_id: { type: String },
-        api_hash: { type: String },
-
-        tiktok_openid: { type: String },
-        tiktok_token: { type: String },
-
-        active: { type: Boolean, default: true },
+const PlatformSchema = new mongoose.Schema({
+    user_id: {
+        type: String,
+        required: true,
+        unique: true,
+        index: true,
     },
-    { timestamps: true }
-);
-
-PlatformSchema.index({ userId: 1, platform: 1 });
+    facebook: {
+        data: {
+            type: [
+                {
+                    page_id: { type: String, required: true },
+                    page_name: String,
+                    page_access_token_enc: { type: String, select: false },
+                    token_expire_at: Date,
+                }
+            ],
+            default: [],
+        }
+    },
+    telegram: {
+        bot: {
+            type: [
+                {
+                    bot_username: { type: String, required: true },
+                    bot_token_enc: { type: String, required: true, select: false },
+                }
+            ],
+            default: [],
+        },
+        user: {
+            type: [
+                {
+                    phone: { type: String, required: true },
+                    api_id: { type: String, required: true },
+                    api_hash_enc: { type: String, required: true, select: false },
+                }
+            ],
+            default: [],
+        }
+    },
+    tiktok: {
+        data: {
+            type: [
+                {
+                    tiktok_openid: String,
+                    tiktok_token_enc: { type: String, select: false },
+                }
+            ],
+            default: [],
+        }
+    },
+    active: { type: Boolean, default: true },
+}, { timestamps: true })
 
 export default mongoose.model("Platform", PlatformSchema);

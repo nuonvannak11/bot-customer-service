@@ -119,3 +119,15 @@ export function str_lower(str: string): string {
     if (!str) return "";
     return str.toLowerCase();
 }
+
+export function generate_string(): string {
+    const timePart = (Date.now() * 1000 + Number(process.hrtime.bigint() % 1000n))
+        .toString(36)
+        .slice(-6)
+    const letters = "abcdefghijklmnopqrstuvwxyz"
+    let randPart = ""
+    for (let i = 0; i < 4; i++) {
+        randPart += letters[Math.floor(Math.random() * 26)]
+    }
+    return timePart + randPart
+}
