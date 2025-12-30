@@ -44,6 +44,16 @@ class RedisController {
     async clearAll(): Promise<void> {
         await redis.flushall();
     }
+
+    async publish(channel: string, payload: unknown): Promise<void> {
+        try {
+            const message = JSON.stringify(payload);
+            await redis.publish(channel, message);
+        } catch (error) {
+            eLog(`❌ Redis Publish Error [${channel}]:`, error);
+            throw error;
+        }
+    }
 }
 
 export default new RedisController();

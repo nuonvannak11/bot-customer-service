@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import i18nConfig, { AppLocale } from "../../i18nConfig";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,18 +27,22 @@ type RootLayoutProps = {
 const isSupportedLocale = (locale?: string): locale is AppLocale =>
   !!locale && i18nConfig.locales.includes(locale as AppLocale);
 
-export default async function RootLayout({ children, params }: RootLayoutProps) {
+export default async function RootLayout({
+  children,
+  params,
+}: RootLayoutProps) {
   const { locale: routeLocale } = await params;
   const locale = isSupportedLocale(routeLocale)
     ? routeLocale
     : i18nConfig.defaultLocale;
 
   return (
-    <html lang={locale}>
+    <html lang={locale || "en"} suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

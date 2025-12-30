@@ -35,10 +35,7 @@ function isJwtAuthPayload(payload: unknown): payload is JwtAuthPayload {
 	return typeof maybe.user_id === 'string' && typeof maybe.session_id === 'string';
 }
 
-export function createSocketAuthMiddleware(options: {
-	jwtAlgorithms?: Algorithm[];
-	sessionStore: SessionStore;
-}) {
+export function createSocketAuthMiddleware(options: { jwtAlgorithms?: Algorithm[]; sessionStore: SessionStore; }) {
 	const { jwtAlgorithms, sessionStore } = options;
 	return (socket: Socket<any, any, any, SocketData>, next: (err?: Error) => void) => {
 		void (async () => {

@@ -1,5 +1,5 @@
 import crypto from "crypto";
 
-export function generateSessionId(): string {
-    return crypto.randomBytes(32).toString("base64url");
+export function get_session_id(): string {
+    return crypto.randomBytes(12).toString("hex");
 }

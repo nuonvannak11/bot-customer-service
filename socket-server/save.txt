@@ -1,0 +1,85 @@
+io.on("connection", async (socket) => {
+  const userId = socket.user_id;
+  const socketId = socket.id;
+
+  const key = `active_sockets:${userId}`;
+
+  // get current sockets for user
+  let sockets: string[] = JSON.parse(
+    (await redis.get(key)) || "[]"
+  );
+
+  // remove dead sockets
+  sockets = sockets.filter(id => io.sockets.sockets.has(id));
+
+  // 🚫 allow max 2 tabs only
+  if (sockets.length >= 2) {
+    socket.emit("blocked", {
+      reason: "Only 2 tabs allowed",
+    });
+    socket.disconnect();
+    return;
+  }
+
+  // ✅ allow connection
+  sockets.push(socketId);
+  await redis.set(key, JSON.stringify(sockets));
+
+  // join user room
+  socket.join(`user:${userId}`);
+
+  console.log(`user ${userId} connected:`, socketId);
+
+  // cleanup on disconnect
+  socket.on("disconnect", async () => {
+    let list: string[] = JSON.parse(
+      (await redis.get(key)) || "[]"
+    );
+
+    list = list.filter(id => id !== socketId);
+    await redis.set(key, JSON.stringify(list));
+
+    console.log(`user ${userId} disconnected:`, socketId);
+  });
+});
+
+
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  const decoded = verifyJWT(token); // your CheckJWT
+
+  if (!decoded) return next(new Error("unauthorized"));
+
+  socket.user_id = decoded.user_id;
+  next();
+});
+
+
+///////
+
+import { io } from "socket.io-client";
+
+export const socket = io("http://localhost:4001", {
+  auth: {
+    token: jwt, // JWT from login
+  },
+});
+
+socket.on("connect", () => {
+  console.log("connected", socket.id);
+});
+
+socket.on("blocked", (msg) => {
+  alert(msg.reason);
+  socket.disconnect();
+});
+
+socket.on("force_logout", (msg) => {
+  alert(msg.reason);
+  socket.disconnect();
+  window.location.href = "/login";
+});
+
+socket.on("data", (payload) => {
+  console.log("received data:", payload);
+});

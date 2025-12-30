@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { empty } from "../utils/util";
-import { get_env } from '../utils/get_envs';
+import { get_env } from '../utils/get_env';
 
 class HashData {
     private Algorithm = "aes-256-cbc";

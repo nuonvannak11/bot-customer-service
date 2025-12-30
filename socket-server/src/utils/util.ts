@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { MAX_TIMEOUT } from "../constants/index";
-import { get_env } from "./get_envs";
+import { get_env } from "./get_env";
 
 export function empty(data: any): boolean {
     if (data == null) return true;

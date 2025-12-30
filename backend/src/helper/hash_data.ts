@@ -40,4 +40,4 @@ class HashData {
     }
 }
 
-export default  HashData;
+export default new HashData();

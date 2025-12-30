@@ -1,19 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
 import { useTranslation } from "react-i18next";
+import GoogleLoginButton from "@/components/GoogleLoginButton";
+import Script from "next/script";
 
 const LoginRegister = () => {
   const { t } = useTranslation();
   const [formType, setFormType] = useState<"login" | "register">("login");
-
-  const handleGoogleLogin = () => {
-    signIn("google");
-  };
-
+  const [ready, setReady] = useState(false);
   return (
     <div className="w-full max-w-xl mx-auto">
+      <Script
+        src="https://accounts.google.com/gsi/client"
+        strategy="afterInteractive"
+        onLoad={() => {
+          setReady(true);
+        }}
+      />
       <div className="relative overflow-hidden rounded-[28px]">
         <div
           className="pointer-events-none absolute inset-0 rounded-[28px] bg-linear-to-r from-indigo-500 via-purple-500 to-cyan-400 opacity-60 blur-2xl"
@@ -38,8 +42,7 @@ const LoginRegister = () => {
                   ? "bg-white text-slate-900 shadow-lg"
                   : "text-slate-200 hover:text-white"
               }`}
-              onClick={() => setFormType("login")}
-            >
+              onClick={() => setFormType("login")}>
               {t("login")}
             </button>
             <button
@@ -49,8 +52,7 @@ const LoginRegister = () => {
                   ? "bg-white text-slate-900 shadow-lg"
                   : "text-slate-200 hover:text-white"
               }`}
-              onClick={() => setFormType("register")}
-            >
+              onClick={() => setFormType("register")}>
               {t("register")}
             </button>
           </div>
@@ -60,8 +62,7 @@ const LoginRegister = () => {
               <div className="space-y-2">
                 <label
                   htmlFor="login-email"
-                  className="block text-sm font-medium text-slate-200"
-                >
+                  className="block text-sm font-medium text-slate-200">
                   {t("email_address")}
                 </label>
                 <input
@@ -76,8 +77,7 @@ const LoginRegister = () => {
               <div className="space-y-2">
                 <label
                   htmlFor="login-password"
-                  className="block text-sm font-medium text-slate-200"
-                >
+                  className="block text-sm font-medium text-slate-200">
                   {t("password")}
                 </label>
                 <input
@@ -91,8 +91,7 @@ const LoginRegister = () => {
 
               <button
                 type="submit"
-                className="w-full rounded-2xl bg-linear-to-r from-indigo-500 via-purple-500 to-cyan-400 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-900/40 transition hover:brightness-110 cursor-pointer"
-              >
+                className="w-full rounded-2xl bg-linear-to-r from-indigo-500 via-purple-500 to-cyan-400 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-900/40 transition hover:brightness-110 cursor-pointer">
                 {t("log_in")}
               </button>
             </form>
@@ -103,8 +102,7 @@ const LoginRegister = () => {
               <div className="space-y-2">
                 <label
                   htmlFor="register-name"
-                  className="block text-sm font-medium text-slate-200"
-                >
+                  className="block text-sm font-medium text-slate-200">
                   {t("full_name")}
                 </label>
                 <input
@@ -119,8 +117,7 @@ const LoginRegister = () => {
               <div className="space-y-2">
                 <label
                   htmlFor="register-email"
-                  className="block text-sm font-medium text-slate-200"
-                >
+                  className="block text-sm font-medium text-slate-200">
                   {t("email_address")}
                 </label>
                 <input
@@ -135,8 +132,7 @@ const LoginRegister = () => {
               <div className="space-y-2">
                 <label
                   htmlFor="register-password"
-                  className="block text-sm font-medium text-slate-200"
-                >
+                  className="block text-sm font-medium text-slate-200">
                   {t("password")}
                 </label>
                 <input
@@ -150,8 +146,7 @@ const LoginRegister = () => {
 
               <button
                 type="submit"
-                className="w-full rounded-2xl bg-linear-to-r from-emerald-400 via-teal-400 to-cyan-400 px-4 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-emerald-900/30 transition hover:brightness-110 cursor-pointer"
-              >
+                className="w-full rounded-2xl bg-linear-to-r from-emerald-400 via-teal-400 to-cyan-400 px-4 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-emerald-900/30 transition hover:brightness-110 cursor-pointer">
                 {t("register_account")}
               </button>
             </form>
@@ -163,17 +158,7 @@ const LoginRegister = () => {
               <span>{t("or_continue")}</span>
               <span className="h-px flex-1 bg-linear-to-r from-transparent via-white/25 to-transparent" />
             </div>
-            <button
-              type="button"
-              onClick={handleGoogleLogin}
-              className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl border border-white/20 bg-white/10 px-3 py-2 text-sm font-semibold text-white transition hover:border-white/40 cursor-pointer"
-            >
-              <span className="absolute inset-0 bg-white/5 opacity-0 transition duration-200 group-hover:opacity-100" />
-              <span className="relative flex h-8 w-8 items-center justify-center rounded-xl bg-white">
-                <span className="text-base font-semibold text-slate-900">G</span>
-              </span>
-              <span className="relative">{t("google_login")}</span>
-            </button>
+            <GoogleLoginButton ready={ready} />
           </div>
         </div>
       </div>

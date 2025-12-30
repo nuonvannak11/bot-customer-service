@@ -13,10 +13,7 @@ export class SessionStore {
 		return active ?? undefined;
 	}
 
-	public async assertOrAdopt(
-		userId: string,
-		sessionId: string
-	): Promise<{ ok: true } | { ok: false; reason: 'SESSION_MISMATCH' }> {
+	public async assertOrAdopt(userId: string, sessionId: string): Promise<{ ok: true } | { ok: false; reason: 'SESSION_MISMATCH' }> {
 		const key = this.key(userId);
 		const active = await redisController.getOrThrow<string>(key);
 		if (!active) {

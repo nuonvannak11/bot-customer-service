@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { OAuth2Client } from "google-auth-library";
 import bcrypt from "bcryptjs";
 import AppUser from "../models/model_user";
-import HashData from "../helper/hash_data";
+import hashData from "../helper/hash_data";
 import CheckJWT from "../helper/check_jwt";
 import PhoneVerify from "../models/model_phone_verify";
 import SendSMS from "../services/send_sms";
@@ -11,16 +11,13 @@ import { PHONE_REGEX, EMAIL_REGEX, GOOGLE_TOKEN_REGEX, EXPIRE_TOKEN_TIME } from 
 import { get_env } from "../utils/get_env";
 import { empty, random_number, expiresAt, eLog, generate_string } from "../utils/util";
 import { loginSchema } from "../helper";
-import { get } from "http";
-
-const hashData = new HashData();
-const checkJWT = new CheckJWT();
+import { get_session_id } from "../helper/random";
 
 class UserController {
     private readonly phoneRegex = PHONE_REGEX;
     private readonly emailRegex = EMAIL_REGEX;
 
-    async login(req: Request, res: Response) {
+    public async login(req: Request, res: Response) {
         const parsed = loginSchema.safeParse(req.body);
         if (!parsed.success) {
             return res.status(200).json({ code: 400, message: "Invalid request" });
@@ -55,11 +52,14 @@ class UserController {
             }
 
             const get_token = user.access_token_hash;
-            const check_token = checkJWT.verifyToken(get_token || "");
+            const check_token = CheckJWT.verifyToken(get_token || "");
 
             if (!check_token.status) {
-                const token = checkJWT.generateToken(
-                    { user_id: String(user.user_id) },
+                const token = CheckJWT.generateToken(
+                    {
+                        user_id: String(user.user_id),
+                        session_id: get_session_id(),
+                    },
                     EXPIRE_TOKEN_TIME
                 );
                 const updatedUser = await AppUser.updateOne(
@@ -88,7 +88,7 @@ class UserController {
         }
     }
 
-    async register(req: Request, res: Response) {
+    public async register(req: Request, res: Response) {
         const { name, phone, password } = req.body;
         try {
             const formatPhone = hashData.decryptData(phone);
@@ -138,7 +138,7 @@ class UserController {
         }
     }
 
-    async verifyPhone(req: Request, res: Response) {
+    public async verifyPhone(req: Request, res: Response) {
         const { phone, code } = req.body;
         try {
             const formatPhone = hashData.decryptData(phone);
@@ -187,25 +187,25 @@ class UserController {
             if (!user) {
                 return res.status(200).json({ code: 500, message: "User creation failed" });
             }
-
-            const token = checkJWT.generateToken(
-                { user_id: String(user.user_id) },
+            const token = CheckJWT.generateToken(
+                {
+                    user_id: String(user.user_id),
+                    session_id: get_session_id(),
+                },
                 EXPIRE_TOKEN_TIME
             );
-
             await AppUser.updateOne(
                 { _id: user._id },
-                { $set: { access_token_hash: token } }
+                {
+                    $set: {
+                        access_token_hash: token
+                    }
+                }
             );
-
-
-            const collections = {
-                platforms: await Platform.find({ userId: user._id }),
-                user,
-            };
-
+            const get_platform = await Platform.find({ user_id: user.user_id });
+            const collections = { platforms: get_platform, user };
             const encryptedCollections = hashData.encryptData(JSON.stringify(collections));
-            res.status(200).json({
+            return res.status(200).json({
                 code: 200,
                 message: "Phone verified and user registered successfully",
                 token,
@@ -217,7 +217,7 @@ class UserController {
         }
     }
 
-    async resendCode(req: Request, res: Response) {
+    public async resendCode(req: Request, res: Response) {
         const { phone } = req.body;
         try {
             const formatPhone = hashData.decryptData(phone);
@@ -247,7 +247,7 @@ class UserController {
         }
     }
 
-    async googleLogin(req: Request, res: Response) {
+    public async googleLogin(req: Request, res: Response) {
         try {
             const { googleToken } = req.body;
             const formatGoogleToken = hashData.decryptData(googleToken);
@@ -268,63 +268,52 @@ class UserController {
                 idToken: formatGoogleToken,
                 audience: get_env("GOOGLE_CLIENT_ID")
             });
-
             const payload = ticket.getPayload();
-
             if (!payload) {
                 return res.status(200).json({ code: 400, message: "Invalid Google token" });
             }
             const { sub: google_id, email, name, picture } = payload;
-            let user = await AppUser.findOne({ $or: [{ google_id }, { email }] }).select("+access_token_hash");
-
-            if (user) {
-                const check_token = checkJWT.verifyToken(user.access_token_hash || "");
-                let token = user.access_token_hash;
-
-                if (!check_token.status) {
-                    token = checkJWT.generateToken({ user_id: String(user.user_id) }, EXPIRE_TOKEN_TIME);
-                    await AppUser.updateOne(
-                        { _id: user._id },
-                        { $set: { access_token: token, name, avatar: picture } }
-                    );
-                }
-
-                const collections = {
-                    platforms: await Platform.find({ user_id: user.user_id }),
-                    user,
-                };
-                const encryptedCollections = hashData.encryptData(JSON.stringify(collections));
-                return res.status(200).json({
-                    code: 200,
-                    message: "Google login successful",
-                    token,
-                    data: encryptedCollections,
+            let user = await AppUser.findOne({ email }).select("+access_token_hash").lean();
+            if (!user) {
+                const created = await AppUser.create({
+                    user_id: generate_string(),
+                    google_id,
+                    email,
+                    name,
+                    avatar: picture,
+                    phone_verified: false,
                 });
+                user = created.toObject();
             }
-            user = await AppUser.create({
-                google_id,
-                email,
-                name,
-                avatar: picture,
-                phone_verified: false,
-            });
 
-            const token = checkJWT.generateToken(
-                { user_id: String(user.user_id) },
-                EXPIRE_TOKEN_TIME
-            );
+            let token = user.access_token_hash;
+            const check_token = CheckJWT.verifyToken(token || "");
 
-            await AppUser.updateOne(
-                { _id: user._id },
-                { $set: { access_token: token } }
-            );
+            if (!check_token.status) {
+                token = CheckJWT.generateToken(
+                    {
+                        user_id: String(user.user_id),
+                        session_id: get_session_id(),
+                    },
+                    EXPIRE_TOKEN_TIME
+                );
+                await AppUser.updateOne(
+                    { _id: user._id },
+                    {
+                        $set: {
+                            access_token_hash: token,
+                            name,
+                            avatar: picture,
+                        },
+                    }
+                );
+            }
 
-            const collections = {
-                platforms: await Platform.find({ userId: user._id }),
-                user,
-            };
-
+            const platforms = await Platform.find({ user_id: user.user_id }).lean();
+            delete user.access_token_hash;
+            const collections = { ...user, platforms };
             const encryptedCollections = hashData.encryptData(JSON.stringify(collections));
+
             return res.status(200).json({
                 code: 200,
                 message: "Google login successful",
@@ -334,6 +323,20 @@ class UserController {
         } catch (err) {
             eLog(err);
             res.status(500).json({ code: 500, message: "Google login failed" });
+        }
+    }
+
+    public async check_token(req: Request, res: Response) {
+        try {
+            const { token } = req.body;
+            const check_token = CheckJWT.verifyToken(token);
+            if (!check_token.status) {
+                return res.status(200).json({ code: 401, message: "Invalid token" });
+            } else {
+                return res.status(200).json({ code: 200, message: "Valid token" });
+            }
+        } catch (err) {
+            eLog(err);
         }
     }
 }

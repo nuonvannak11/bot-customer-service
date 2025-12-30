@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { getIP } from "../utils/util";
+import { getIP } from "../helper/get_ip";
 
 export const allowIP = (allowedIPs: string[]) => {
     return (req: Request, res: Response, next: NextFunction) => {

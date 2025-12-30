@@ -3,11 +3,7 @@ import { empty, eLog } from "../utils/util";
 import { get_env } from '../utils/get_env';
 
 class CheckJWT {
-    private secretKey: string;
-
-    constructor() {
-        this.secretKey = get_env("JWT_SECRET");
-    }
+    private readonly secretKey = get_env("JWT_SECRET");
 
     public verifyToken(token: string, options?: VerifyOptions): any | null {
         if (empty(token)) return { status: false, decoded: null };
@@ -50,4 +46,4 @@ class CheckJWT {
     }
 }
 
-export default  CheckJWT;
+export default new CheckJWT();

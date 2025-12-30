@@ -1,4 +1,9 @@
-export type SupportedUserEvent = 'profile:update' | 'account:update' | 'auth:logout';
+export const supportedUserEvents = ['profile:update', 'account:update', 'auth:logout'] as const;
+export type SupportedUserEvent = typeof supportedUserEvents[number];
+
+export function isSupportedUserEvent(value: string): value is SupportedUserEvent {
+	return (supportedUserEvents as readonly string[]).includes(value);
+}
 
 export interface ServerToClientEvents {
 	'profile:update': (payload: unknown) => void;

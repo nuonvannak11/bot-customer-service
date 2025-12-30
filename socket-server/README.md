@@ -3,14 +3,16 @@
 Dedicated real-time Socket Server for `bot-customer-service` (no DB, no login/business logic).
 
 ## Features
-- Express HTTP server (internal routes only)
+- Express HTTP server (optional internal routes)
 - Socket.IO initialization
 - JWT authentication in Socket.IO handshake (`src/helper/check_jwt.ts`)
 - Per-user room auto-join: `user:{user_id}`
 - Single-login enforcement via Redis (stores active `session_id` per `user_id`)
-- Internal routes (protected by `INTERNAL_SECRET`) to:
-  - emit supported events to a user
+- Redis Pub/Sub control channels for:
+  - emitting supported events to a user
   - force-logout old sessions
+  - kicking all sockets for a user
+- Optional internal HTTP routes (protected by `INTERNAL_SECRET`) for emit + force-logout
 
 ## Quick start
 1. Install dependencies:
@@ -37,7 +39,9 @@ npm start
 - `JWT_SECRET` (required): secret used to verify JWTs
 - `JWT_ALGORITHMS` (optional): comma-separated list (defaults to `HS256`)
 - `CORS_ORIGIN` (optional): `*` or comma-separated origins (defaults to `*`)
-- `INTERNAL_SECRET` (recommended): Bearer token required for all `/internal/*` routes (fallbacks: `AUTH_TOKEN`, then `SECRET_KEY`)
+- `SOCKET_CONTROL_PREFIX` (optional): Redis Pub/Sub prefix (defaults to `socket:control`)
+- `INTERNAL_SECRET` (optional): Bearer token required for all `/internal/*` routes (fallbacks: `AUTH_TOKEN`, then `SECRET_KEY`)
+- `SECRET_KEY` / `SECRET_IV` (required for encrypted control payloads): AES key + iv used by `hash_data`
 - `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASS`: Redis connection (required for session enforcement)
 
 ## Socket authentication (website client)
@@ -60,6 +64,7 @@ On successful handshake the server:
 - joins room `user:{user_id}`
 
 ## Internal routes (API server -> socket server)
+Internal routes are optional and only enabled if `INTERNAL_SECRET`/`AUTH_TOKEN`/`SECRET_KEY` is set.
 All internal routes require `Authorization: Bearer <INTERNAL_SECRET>`.
 
 1) `POST /internal/emit`
@@ -76,6 +81,32 @@ Emits to room `user:{userId}`. Supported events:
 { "userId": "string", "sessionId": "string" }
 ```
 Sets the active `sessionId` and disconnects all sockets for the user except that session (emits `auth:logout` first).
+
+## Redis Pub/Sub control (recommended)
+Channels are derived from `SOCKET_CONTROL_PREFIX` (default `socket:control`):
+- `socket:control:emit`
+- `socket:control:force-logout`
+- `socket:control:kick`
+
+Messages are JSON. By default, `encrypted` is `true` and the fields are encrypted with the same
+`SECRET_KEY`/`SECRET_IV` AES helper used by internal routes. Set `encrypted: false` for plaintext
+payloads.
+
+1) Emit to a user (`socket:control:emit`)
+```json
+{ "userId": "enc", "event": "enc", "payload": "enc" }
+```
+
+2) Force logout old sessions (`socket:control:force-logout`)
+```json
+{ "userId": "enc", "sessionId": "enc" }
+```
+
+3) Kick a user (`socket:control:kick`)
+```json
+{ "userId": "enc", "reason": "enc", "invalidateSession": true }
+```
+Set `invalidateSession` to `true` to replace the stored session id and block reconnects with old tokens.
 
 ## Files
 - `src/server.ts` - Express + HTTP server + graceful shutdown
