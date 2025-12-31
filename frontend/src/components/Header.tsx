@@ -15,7 +15,6 @@ export default function Header({
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  // Prevent hydration mismatch by waiting for mount
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -33,14 +32,9 @@ export default function Header({
         >
           <Menu size={24} />
         </button>
-        <div>
-          <p className="text-xs text-slate-500 dark:text-slate-400">NexusAdmin</p>
-          <h1 className="text-lg font-semibold text-slate-800 dark:text-white">Dashboard</h1>
-        </div>
       </div>
 
       <div className="flex items-center gap-3 sm:gap-4">
-        {/* Search Bar */}
         <div className="hidden md:block relative">
           <span className="absolute inset-y-0 left-0 flex items-center pl-3">
             <Search size={16} className="text-slate-400" />
@@ -51,23 +45,14 @@ export default function Header({
             placeholder="Search pages, users, logs..."
           />
         </div>
-
-        {/* Language Switcher */}
         <LanguageDropdown />
-
-        {/* Theme Toggle (Working now!) */}
         <button 
           onClick={toggleTheme} 
           className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors outline-none focus:ring-2 focus:ring-indigo-500/20"
         >
-          {/* Only show icon after client mount to prevent hydration error */}
           {mounted && theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
         </button>
-
-        {/* Notification Dropdown (Working now!) */}
         <NotificationDropdown />
-
-        {/* Profile Dropdown */}
         <ProfileDropdown />
       </div>
     </header>

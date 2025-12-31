@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
   LayoutGrid, LayoutDashboard, FileText, Send, Smartphone, 
-  Facebook, Video, Bell, BarChart2, Settings,
-  LayoutTemplate, Contact, Users, Megaphone, CheckCircle, ShieldCheck, MoreHorizontal
+  Facebook, Bell, BarChart2, Settings,
+  LayoutTemplate, Contact, Users, Megaphone, ShieldCheck, MoreHorizontal
 } from "lucide-react";
 import clsx from "clsx";
 import SidebarDropdown from "./SidebarDropdown";
@@ -26,8 +26,7 @@ export default function Sidebar({ sidebarOpen, defaultOpenState }: { sidebarOpen
     { title: "Contact", href: "/telegram/contact", icon: Contact },
     { title: "Group", href: "/telegram/group", icon: Users },
     { title: "Channel", href: "/telegram/channel", icon: Megaphone },
-    { title: "Accept", href: "/telegram/accept", icon: CheckCircle },
-    { title: "Protect File", href: "/telegram/protect", icon: ShieldCheck },
+    { title: "Protect", href: "/telegram/protect", icon: ShieldCheck },
     { title: "Other", href: "/telegram/other", icon: MoreHorizontal },
   ];
 
@@ -41,7 +40,7 @@ export default function Sidebar({ sidebarOpen, defaultOpenState }: { sidebarOpen
       <div className="flex items-center justify-center h-16 border-b border-gray-200 dark:border-slate-800">
         <div className="flex items-center gap-2 font-bold text-xl text-indigo-500">
           <LayoutGrid size={24} />
-          <span>NexusAdmin</span>
+          <span>Management System</span>
         </div>
       </div>
 
@@ -57,8 +56,7 @@ export default function Sidebar({ sidebarOpen, defaultOpenState }: { sidebarOpen
         </Link>
 
         <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">Integrations</p>
-        
-        {/* Dropdown with Icons */}
+  
         <SidebarDropdown 
           icon={Send} 
           title="Telegram" 

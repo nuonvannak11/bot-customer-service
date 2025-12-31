@@ -37,7 +37,7 @@ export default function NotificationDropdown() {
   return (
     <DropdownMenu.Root onOpenChange={(open) => open && setTimeout(animateIn, 10)}>
       <DropdownMenu.Trigger asChild>
-        <button className="relative p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors outline-none focus:ring-2 focus:ring-indigo-500/20">
+        <button suppressHydrationWarning={true}  className="relative p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors outline-none focus:ring-2 focus:ring-indigo-500/20">
           <Bell size={20} />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
         </button>

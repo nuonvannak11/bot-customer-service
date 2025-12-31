@@ -36,6 +36,8 @@ export default function SidebarDropdown({
   const isActiveParent = pathname.startsWith(mainHref);
   
   const [isExpanded, setIsExpanded] = useState(defaultOpen);
+  const isFirstRender = useRef(true);
+  
   const contentRef = useRef<HTMLDivElement>(null);
   const arrowRef = useRef<HTMLDivElement>(null);
 
@@ -48,25 +50,27 @@ export default function SidebarDropdown({
   };
 
   useGSAP(() => {
-    if (defaultOpen && isExpanded && contentRef.current && arrowRef.current) {
-       gsap.set(contentRef.current, { height: "auto", opacity: 1 });
-       gsap.set(arrowRef.current, { rotation: 180 });
-       return; 
+    if (!contentRef.current || !arrowRef.current) return;
+
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      if (defaultOpen) {
+         gsap.set(contentRef.current, { height: "auto", opacity: 1 });
+         gsap.set(arrowRef.current, { rotation: 180 });
+      }
+      return; 
     }
-    
-    if (!contentRef.current) return;
 
     if (isExpanded) {
       gsap.to(contentRef.current, { height: "auto", opacity: 1, duration: 0.3, ease: "power2.out" });
-      gsap.to(arrowRef.current, { rotation: 180, duration: 0.3 });
+      gsap.to(arrowRef.current, { rotation: 180, duration: 0.3, ease: "power2.out" }); // Added ease here too
     } else {
       gsap.to(contentRef.current, { height: 0, opacity: 0, duration: 0.2, ease: "power2.in" });
-      gsap.to(arrowRef.current, { rotation: 0, duration: 0.3 });
+      gsap.to(arrowRef.current, { rotation: 0, duration: 0.3, ease: "power2.out" });
     }
   }, [isExpanded]);
 
   return (
-    // 1. REPLACED Collapsible.Root with div
     <div className="relative group">
       <button
         type="button"
@@ -77,7 +81,7 @@ export default function SidebarDropdown({
             : "text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
         )}
         onClick={handleToggle}
-        aria-expanded={isExpanded} // Manually added for accessibility
+        aria-expanded={isExpanded}
       >
         <div className="flex items-center flex-1">
           <Icon size={20} className="mr-3 flex-shrink-0" />
@@ -85,12 +89,17 @@ export default function SidebarDropdown({
             {title}
           </span>
         </div>
-        <div ref={arrowRef}>
+        
+        {/* FIX: Square container (w-5 h-5) + Flex Center + origin-center */}
+        <div 
+          ref={arrowRef}
+          className="w-5 h-5 flex items-center justify-center origin-center"
+          style={{ transform: defaultOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+        >
            {isOpen && <ChevronDown size={14} />}
         </div>
       </button>
 
-      {/* 2. Standard DIV for content */}
       <div 
         ref={contentRef} 
         className={clsx("overflow-hidden", defaultOpen ? "h-auto opacity-100" : "h-0 opacity-0")}

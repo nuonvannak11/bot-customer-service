@@ -32,7 +32,7 @@ export default function ProfileDropdown() {
       }
     }}>
       <DropdownMenu.Trigger asChild>
-        <button className="flex items-center cursor-pointer gap-2 p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors">
+        <button suppressHydrationWarning={true} className="flex items-center cursor-pointer gap-2 p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors">
           <img
             className="h-8 w-8 rounded-full object-cover border border-slate-200 dark:border-slate-700"
             src="https://ui-avatars.com/api/?name=Admin+User&background=6366f1&color=fff&size=96"

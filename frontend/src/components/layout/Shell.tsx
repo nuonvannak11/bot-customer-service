@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import Sidebar from "@/components/Sidebar"; // Check your path
-import Header from "@/components/Header";   // Check your path
+import Sidebar from "@/components/Sidebar"; 
+import Header from "@/components/Header";
 
 export default function Shell({ 
   children,
-  defaultOpenState, // <--- Receive prop from Server
+  defaultOpenState, 
 }: { 
   children: React.ReactNode;
   defaultOpenState: Record<string, boolean>;
@@ -15,8 +15,6 @@ export default function Shell({
   
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 text-slate-800 dark:bg-slate-950 dark:text-slate-200">
-      
-      {/* Mobile Overlay */}
       {sidebarOpen && (
         <div 
           onClick={() => setSidebarOpen(false)}
@@ -24,7 +22,6 @@ export default function Shell({
         />
       )}
 
-      {/* Pass defaultOpenState to Sidebar */}
       <Sidebar 
         sidebarOpen={sidebarOpen}
         defaultOpenState={defaultOpenState} 
@@ -32,7 +29,7 @@ export default function Shell({
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Header setSidebarOpen={setSidebarOpen} />
-        <main className="flex-1 overflow-y-auto p-4 lg:p-8 scroll-smooth">
+        <main className="flex-1 overflow-y-auto p-2 lg:p-4 scroll-smooth">
           {children}
         </main>
       </div>
