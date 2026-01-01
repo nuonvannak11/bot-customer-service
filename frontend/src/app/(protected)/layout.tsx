@@ -20,8 +20,6 @@ export default async function ProtectedLayout({
   children: React.ReactNode;
 }) {
   const isAuthenticated = await checkAuth();
-
-  // Redirect if not logged in
   if (!isAuthenticated) {
     // redirect("/login"); // Uncomment this when ready
   }

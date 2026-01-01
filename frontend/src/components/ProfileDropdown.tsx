@@ -13,7 +13,7 @@ export default function ProfileDropdown() {
   const { contextSafe } = useGSAP({ scope: contentRef });
   const animateIn = contextSafe(() => {
     gsap.fromTo(
-      ".dropdown-content",
+      contentRef.current,
       { opacity: 0, y: -10, scale: 0.98 },
       { opacity: 1, y: 0, scale: 1, duration: 0.3, ease: "power2.out" }
     );

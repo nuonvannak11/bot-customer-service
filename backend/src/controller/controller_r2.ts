@@ -106,4 +106,4 @@ class R2Controller {
     }
 }
 
-export default R2Controller;
+export default new R2Controller;

@@ -13,7 +13,7 @@ export default function NotificationDropdown() {
 
   const animateIn = contextSafe(() => {
     gsap.fromTo(
-      ".notif-content",
+      contentRef.current,
       { opacity: 0, y: -8, scale: 0.96 },
       { opacity: 1, y: 0, scale: 1, duration: 0.25, ease: "power2.out" }
     );

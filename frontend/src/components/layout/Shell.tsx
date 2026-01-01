@@ -24,6 +24,7 @@ export default function Shell({
 
       <Sidebar 
         sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
         defaultOpenState={defaultOpenState} 
       />
 

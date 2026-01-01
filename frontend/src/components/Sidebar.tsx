@@ -4,14 +4,21 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
   LayoutGrid, LayoutDashboard, FileText, Send, Smartphone, 
-  Facebook, Bell, BarChart2, Settings,
+  Facebook, Bell, BarChart2, Settings, MessageSquare,
   LayoutTemplate, Contact, Users, Megaphone, ShieldCheck, MoreHorizontal
 } from "lucide-react";
 import clsx from "clsx";
 import SidebarDropdown from "./SidebarDropdown";
+import TiktokIcon from "./icons/TiktokIcon";
 
-export default function Sidebar({ sidebarOpen, defaultOpenState }: { sidebarOpen: boolean, defaultOpenState: Record<string, boolean> }) {
+export default function Sidebar({ sidebarOpen, setSidebarOpen, defaultOpenState }: { sidebarOpen: boolean, setSidebarOpen: (open: boolean) => void, defaultOpenState: Record<string, boolean> }) {
   const pathname = usePathname();
+
+  const handleLinkClick = () => {
+    if (window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
+  };
 
   const navItemClass = (path: string) =>
     clsx(
@@ -46,11 +53,11 @@ export default function Sidebar({ sidebarOpen, defaultOpenState }: { sidebarOpen
 
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
         <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Main</p>
-        <Link href="/dashboard" className={navItemClass("/dashboard")}>
+        <Link href="/dashboard" className={navItemClass("/dashboard")} onClick={handleLinkClick}>
           <LayoutDashboard size={20} className="mr-3" /> 
           <span className={clsx(sidebarOpen ? "block" : "hidden lg:block")}>Dashboard</span>
         </Link>
-        <Link href="/pages" className={navItemClass("/pages")}>
+        <Link href="/pages" className={navItemClass("/pages")} onClick={handleLinkClick}>
           <FileText size={20} className="mr-3" /> 
           <span className={clsx(sidebarOpen ? "block" : "hidden lg:block")}>Pages</span>
         </Link>
@@ -64,29 +71,33 @@ export default function Sidebar({ sidebarOpen, defaultOpenState }: { sidebarOpen
           items={telegramItems}
           isOpen={true} 
           defaultOpen={defaultOpenState["nexus_sidebar_telegram"] === true}
+          onLinkClick={handleLinkClick}
         />
 
-        <Link href="/mini-app" className={navItemClass("/mini-app")}>
+        <Link href="/mini-app" className={navItemClass("/mini-app")} onClick={handleLinkClick}>
           <Smartphone size={20} className="mr-3" /> Mini App
         </Link>
-        <Link href="/facebook" className={navItemClass("/facebook")}>
+        <Link href="/facebook" className={navItemClass("/facebook")} onClick={handleLinkClick}>
           <Facebook size={20} className="mr-3" /> Facebook
         </Link>
 
+         <Link href="/tiktok" className={navItemClass("/tiktok")} onClick={handleLinkClick}>
+          <TiktokIcon size={20} className="mr-3" /> Tiktok
+        </Link>
         <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">System</p>
-        <Link href="/alerts" className={navItemClass("/alerts")}>
+        <Link href="/alerts" className={navItemClass("/alerts")} onClick={handleLinkClick}>
           <Bell size={20} className="mr-3" /> Alerts
         </Link>
-        <Link href="/reports" className={navItemClass("/reports")}>
+        <Link href="/reports" className={navItemClass("/reports")} onClick={handleLinkClick}>
           <BarChart2 size={20} className="mr-3" /> Reports
         </Link>
-        <Link href="/settings" className={navItemClass("/settings")}>
+        <Link href="/settings" className={navItemClass("/settings")} onClick={handleLinkClick}>
           <Settings size={20} className="mr-3" /> Settings
         </Link>
       </nav>
 
       <div className="border-t border-gray-200 dark:border-slate-800 p-4">
-        <Link href="/profile" className="flex items-center w-full group">
+        <Link href="/profile" className="flex items-center w-full group" onClick={handleLinkClick}>
           <img
             className="h-9 w-9 rounded-full object-cover border border-slate-300 dark:border-slate-600"
             src="https://ui-avatars.com/api/?name=Admin+User&background=6366f1&color=fff"

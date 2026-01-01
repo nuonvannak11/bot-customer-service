@@ -28,7 +28,7 @@ const chatHistory = [
   { id: 8, sender: "user", text: "Great, thanks.", time: "10:42 AM" },
 ];
 
-export default function TelegramContactPage(contact: any) {
+export default function TelegramChanelPage(chanel: any) {
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const [isProfileOpen, setProfileOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");

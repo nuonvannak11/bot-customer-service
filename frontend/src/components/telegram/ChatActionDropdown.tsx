@@ -18,7 +18,11 @@ export default function ChatActionDropdown() {
   });
 
   return (
-    <DropdownMenu.Root onOpenChange={(open) => open && animateIn()}>
+    <DropdownMenu.Root onOpenChange={(open) => {
+      if (open) {
+        setTimeout(animateIn, 10);
+      }
+    }}>
       <DropdownMenu.Trigger asChild>
         <button className="outline-none">
           <MoreVertical 

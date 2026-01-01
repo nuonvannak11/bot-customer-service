@@ -22,6 +22,7 @@ interface SidebarDropdownProps {
   items: SubItem[];
   isOpen: boolean;
   defaultOpen?: boolean;
+  onLinkClick?: () => void;
 }
 
 export default function SidebarDropdown({
@@ -31,6 +32,7 @@ export default function SidebarDropdown({
   items,
   isOpen,
   defaultOpen = false,
+  onLinkClick,
 }: SidebarDropdownProps) {
   const pathname = usePathname();
   const isActiveParent = pathname.startsWith(mainHref);
@@ -109,6 +111,7 @@ export default function SidebarDropdown({
             <Link
               key={item.href}
               href={item.href}
+              onClick={onLinkClick}
               className={clsx(
                 "flex items-center px-3 py-2 text-xs font-medium rounded-lg transition-colors block",
                 pathname === item.href
