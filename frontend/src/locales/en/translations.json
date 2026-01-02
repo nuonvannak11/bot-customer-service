@@ -10,5 +10,6 @@
   "register_account": "Register Account",
   "auth_tagline": "Sign in or create your account to continue.",
   "or_continue": "or continue with",
-  "google_login": "Continue with Google"
+  "google_login": "Continue with Google",
+  "Search here...": "Search here..."
 }

@@ -8,7 +8,6 @@ export default function SettingsClient({ initialSettings }: { initialSettings: a
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden">
-      {/* TABS NAVIGATION */}
       <div className="border-b border-gray-200 dark:border-slate-800">
         <nav className="flex -mb-px overflow-x-auto">
           {['general', 'security', 'integrations', 'telegram'].map((tab) => (
@@ -16,7 +15,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: a
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={clsx(
-                "px-6 py-4 text-sm font-medium border-b-2 transition-colors capitalize whitespace-nowrap",
+                "px-6 py-4 text-sm cursor-pointer font-medium border-b-2 transition-colors capitalize whitespace-nowrap",
                 activeTab === tab
                   ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
                   : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
@@ -27,11 +26,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: a
           ))}
         </nav>
       </div>
-
-      {/* CONTENT PANELS */}
       <div className="p-6 space-y-6">
-        
-        {/* GENERAL TAB */}
         {activeTab === 'general' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in duration-300">
             <div>
@@ -88,7 +83,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: a
               <p className="text-sm text-slate-500 mt-1">Webhook / token settings.</p>
               <button 
                 onClick={() => setActiveTab('telegram')} 
-                className="mt-4 px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-600 text-white text-sm"
+                className="mt-4 cursor-pointer px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-600 text-white text-sm"
               >
                 Configure Telegram
               </button>
@@ -110,18 +105,6 @@ export default function SettingsClient({ initialSettings }: { initialSettings: a
             <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Bot Token</label>
                 <input type="password" defaultValue={initialSettings.telegram.botToken} className="w-full px-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg outline-none dark:text-white" />
-            </div>
-            <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Bot Name</label>
-                <input type="text" defaultValue={initialSettings.telegram.botName} className="w-full px-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg outline-none dark:text-white" />
-            </div>
-            <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Bot Username</label>
-                <input type="text" defaultValue={initialSettings.telegram.botUsername} className="w-full px-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg outline-none dark:text-white" />
-            </div>
-            <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Bot ID</label>
-                <input type="text" defaultValue={initialSettings.telegram.botId} className="w-full px-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg outline-none dark:text-white" />
             </div>
           </div>
         )}

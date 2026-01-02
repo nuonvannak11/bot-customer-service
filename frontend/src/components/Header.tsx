@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { Menu, Search, Sun, Moon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import ProfileDropdown from "./ProfileDropdown";
 import LanguageDropdown from "./LanguageDropdown";
 import NotificationDropdown from "./alerts/NotificationDropdown";
@@ -12,6 +13,7 @@ export default function Header({
 }: { 
   setSidebarOpen: (v: boolean) => void,
 }) {
+  const { t } = useTranslation();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -42,7 +44,8 @@ export default function Header({
           <input
             type="text"
             className="w-64 py-1.5 pl-10 pr-4 text-sm bg-gray-100 dark:bg-slate-800 border-none rounded-full focus:ring-2 focus:ring-indigo-500 text-slate-800 dark:text-slate-200 placeholder-slate-400 outline-none"
-            placeholder="Search pages, users, logs..."
+            placeholder={t("Search here...")}
+            aria-label={t("Search here...")}
           />
         </div>
         <LanguageDropdown />

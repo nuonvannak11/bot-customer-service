@@ -82,7 +82,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, defaultOpenState 
         </Link>
 
          <Link href="/tiktok" className={navItemClass("/tiktok")} onClick={handleLinkClick}>
-          <TiktokIcon size={20} className="mr-3" /> Tiktok
+          <TiktokIcon size={15} className="mr-3" /> Tiktok
         </Link>
         <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">System</p>
         <Link href="/alerts" className={navItemClass("/alerts")} onClick={handleLinkClick}>

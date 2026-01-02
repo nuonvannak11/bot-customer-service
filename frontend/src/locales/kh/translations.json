@@ -10,5 +10,7 @@
   "register_account": "បង្កើតគណនី",
   "auth_tagline": "សូមចូលប្រើប្រាស់ ឬបង្កើតគណនីដើម្បីបន្ត។",
   "or_continue": "ឬបន្តជាមួយ",
-  "google_login": "បន្តជាមួយ Google"
+  "google_login": "បន្តជាមួយ Google",
+  "facebook_login": "បន្តជាមួយ Facebook",
+  "Search here...": "ស្វែងរកនៅទីនេះ..."
 }
