@@ -5,7 +5,7 @@ import { useTheme } from "next-themes";
 import { Menu, Search, Sun, Moon } from "lucide-react";
 import ProfileDropdown from "./ProfileDropdown";
 import LanguageDropdown from "./LanguageDropdown";
-import NotificationDropdown from "./alerts/NotificationDropdown"; // <--- Import this
+import NotificationDropdown from "./alerts/NotificationDropdown";
 
 export default function Header({ 
   setSidebarOpen, 
@@ -48,7 +48,7 @@ export default function Header({
         <LanguageDropdown />
         <button 
           onClick={toggleTheme} 
-          className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors outline-none focus:ring-2 focus:ring-indigo-500/20"
+          className="p-2 rounded-full cursor-pointer text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors outline-none focus:ring-2 focus:ring-indigo-500/20"
         >
           {mounted && theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
         </button>

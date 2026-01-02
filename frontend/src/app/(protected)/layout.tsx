@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import Shell from "@/components/layout/Shell";
+import { SocketProvider } from "@/contexts/SocketContext";
 import { redirect } from "next/navigation";
 
 // Your existing auth check logic
@@ -7,11 +8,11 @@ async function checkAuth() {
   const cookieStore = await cookies();
   const token = cookieStore.get("access_token");
   if (!token) return false;
-  
+
   // Verify token (Mocking success for now to keep it simple)
   // const res = await fetch("...", { ... });
   // return res.ok;
-  return true; 
+  return true;
 }
 
 export default async function ProtectedLayout({
@@ -32,8 +33,10 @@ export default async function ProtectedLayout({
   }
 
   return (
-    <Shell defaultOpenState={defaultOpenState}>
-      {children}
-    </Shell>
+    <SocketProvider>
+      <Shell defaultOpenState={defaultOpenState}>
+        {children}
+      </Shell>
+    </SocketProvider>
   );
 }

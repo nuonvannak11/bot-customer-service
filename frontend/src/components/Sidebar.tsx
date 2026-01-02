@@ -45,10 +45,10 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, defaultOpenState 
       )}
     >
       <div className="flex items-center justify-center h-16 border-b border-gray-200 dark:border-slate-800">
-        <div className="flex items-center gap-2 font-bold text-xl text-indigo-500">
+        <Link href="/dashboard" className="flex items-center gap-2 font-bold text-xl text-indigo-500">
           <LayoutGrid size={24} />
           <span>Management System</span>
-        </div>
+        </Link>
       </div>
 
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">

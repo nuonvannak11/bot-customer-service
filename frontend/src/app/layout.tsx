@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import i18nConfig, { AppLocale } from "../../i18nConfig";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import TranslationsProvider from "@/components/TranslationsProvider";
+import initTranslations from "../../i18n";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,27 +22,27 @@ export const metadata: Metadata = {
 
 type RootLayoutProps = {
   children: React.ReactNode;
-  params: Promise<{ locale?: string }>;
 };
 
-const isSupportedLocale = (locale?: string): locale is AppLocale =>
-  !!locale && i18nConfig.locales.includes(locale as AppLocale);
+const namespaces = ["translations"];
 
 export default async function RootLayout({
   children,
-  params,
 }: RootLayoutProps) {
-  const { locale: routeLocale } = await params;
-  const locale = isSupportedLocale(routeLocale)
-    ? routeLocale
-    : i18nConfig.defaultLocale;
+  const { resources, locale } = await initTranslations(namespaces);
 
   return (
     <html lang={locale || "en"} suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
+          <TranslationsProvider
+            namespaces={namespaces}
+            locale={locale}
+            resources={resources}
+          >
+            {children}
+          </TranslationsProvider>
         </ThemeProvider>
       </body>
     </html>

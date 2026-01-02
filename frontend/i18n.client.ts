@@ -2,7 +2,6 @@ import { Resource, TFunction, createInstance, i18n } from "i18next";
 import i18nConfig, { AppLocale } from "./i18nConfig";
 import enTranslations from "@/locales/en/translations.json";
 import khTranslations from "@/locales/kh/translations.json";
-import { getLocale } from "@/utils/get-locale";
 
 const defaultResources: Resource = {
   en: { translations: enTranslations },
@@ -16,14 +15,13 @@ type InitTranslationsResult = {
   locale: AppLocale;
 };
 
-export default async function initTranslations(
+export default async function initClientTranslations(
+  locale: AppLocale,
   namespaces: string[] = ["translations"],
-  locale?: AppLocale,
   i18nInstance?: i18n,
   resources: Resource = defaultResources
 ): Promise<InitTranslationsResult> {
-  const activeLocale = locale ?? (await getLocale());
-
+  const activeLocale = locale ?? i18nConfig.defaultLocale;
   const instance = i18nInstance || createInstance();
 
   if (!instance.isInitialized) {

@@ -1,14 +1,16 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { Check } from "lucide-react";
 import clsx from "clsx";
+import { useTranslation } from "@/hooks/use-translation";
+import { AppLocale } from "../../i18nConfig";
 
 export default function LanguageDropdown() {
-  const [lang, setLang] = useState<"en" | "km">("en");
+  const { locale, changeLanguage } = useTranslation();
 
   const contentRef = useRef<HTMLDivElement>(null);
   const { contextSafe } = useGSAP({ scope: contentRef });
@@ -27,7 +29,7 @@ export default function LanguageDropdown() {
   ];
 
   const currentFlag =
-    languages.find((l) => l.code === lang)?.icon || "/icon/en.png";
+    languages.find((l) => l.code === locale)?.icon || "/icon/en.png";
 
   return (
     <DropdownMenu.Root
@@ -55,11 +57,11 @@ export default function LanguageDropdown() {
               key={l.code}
               className={clsx(
                 "flex items-center justify-between w-full px-3 py-2 text-sm rounded-lg cursor-pointer outline-none transition-colors",
-                lang === l.code
+                locale === l.code
                   ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400"
                   : "text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
               )}
-              onClick={() => setLang(l.code as "en" | "km")}>
+              onClick={() => changeLanguage(l.code as AppLocale)}>
               <div className="flex items-center gap-3">
                 <img
                   src={l.icon}
@@ -68,7 +70,7 @@ export default function LanguageDropdown() {
                 />
                 <span>{l.label}</span>
               </div>
-              {lang === l.code && (
+              {locale === l.code && (
                 <Check
                   size={14}
                   className="text-indigo-600 dark:text-indigo-400"

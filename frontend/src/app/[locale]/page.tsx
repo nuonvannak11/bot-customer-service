@@ -11,7 +11,7 @@ const namespaces = ["translations"];
 
 export default async function Home({ params }: PageProps) {
   const { locale } = await params;
-  const { resources } = await initTranslations(locale, namespaces);
+  const { resources } = await initTranslations(namespaces, locale);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-950 text-white">

@@ -1,13 +1,11 @@
 import { notFound } from "next/navigation";
-import i18nConfig, { AppLocale } from "../../../i18nConfig";
+import i18nConfig from "../../../i18nConfig";
+import isSupportedLocale from "@/utils/supported-locale";
 
 type LayoutProps = {
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 };
-
-const isSupportedLocale = (locale: string): locale is AppLocale =>
-  i18nConfig.locales.includes(locale as AppLocale);
 
 export const dynamicParams = false;
 

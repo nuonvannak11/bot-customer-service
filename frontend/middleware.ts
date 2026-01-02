@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import i18nConfig from "./i18nConfig";
+import isSupportedLocale from "@/utils/supported-locale";
 
 const PUBLIC_FILE = /\.(.*)$/;
 
@@ -15,16 +16,15 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const pathnameHasLocale = i18nConfig.locales.some(
-    (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`)
-  );
+  const locale = request.cookies.get("NEXT_LOCALE")?.value;
 
-  if (!pathnameHasLocale) {
-    const locale = i18nConfig.defaultLocale;
-    return NextResponse.redirect(new URL(`/${locale}${pathname}`, request.url));
+  if (locale && isSupportedLocale(locale)) {
+    return NextResponse.next();
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  response.cookies.set("NEXT_LOCALE", i18nConfig.defaultLocale);
+  return response;
 }
 
 export const config = {
