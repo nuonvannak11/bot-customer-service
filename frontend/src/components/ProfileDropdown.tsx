@@ -92,7 +92,7 @@ export default function ProfileDropdown() {
             </DropdownMenu.Item>
             <DropdownMenu.Item asChild className="dropdown-item outline-none">
               <Link
-                href="/settings"
+                href="/settings/general"
                 className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
               >
                 <Settings size={16} className="text-slate-400" />

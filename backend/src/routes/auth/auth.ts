@@ -1,0 +1,29 @@
+import { NextFunction, Request, Response, Router } from "express";
+// import googleCallback from "./auth/google/callback";
+import UserController from "../../controller/controller_user";
+import { safeWithTimeout } from "../../utils/util";
+
+const userController = new UserController();
+const router = Router();
+
+router.post("/login", async (req: Request, res: Response, next: NextFunction) => {
+    return await safeWithTimeout(userController.login(req, res), next);
+});
+
+router.post("/register", async (req: Request, res: Response, next: NextFunction) => {
+    return await safeWithTimeout(userController.register(req, res), next);
+});
+
+router.post("/google_login", async (req: Request, res: Response, next: NextFunction) => {
+    return await safeWithTimeout(userController.googleLogin(req, res), next);
+});
+
+router.post("/verify_phone", async (req: Request, res: Response, next: NextFunction) => {
+    return await safeWithTimeout(userController.verifyPhone(req, res), next);
+});
+
+router.post("/resend_code", async (req: Request, res: Response, next: NextFunction) => {
+    return await safeWithTimeout(userController.resendCode(req, res), next);
+});
+
+export default router;

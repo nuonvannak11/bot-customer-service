@@ -23,7 +23,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, defaultOpenState 
   const navItemClass = (path: string) =>
     clsx(
       "flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors",
-      pathname === path
+      pathname === path || pathname.startsWith(`${path}/`)
         ? "bg-primary-50 text-primary-600 dark:bg-primary-900/10 dark:text-primary-400"
         : "text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
     );
@@ -91,7 +91,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, defaultOpenState 
         <Link href="/reports" className={navItemClass("/reports")} onClick={handleLinkClick}>
           <BarChart2 size={20} className="mr-3" /> Reports
         </Link>
-        <Link href="/settings" className={navItemClass("/settings")} onClick={handleLinkClick}>
+        <Link href="/settings/general" className={navItemClass("/settings")} onClick={handleLinkClick}>
           <Settings size={20} className="mr-3" /> Settings
         </Link>
       </nav>
