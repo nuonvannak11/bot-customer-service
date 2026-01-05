@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Toaster } from "react-hot-toast";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import TranslationsProvider from "@/components/TranslationsProvider";
@@ -42,6 +43,7 @@ export default async function RootLayout({
             resources={resources}
           >
             {children}
+            <Toaster position="top-right" />
           </TranslationsProvider>
         </ThemeProvider>
       </body>

@@ -38,14 +38,7 @@ export default function SettingsClient({
           ))}
         </nav>
       </div>
-
       <div className="p-6 space-y-6">{children}</div>
-
-      <div className="pt-4 border-t border-gray-200 dark:border-slate-800 flex justify-end p-6">
-        <button className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium">
-          Save Settings
-        </button>
-      </div>
     </div>
   );
 }

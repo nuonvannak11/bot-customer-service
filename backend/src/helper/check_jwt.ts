@@ -46,4 +46,4 @@ class CheckJWT {
     }
 }
 
-export default new CheckJWT();
+export default new CheckJWT;

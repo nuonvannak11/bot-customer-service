@@ -6,13 +6,13 @@ import connectDB from "./config/db";
 import setUpRoutes from "./routes";
 import redisController from "./controller/controller_redis";
 import Hash from "./helper/hash_data";
-import { Session } from "node:inspector/promises";
 import { get_session_id } from "./helper/random";
 
 const app = express();
 const port = get_env("PORT", "3100");
 
 app.use(express.json({ limit: '10mb' }));
+app.use(express.text());
 app.use(express.urlencoded({ extended: true }));
 
 connectDB();
