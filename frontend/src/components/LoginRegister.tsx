@@ -1,16 +1,242 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import GoogleLoginButton from "@/components/GoogleLoginButton";
 import Script from "next/script";
+import Swal, { SweetAlertIcon } from "sweetalert2";
+import { empty, capitalize } from "@/utils/util";
+import axios from "axios";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
 
 const LoginRegister = () => {
   const { t } = useTranslation();
   const [formType, setFormType] = useState<"login" | "register">("login");
   const [ready, setReady] = useState(false);
+
+  const container = useRef<HTMLDivElement>(null);
+  const gliderRef = useRef<HTMLDivElement>(null);
+  const loginButtonRef = useRef<HTMLButtonElement>(null);
+  const registerButtonRef = useRef<HTMLButtonElement>(null);
+  const loginFormRef = useRef<HTMLFormElement>(null);
+  const registerFormRef = useRef<HTMLFormElement>(null);
+
+  useGSAP(
+    () => {
+      gsap.set(registerFormRef.current, { autoAlpha: 0, y: 20, scale: 0.98 });
+      gsap.set(loginFormRef.current, { autoAlpha: 1, y: 0, scale: 1 });
+      if (loginButtonRef.current) {
+        gsap.set(gliderRef.current, {
+          x: loginButtonRef.current.offsetLeft,
+          width: loginButtonRef.current.offsetWidth,
+        });
+      }
+    },
+    { scope: container }
+  );
+
+  useGSAP(
+    () => {
+      const tl = gsap.timeline();
+      const loginBtn = loginButtonRef.current;
+      const registerBtn = registerButtonRef.current;
+      const loginForm = loginFormRef.current;
+      const registerForm = registerFormRef.current;
+
+      if (
+        !loginBtn ||
+        !registerBtn ||
+        !loginForm ||
+        !registerForm ||
+        !gliderRef.current
+      )
+        return;
+
+      if (formType === "login") {
+        tl.to(gliderRef.current, {
+          x: loginBtn.offsetLeft,
+          width: loginBtn.offsetWidth,
+          duration: 0.4,
+          ease: "power3.inOut",
+        });
+        tl.to(
+          registerForm,
+          {
+            autoAlpha: 0,
+            y: 20,
+            scale: 0.98,
+            duration: 0.3,
+            ease: "power3.in",
+          },
+          0
+        );
+        tl.to(
+          loginForm,
+          { autoAlpha: 1, y: 0, scale: 1, duration: 0.3, ease: "power3.out" },
+          ">-0.1"
+        );
+      } else {
+        tl.to(gliderRef.current, {
+          x: registerBtn.offsetLeft,
+          width: registerBtn.offsetWidth,
+          duration: 0.4,
+          ease: "power3.inOut",
+        });
+        tl.to(
+          loginForm,
+          {
+            autoAlpha: 0,
+            y: 20,
+            scale: 0.98,
+            duration: 0.3,
+            ease: "power3.in",
+          },
+          0
+        );
+        tl.to(
+          registerForm,
+          { autoAlpha: 1, y: 0, scale: 1, duration: 0.3, ease: "power3.out" },
+          ">-0.1"
+        );
+      }
+    },
+    { dependencies: [formType], scope: container }
+  );
+
+  interface ShowAlertProps {
+    title: string;
+    text: string;
+    icon: SweetAlertIcon;
+    timer?: number;
+    timerProgressBar?: boolean;
+  }
+
+  const showAlert = (option: ShowAlertProps) => {
+    return Swal.fire({
+      title: option.title,
+      text: option.text,
+      icon: option.icon,
+      timer: option.timer ?? 1500,
+      timerProgressBar: option.timerProgressBar ?? true,
+      confirmButtonText: t("Ok"),
+    });
+  };
+
+  const handleValid = (form: HTMLFormElement) => {
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData) as Record<string, any>;
+    const isRegister = form.id === "register-form";
+    const requiredFields = isRegister
+      ? ["username", "phone", "password"]
+      : ["phone", "password"];
+
+    const missing = requiredFields.filter((name) => {
+      return empty(data[name]);
+    });
+
+    if (missing.length) {
+      const firstName = missing[0];
+      const input = form.querySelector(
+        `[name="${firstName}"]`
+      ) as HTMLInputElement | null;
+      if (input) {
+        try {
+          if (typeof input.select === "function") {
+            input.select();
+          } else {
+            input.focus();
+          }
+        } catch (err) {
+          console.warn(err);
+        }
+      }
+      showAlert({
+        title: t("Error"),
+        text: `${t(capitalize(firstName))} ${t("is required")}`,
+        icon: "error",
+      });
+      return null;
+    }
+
+    return data;
+  };
+
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const data = handleValid(form);
+    if (empty(data)) return;
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const result = await response.json();
+      if (result?.code === 200) {
+        showAlert({
+          title: t("success") || "Success",
+          text: t("logged_in") || "Logged in",
+          icon: "success",
+        });
+        form.reset();
+      } else {
+        showAlert({
+          title: t("error") || "Error",
+          text: result?.message || t("login_failed") || "Login failed",
+          icon: "error",
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      showAlert({
+        title: t("error") || "Error",
+        text: t("network_error") || "Network error",
+        icon: "error",
+      });
+    }
+  };
+
+  const handleRegister = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const data = handleValid(form);
+    if (empty(data)) return;
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const result = await response.json();
+      if (result?.code === 200) {
+        showAlert({
+          title: t("success") || "Success",
+          text: t("registered") || "Registered",
+          icon: "success",
+        });
+        form.reset();
+        setFormType("login");
+      } else {
+        showAlert({
+          title: t("error") || "Error",
+          text: result?.message || t("register_failed") || "Register failed",
+          icon: "error",
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      showAlert({
+        title: t("error") || "Error",
+        text: t("network_error") || "Network error",
+        icon: "error",
+      });
+    }
+  };
+
   return (
-    <div className="w-full max-w-xl mx-auto">
+    <div className="w-full max-w-xl mx-auto" ref={container}>
       <Script
         src="https://accounts.google.com/gsi/client"
         strategy="afterInteractive"
@@ -34,22 +260,28 @@ const LoginRegister = () => {
             <p className="text-sm text-slate-300">{t("auth_tagline")}</p>
           </div>
 
-          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 p-1 text-sm font-semibold">
+          <div className="relative flex items-center gap-2 rounded-full border border-white/10 bg-white/5 p-1 text-sm font-semibold">
+            <div
+              ref={gliderRef}
+              className="absolute top-1 left-0 h-[calc(100%-8px)] rounded-full bg-white shadow-lg"
+            />
             <button
+              ref={loginButtonRef}
               id="login-tab"
-              className={`flex-1 rounded-full px-4 py-2 transition-all duration-200 cursor-pointer ${
+              className={`relative z-10 flex-1 rounded-full px-4 py-2 transition-colors duration-300 cursor-pointer ${
                 formType === "login"
-                  ? "bg-white text-slate-900 shadow-lg"
+                  ? "text-slate-900"
                   : "text-slate-200 hover:text-white"
               }`}
               onClick={() => setFormType("login")}>
               {t("login")}
             </button>
             <button
+              ref={registerButtonRef}
               id="register-tab"
-              className={`flex-1 rounded-full px-4 py-2 transition-all duration-200 cursor-pointer ${
+              className={`relative z-10 flex-1 rounded-full px-4 py-2 transition-colors duration-300 cursor-pointer ${
                 formType === "register"
-                  ? "bg-white text-slate-900 shadow-lg"
+                  ? "text-slate-900"
                   : "text-slate-200 hover:text-white"
               }`}
               onClick={() => setFormType("register")}>
@@ -57,23 +289,25 @@ const LoginRegister = () => {
             </button>
           </div>
 
-          {formType === "login" && (
-            <form id="login-form" className="space-y-5">
+          <div className="relative h-[360px]">
+            <form
+              id="login-form"
+              className="space-y-5 absolute top-0 left-0 w-full"
+              ref={loginFormRef}
+              onSubmit={handleLogin}>
               <div className="space-y-2">
                 <label
-                  htmlFor="login-email"
+                  htmlFor="login-phone"
                   className="block text-sm font-medium text-slate-200">
-                  {t("email_address")}
+                  {t("Phone number")}
                 </label>
                 <input
-                  type="email"
-                  id="login-email"
-                  name="email"
-                  required
+                  type="text"
+                  id="login-phone"
+                  name="phone"
                   className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
                 />
               </div>
-
               <div className="space-y-2">
                 <label
                   htmlFor="login-password"
@@ -84,62 +318,57 @@ const LoginRegister = () => {
                   type="password"
                   id="login-password"
                   name="password"
-                  required
                   className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
                 />
               </div>
-
               <button
                 type="submit"
                 className="w-full rounded-2xl bg-linear-to-r from-indigo-500 via-purple-500 to-cyan-400 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-900/40 transition hover:brightness-110 cursor-pointer">
                 {t("log_in")}
               </button>
             </form>
-          )}
 
-          {formType === "register" && (
-            <form id="register-form" className="space-y-5">
+            <form
+              onSubmit={handleRegister}
+              id="register-form"
+              className="space-y-5 absolute top-0 left-0 w-full"
+              ref={registerFormRef}>
               <div className="space-y-2">
                 <label
                   htmlFor="register-name"
                   className="block text-sm font-medium text-slate-200">
-                  {t("full_name")}
+                  {t("Username")}
                 </label>
                 <input
                   type="text"
                   id="register-name"
-                  name="name"
-                  required
+                  name="username"
                   className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
                 />
               </div>
-
               <div className="space-y-2">
                 <label
-                  htmlFor="register-email"
+                  htmlFor="register-phone"
                   className="block text-sm font-medium text-slate-200">
-                  {t("email_address")}
+                  {t("Phone number")}
                 </label>
                 <input
-                  type="email"
-                  id="register-email"
-                  name="email"
-                  required
+                  type="text"
+                  id="register-phone"
+                  name="phone"
                   className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
                 />
               </div>
-
               <div className="space-y-2">
                 <label
                   htmlFor="register-password"
                   className="block text-sm font-medium text-slate-200">
-                  {t("password")}
+                  {t("Password")}
                 </label>
                 <input
                   type="password"
                   id="register-password"
                   name="password"
-                  required
                   className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
                 />
               </div>
@@ -147,10 +376,10 @@ const LoginRegister = () => {
               <button
                 type="submit"
                 className="w-full rounded-2xl bg-linear-to-r from-emerald-400 via-teal-400 to-cyan-400 px-4 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-emerald-900/30 transition hover:brightness-110 cursor-pointer">
-                {t("register_account")}
+                {t("Register account")}
               </button>
             </form>
-          )}
+          </div>
 
           <div className="space-y-3 pt-4">
             <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-slate-300">

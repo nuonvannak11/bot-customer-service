@@ -1,5 +1,9 @@
 import LoginRegister from "@/components/LoginRegister";
 
 export default async function LoginRegisterPage() {
-  return <LoginRegister />;
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-slate-950">
+      <LoginRegister />
+    </div>
+  );
 }
