@@ -3,8 +3,8 @@
 import { useTranslation as useTranslationOrg } from "react-i18next";
 import { usePathname, useRouter } from "next/navigation";
 import Cookies from "js-cookie";
-import i18nConfig from "../../../i18nConfig";
-import { AppLocale } from "../../../i18nConfig";
+import i18nConfig from "../../i18nConfig";
+import { AppLocale } from "../../i18nConfig";
 
 export function useTranslation() {
   const { i18n, t } = useTranslationOrg();

@@ -5,6 +5,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import TranslationsProvider from "@/components/TranslationsProvider";
 import initTranslations from "../../i18n";
+import { getLocale } from "@/utils/get-locale";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,15 +28,15 @@ type RootLayoutProps = {
 
 const namespaces = ["translations"];
 
-export default async function RootLayout({
-  children,
-}: RootLayoutProps) {
-  const { resources, locale } = await initTranslations(namespaces);
+export default async function RootLayout({ children }: RootLayoutProps) {
+  const get_locale = await getLocale();
+  const { resources, locale } = await initTranslations(get_locale, namespaces);
 
   return (
     <html lang={locale || "en"} suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <TranslationsProvider
             namespaces={namespaces}
