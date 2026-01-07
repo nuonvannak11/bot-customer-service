@@ -10,7 +10,11 @@ import axios from "axios";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 
-const LoginRegister = () => {
+type Props = {
+  hash_data: string;
+};
+
+const LoginRegister = ({ hash_data }: Props) => {
   const { t } = useTranslation();
   const [formType, setFormType] = useState<"login" | "register">("login");
   const [ready, setReady] = useState(false);
@@ -326,6 +330,7 @@ const LoginRegister = () => {
                 className="w-full rounded-2xl bg-linear-to-r from-indigo-500 via-purple-500 to-cyan-400 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-900/40 transition hover:brightness-110 cursor-pointer">
                 {t("log_in")}
               </button>
+              <input type="hidden" value={hash_data} name="hash_key" />
             </form>
 
             <form
@@ -378,6 +383,7 @@ const LoginRegister = () => {
                 className="w-full rounded-2xl bg-linear-to-r from-emerald-400 via-teal-400 to-cyan-400 px-4 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-emerald-900/30 transition hover:brightness-110 cursor-pointer">
                 {t("Register account")}
               </button>
+              <input type="hidden" value={hash_data} name="hash_key" />
             </form>
           </div>
 

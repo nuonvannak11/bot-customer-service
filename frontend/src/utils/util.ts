@@ -1,3 +1,4 @@
+
 export function empty(data: any): boolean {
     if (data == null) return true;
     const type = typeof data;
@@ -26,4 +27,8 @@ export function empty(data: any): boolean {
 export function capitalize(word: string) {
     if (!word) return "";
     return word[0].toUpperCase() + word.slice(1);
+}
+
+export function get_milli_second() {
+    return Date.now();
 }
