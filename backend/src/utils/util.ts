@@ -8,26 +8,20 @@ export function empty(data: any): boolean {
     switch (type) {
         case "string":
             return data.trim().length === 0;
-
         case "boolean":
-            return data === false;
-
+            return false;
         case "number":
-            return data === 0 || Number.isNaN(data);
-
+            return Number.isNaN(data);
         case "bigint":
             return data === BigInt(0);
-
         case "function":
             return false;
-
         case "object":
             if (Array.isArray(data)) return data.length === 0;
             if (data instanceof Map || data instanceof Set) return data.size === 0;
             if (data instanceof Date) return isNaN(data.getTime());
             if (data instanceof RegExp) return false;
             return Object.keys(data).length === 0;
-
         default:
             return false;
     }
@@ -81,13 +75,34 @@ export function str_lower(str: string): string {
 }
 
 export function generate_string(): string {
-    const timePart = (Date.now() * 1000 + Number(process.hrtime.bigint() % 1000n))
-        .toString(36)
-        .slice(-6)
-    const letters = "abcdefghijklmnopqrstuvwxyz"
-    let randPart = ""
+    const timePart = (Date.now() * 1000 + Number(process.hrtime.bigint() % 1000n)).toString(36).slice(-6);
+    const letters = "abcdefghijklmnopqrstuvwxyz";
+    let randPart = "";
     for (let i = 0; i < 4; i++) {
         randPart += letters[Math.floor(Math.random() * 26)]
     }
-    return timePart + randPart
+    return timePart + randPart;
+}
+
+export function str_number(value: unknown, fallback = 0): number {
+    if (value === null || value === undefined) return fallback;
+    const num = Number(value);
+    if (isNaN(num) || !isFinite(num)) {
+        return fallback;
+    }
+    return num;
+}
+
+export function format_phone(phone: unknown): string {
+    if (typeof phone !== "string" || phone.trim() === "") return "";
+    const trimmed = phone.trim();
+    if (!trimmed.startsWith("+")) {
+        return trimmed;
+    }
+    const withoutPlus = trimmed.slice(1);
+    const match = withoutPlus.match(/^(\d{1,3})(\d+)$/);
+    if (!match) return trimmed;
+    const countryCode = match[1];
+    const local = match[2];
+    return "0" + local;
 }

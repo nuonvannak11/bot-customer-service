@@ -4,11 +4,13 @@ import { useState, useRef, FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import GoogleLoginButton from "@/components/GoogleLoginButton";
 import Script from "next/script";
-import Swal, { SweetAlertIcon } from "sweetalert2";
 import { empty, capitalize } from "@/utils/util";
 import axios from "axios";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
+import { sweet_request, showAlert } from "./alerts/SweetAlertPop";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 type Props = {
   hash_data: string;
@@ -18,7 +20,7 @@ const LoginRegister = ({ hash_data }: Props) => {
   const { t } = useTranslation();
   const [formType, setFormType] = useState<"login" | "register">("login");
   const [ready, setReady] = useState(false);
-
+  const router = useRouter();
   const container = useRef<HTMLDivElement>(null);
   const gliderRef = useRef<HTMLDivElement>(null);
   const loginButtonRef = useRef<HTMLButtonElement>(null);
@@ -108,25 +110,6 @@ const LoginRegister = ({ hash_data }: Props) => {
     { dependencies: [formType], scope: container }
   );
 
-  interface ShowAlertProps {
-    title: string;
-    text: string;
-    icon: SweetAlertIcon;
-    timer?: number;
-    timerProgressBar?: boolean;
-  }
-
-  const showAlert = (option: ShowAlertProps) => {
-    return Swal.fire({
-      title: option.title,
-      text: option.text,
-      icon: option.icon,
-      timer: option.timer ?? 1500,
-      timerProgressBar: option.timerProgressBar ?? true,
-      confirmButtonText: t("Ok"),
-    });
-  };
-
   const handleValid = (form: HTMLFormElement) => {
     const formData = new FormData(form);
     const data = Object.fromEntries(formData) as Record<string, any>;
@@ -134,35 +117,21 @@ const LoginRegister = ({ hash_data }: Props) => {
     const requiredFields = isRegister
       ? ["username", "phone", "password"]
       : ["phone", "password"];
-
-    const missing = requiredFields.filter((name) => {
-      return empty(data[name]);
-    });
+    const missing = requiredFields.filter((name) => empty(data[name]));
 
     if (missing.length) {
-      const firstName = missing[0];
+      const firstField = missing[0];
       const input = form.querySelector(
-        `[name="${firstName}"]`
+        `[name="${firstField}"]`
       ) as HTMLInputElement | null;
-      if (input) {
-        try {
-          if (typeof input.select === "function") {
-            input.select();
-          } else {
-            input.focus();
-          }
-        } catch (err) {
-          console.warn(err);
-        }
-      }
+      input?.focus();
       showAlert({
         title: t("Error"),
-        text: `${t(capitalize(firstName))} ${t("is required")}`,
+        text: `${t(capitalize(firstField))} ${t("is required")}`,
         icon: "error",
       });
       return null;
     }
-
     return data;
   };
 
@@ -204,39 +173,34 @@ const LoginRegister = ({ hash_data }: Props) => {
 
   const handleRegister = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
     const form = e.currentTarget;
-    const data = handleValid(form);
-    if (empty(data)) return;
-    try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      const result = await response.json();
-      if (result?.code === 200) {
-        showAlert({
-          title: t("success") || "Success",
-          text: t("registered") || "Registered",
-          icon: "success",
+    const formData = handleValid(form);
+    if (!formData) return;
+
+    sweet_request(
+      { title: t("Sending..."), text: t("Please wait") },
+      async () => {
+        const result = await axios.post("/api/auth/register", formData, {
+          timeout: 10000,
+          headers: { "Content-Type": "application/json" },
         });
-        form.reset();
-        setFormType("login");
-      } else {
-        showAlert({
-          title: t("error") || "Error",
-          text: result?.message || t("register_failed") || "Register failed",
-          icon: "error",
+        const apiData = result.data;
+        if (apiData.code === 200) {
+          router.push(`/login/verify?phone=${formData.phone}`);
+        } else {
+          toast.error(apiData.message ?? "Something went wrong", {
+            position: "top-center",
+          });
+        }
+      },
+
+      (err) => {
+        toast.error(err.response?.data?.message ?? "Something went wrong", {
+          position: "top-center",
         });
       }
-    } catch (err) {
-      console.error(err);
-      showAlert({
-        title: t("error") || "Error",
-        text: t("network_error") || "Network error",
-        icon: "error",
-      });
-    }
+    );
   };
 
   return (

@@ -55,3 +55,14 @@ export function expiresAt(minutes: number): Date {
     now.setMinutes(now.getMinutes() + minutes);
     return now;
 }
+
+export function mask_phone(phone: string | number) {
+    if (!phone) return "";
+    const str = phone.toString();
+    if (str.length <= 5) {
+        return str;
+    }
+    const first3 = str.slice(0, 3);
+    const last2 = str.slice(-2);
+    return `${first3}***${last2}`;
+}
