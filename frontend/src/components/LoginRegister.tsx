@@ -138,37 +138,33 @@ const LoginRegister = ({ hash_data }: Props) => {
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
-    const data = handleValid(form);
-    if (empty(data)) return;
-    try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      const result = await response.json();
-      if (result?.code === 200) {
-        showAlert({
-          title: t("success") || "Success",
-          text: t("logged_in") || "Logged in",
-          icon: "success",
+    const formData = handleValid(form);
+    if (!formData) return;
+
+    sweet_request(
+      { title: t("Sending..."), text: t("Please wait") },
+      async () => {
+        const result = await axios.post("/api/auth/login", formData, {
+          timeout: 10000,
+          headers: { "Content-Type": "application/json" },
         });
-        form.reset();
-      } else {
-        showAlert({
-          title: t("error") || "Error",
-          text: result?.message || t("login_failed") || "Login failed",
-          icon: "error",
+        const apiData = result.data;
+        console.log(apiData);
+        if (apiData.code === 200) {
+          router.push("/dashboard");
+        } else {
+          toast.error(apiData.message ?? "Something went wrong", {
+            position: "top-center",
+          });
+        }
+      },
+
+      (err) => {
+        toast.error(err.response?.data?.message ?? "Something went wrong", {
+          position: "top-center",
         });
       }
-    } catch (err) {
-      console.error(err);
-      showAlert({
-        title: t("error") || "Error",
-        text: t("network_error") || "Network error",
-        icon: "error",
-      });
-    }
+    );
   };
 
   const handleRegister = async (e: FormEvent<HTMLFormElement>) => {

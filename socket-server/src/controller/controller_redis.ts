@@ -2,6 +2,15 @@ import redis from "../config/redis";
 import { eLog } from "../utils/util";
 
 class RedisController {
+    private readonly setIfMissingOrMatchLua = `
+        local current = redis.call("GET", KEYS[1])
+        if (not current) or (current == ARGV[1]) then
+            redis.call("SET", KEYS[1], ARGV[1], "EX", ARGV[2])
+            return 1
+        end
+        return 0
+    `;
+
     async set(key: string, value: any, ttlSeconds?: number): Promise<void> {
         try {
             const data = JSON.stringify(value);
@@ -51,6 +60,18 @@ class RedisController {
         }
     }
 
+    async setIfMissingOrMatch(key: string, value: string, ttlSeconds: number): Promise<boolean> {
+        try {
+            const data = JSON.stringify(value);
+            // Fix: atomic compare-and-set to prevent session races.
+            const result = await redis.eval(this.setIfMissingOrMatchLua, 1, key, data, String(ttlSeconds));
+            return result === 1 || result === "1";
+        } catch (error) {
+            eLog(`Redis Atomic Set Error [${key}]:`, error);
+            throw error;
+        }
+    }
+
     async del(key: string): Promise<number> {
         try {
             return await redis.del(key);
@@ -61,12 +82,22 @@ class RedisController {
     }
 
     async has(key: string): Promise<boolean> {
-        const count = await redis.exists(key);
-        return count === 1;
+        try {
+            const count = await redis.exists(key);
+            return count === 1;
+        } catch (error) {
+            eLog(`Redis Exists Error [${key}]:`, error); // Fix: add try/catch around async Redis calls.
+            throw error;
+        }
     }
 
     async clearAll(): Promise<void> {
-        await redis.flushall();
+        try {
+            await redis.flushall();
+        } catch (error) {
+            eLog("Redis FlushAll Error:", error); // Fix: add try/catch around async Redis calls.
+            throw error;
+        }
     }
 }
 

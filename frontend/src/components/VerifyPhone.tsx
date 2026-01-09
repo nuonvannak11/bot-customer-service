@@ -9,7 +9,6 @@ import { sweet_request } from "./alerts/SweetAlertPop";
 import { empty } from "@/utils/util";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "next/navigation";
-import Cookies from "js-cookie";
 
 type OTPArray = string[];
 
@@ -219,10 +218,6 @@ export default function VerifyPhone({ hash_key, phone, phone_mask }: Props) {
           if (data.code === 200) {
             toast.success(data.message, {
               position: "top-center",
-            });
-            Cookies.set("NEXT_TOKEN_DATA", `${data.token}|${data.data}`, {
-              expires: 7,
-              path: "/",
             });
             router.push("/dashboard");
           } else {

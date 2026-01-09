@@ -1,8 +1,11 @@
-// src/libs/data.ts
-// This file runs on the server. Safe for DB calls and API keys.
+import axios from "axios";
+import { get_env, eLog } from "@/libs/lib";
+import { empty } from "@/utils/util";
+import { JWTPayload } from "@/types/auth";
 
-export async function getDashboardStats() {
-  await new Promise((resolve) => setTimeout(resolve, 300)); // Simulate DB latency
+
+export async function getDashboardStats(user: JWTPayload) {
+  await new Promise((resolve) => setTimeout(resolve, 300));
   return {
     users: "12,345",
     revenue: "$45,231",
@@ -71,9 +74,8 @@ export async function getUserProfile() {
     ]
   };
 }
-// Add this to your existing data.ts file
-export async function getSettings() {
-  // Simulate secure fetch
+
+export async function getSettings(user: JWTPayload) {
   return {
     general: {
       workspaceName: "Nexus HQ",

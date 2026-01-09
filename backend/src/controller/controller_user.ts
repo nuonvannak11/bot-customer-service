@@ -61,7 +61,7 @@ class UserController {
             }
             const isMatch = await bcrypt.compare(password, user.password || "");
             if (!isMatch) {
-                return res.status(200).json({ code: 401, message: "Invalid password" });
+                return res.status(200).json({ code: 401, message: "Password is incorrect" });
             }
 
             const get_token = user.access_token_hash;
@@ -86,15 +86,17 @@ class UserController {
                 if (updatedUser.modifiedCount === 0) {
                     return res.status(200).json({ code: 500, message: "User update failed" });
                 }
-                const get_platform = await Platform.find({ user_id: user.user_id });
-                const collections = { platforms: get_platform, user }
-                const encryptedCollections = hashData.encryptData(JSON.stringify(collections));
-                return res.status(200).json({ token, data: encryptedCollections });
+                return res.status(200).json({
+                    code: 200,
+                    message: "User login successfully",
+                    token,
+                });
             } else {
-                const get_platform = await Platform.find({ user_id: user.user_id });
-                const collections = { platforms: get_platform, user }
-                const encryptedCollections = hashData.encryptData(JSON.stringify(collections));
-                return res.status(200).json({ token: get_token, data: encryptedCollections });
+                return res.status(200).json({
+                    code: 200,
+                    message: "User login successfully",
+                    token: get_token,
+                });
             }
         } catch (error) {
             return res.status(200).json({ code: 500, message: "Internal server error" });
@@ -138,7 +140,7 @@ class UserController {
             const formatPhone = format_phone(phone);
             const existingUser = await AppUser.findOne({ phone: formatPhone });
             if (existingUser) {
-                return res.status(200).json({ code: 400, message: "User already exists" });
+                return res.status(200).json({ code: 400, message: "Phone number already exists" });
             }
             // const send_sms = new SendSMS();
             const verificationCode = random_number(6);
@@ -204,11 +206,13 @@ class UserController {
             }
 
             if (new Date() > record.expiresAt) {
-                await PhoneVerify.deleteOne({ phone: formatPhone });
-                return res.status(400).json({ code: 400, message: "Verification code expired" });
+                return res.status(200).json({
+                    code: 400,
+                    message: "Verification code expired. Please request a new code."
+                });
             }
             if (str_number(record.code) !== str_number(code)) {
-                return res.status(200).json({ code: 400, message: "Invalid verification code" });
+                return res.status(200).json({ code: 400, message: "Cerification code is incorrect" });
             }
             if (!record.tempData || !record.tempData.name || !record.tempData.passwordHash) {
                 return res.status(200).json({ code: 400, message: "Incomplete verification data" });
@@ -230,7 +234,7 @@ class UserController {
             }
             const token = CheckJWT.generateToken(
                 {
-                    user_id: String(user.user_id),
+                    user_id: user.user_id,
                     session_id: get_session_id(),
                 },
                 EXPIRE_TOKEN_TIME
@@ -243,14 +247,10 @@ class UserController {
                     }
                 }
             );
-            const get_platform = await Platform.find({ user_id: user.user_id });
-            const collections = { platforms: get_platform, user };
-            const encryptedCollections = hashData.encryptData(JSON.stringify(collections));
             return res.status(200).json({
                 code: 200,
-                message: "Phone verified and user registered successfully",
+                message: "User registered successfully",
                 token,
-                data: encryptedCollections
             });
         } catch (error) {
             eLog(error);
@@ -296,10 +296,10 @@ class UserController {
             //}
 
             existing.code = verificationCode;
-            existing.expiresAt = expiresAt(3); // 3 minutes from now
+            existing.expiresAt = expiresAt(3);
             await existing.save();
-            
-            res.status(200).json({ code: 200, message: "New code sent successfully." });
+
+            res.status(200).json({ code: 200, message: "New OTP code sent successfully." });
         } catch (error) {
             res.status(500).json({ code: 500, message: "Internal server error" });
         }

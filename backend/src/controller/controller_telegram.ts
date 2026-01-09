@@ -7,7 +7,6 @@ import Platform from "../models/model_platform";
 import { PHONE_REGEX, EMAIL_REGEX, GOOGLE_TOKEN_REGEX, EXPIRE_TOKEN_TIME } from "../constants";
 import { get_env } from "../utils/get_env";
 import { empty, random_number, expiresAt, eLog, generate_string } from "../utils/util";
-import { loginSchema } from "../helper";
 import { get_session_id } from "../helper/random";
 
 class TelegramController {

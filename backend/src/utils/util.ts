@@ -1,6 +1,7 @@
 
 import { get_env } from "./get_env";
 import { MAX_TIMEOUT } from "../constants";
+import crypto from "crypto";
 
 export function empty(data: any): boolean {
     if (data == null) return true;
@@ -75,13 +76,7 @@ export function str_lower(str: string): string {
 }
 
 export function generate_string(): string {
-    const timePart = (Date.now() * 1000 + Number(process.hrtime.bigint() % 1000n)).toString(36).slice(-6);
-    const letters = "abcdefghijklmnopqrstuvwxyz";
-    let randPart = "";
-    for (let i = 0; i < 4; i++) {
-        randPart += letters[Math.floor(Math.random() * 26)]
-    }
-    return timePart + randPart;
+    return crypto.randomBytes(16).toString("hex");
 }
 
 export function str_number(value: unknown, fallback = 0): number {
@@ -102,7 +97,6 @@ export function format_phone(phone: unknown): string {
     const withoutPlus = trimmed.slice(1);
     const match = withoutPlus.match(/^(\d{1,3})(\d+)$/);
     if (!match) return trimmed;
-    const countryCode = match[1];
     const local = match[2];
     return "0" + local;
 }

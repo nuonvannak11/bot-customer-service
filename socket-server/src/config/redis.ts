@@ -12,6 +12,10 @@ const redis = new Redis({
 });
 
 redis.on("connect", () => eLog("Connected to Redis"));
+redis.on("ready", () => eLog("Redis ready")); // Fix: track readiness for reconnect recovery.
+redis.on("reconnecting", () => eLog("Redis reconnecting")); // Fix: reconnect handler for observability.
+redis.on("end", () => eLog("Redis connection end")); // Fix: detect disconnects.
+redis.on("close", () => eLog("Redis connection close")); // Fix: detect socket closure.
 redis.on("error", (err) => eLog("Redis Error:", err));
 
 export default redis;

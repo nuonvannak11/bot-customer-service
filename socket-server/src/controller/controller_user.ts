@@ -22,11 +22,50 @@ class UserController {
     startSocketControlSubscriber(io: IoServer, sessionStore: SessionStore) {
         const channels = this.getControlChannels();
         const subscriber = redis.duplicate();
+        let isSubscribed = false;
+        let isSubscribing = false;
+
+        const subscribeToChannels = async (source: string) => {
+            if (isSubscribed || isSubscribing) return;
+            isSubscribing = true;
+            try {
+                await subscriber.subscribe(channels.emit, channels.forceLogout, channels.kick);
+                isSubscribed = true;
+                eLog(`Redis control subscribed to ${channels.emit}, ${channels.forceLogout}, ${channels.kick} source=${source}`); // Fix: ensure re-subscribe visibility.
+            } catch (error) {
+                isSubscribed = false;
+                eLog('Redis control subscribe failed:', error);
+            } finally {
+                isSubscribing = false;
+            }
+        };
 
         subscriber.on('connect', () => eLog('Redis subscriber connected'));
+        subscriber.on('ready', () => {
+            eLog('Redis subscriber ready'); // Fix: track readiness for reconnect recovery.
+            void subscribeToChannels('ready');
+        });
+        subscriber.on('reconnecting', () => {
+            isSubscribed = false; // Fix: ensure re-subscribe after reconnect.
+            eLog('Redis subscriber reconnecting');
+        }); // Fix: reconnect handler for observability.
+        subscriber.on('end', () => {
+            isSubscribed = false; // Fix: force re-subscribe after reconnect.
+            eLog('Redis subscriber end');
+        });
+        subscriber.on('close', () => {
+            isSubscribed = false; // Fix: force re-subscribe after reconnect.
+            eLog('Redis subscriber close');
+        });
         subscriber.on('error', (err) => eLog('Redis subscriber error:', err));
         subscriber.on('message', (channel, message) => {
-            const data = this.parseControlMessage(message);
+            let data: Record<string, unknown> | null = null;
+            try {
+                data = this.parseControlMessage(message); // Fix: guard JSON.parse with try/catch.
+            } catch (error) {
+                eLog(`Redis control parse error on ${channel}:`, error);
+                return;
+            }
             if (!data) {
                 eLog(`Redis control ignored: invalid JSON on ${channel}`);
                 return;
@@ -45,10 +84,7 @@ class UserController {
             }
         });
 
-        void subscriber
-            .subscribe(channels.emit, channels.forceLogout, channels.kick)
-            .then(() => eLog(`Redis control subscribed to ${channels.emit}, ${channels.forceLogout}, ${channels.kick}`))
-            .catch((error) => eLog('Redis control subscribe failed:', error));
+        void subscribeToChannels('start'); // Fix: centralized subscribe + re-subscribe handling.
 
         return subscriber;
     }
@@ -74,39 +110,55 @@ class UserController {
             const parsed = JSON.parse(message) as unknown;
             if (!parsed || typeof parsed !== 'object') return null;
             return parsed as Record<string, unknown>;
-        } catch {
+        } catch (error) {
+            eLog('Redis control JSON.parse failed:', error); // Fix: log JSON.parse failures.
             return null;
         }
     }
 
     private readEncryptedFlag(value: unknown): boolean {
-        if (typeof value === 'boolean') return value;
-        return true;
+        // Fix: only boolean true means encrypted; all other values are treated as plaintext.
+        return value === true;
     }
 
     private decodeString(value: unknown, encrypted: boolean): string | null {
         if (typeof value !== 'string') return null;
-        const raw = encrypted ? hash_data.decryptData(value) : value;
-        if (empty(raw)) return null;
-        return raw.trim();
+        try {
+            const raw = encrypted ? hash_data.decryptData(value) : value;
+            if (raw == null || empty(raw)) return null;
+            return raw.trim();
+        } catch (error) {
+            // Fix: catch decrypt failures (tampered ciphertext) and reject the value.
+            eLog('Redis control decrypt string failed:', error);
+            return null;
+        }
     }
 
     private decodePayload(value: unknown, encrypted: boolean): unknown | null {
         if (!encrypted) {
-            return empty(value) ? null : value;
+            // Fix: allow 0/false/{}[] payloads; only null/undefined are rejected.
+            return value === null || value === undefined ? null : value;
         }
         if (typeof value !== 'string') return null;
-        const raw = hash_data.decryptData(value);
-        if (empty(raw)) return null;
-        return raw;
+        try {
+            const raw = hash_data.decryptData(value);
+            if (raw == null) return null;
+            return raw;
+        } catch (error) {
+            // Fix: catch decrypt failures (tampered ciphertext) and reject the payload.
+            eLog('Redis control decrypt payload failed:', error);
+            return null;
+        }
     }
 
     private async handleControlEmit(io: IoServer, data: Record<string, unknown>) {
-        const userId = this.decodeString(data.user_id, true);
-        const session_id = this.decodeString(data.session_id, false);
-        const event = this.decodeString(data.event, false);
-        const payload = this.decodePayload(data.payload, false);
-        if (!userId || !event || payload === null) {
+        const encrypted = this.readEncryptedFlag(data.encrypted);
+        const userId = this.decodeString(data.user_id, encrypted);
+        const session_id = this.decodeString(data.session_id, encrypted);
+        const event = this.decodeString(data.event, encrypted);
+        const payload = this.decodePayload(data.payload, encrypted);
+        // Fix: validate user_id/session_id/event/payload using consistent encryption handling.
+        if (!userId || !session_id || !event || payload === null) {
             eLog('Redis control emit ignored: invalid payload');
             return;
         }
@@ -169,7 +221,7 @@ class UserController {
         for (const socket of sockets) {
             if (excludeSessionId && socket.data?.session_id === excludeSessionId) continue;
             socket.emit('auth:logout', { reason });
-            setTimeout(() => socket.disconnect(true), this.disconnectDelayMs);
+            socket.disconnect(true); // Fix: avoid per-socket timers under high fan-out.
             disconnected += 1;
         }
         return disconnected;

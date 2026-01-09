@@ -9,6 +9,5 @@ const phoneVerifySchema = new mongoose.Schema({
     passwordHash: String,
   },
 });
-phoneVerifySchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 export default mongoose.model("PhoneVerify", phoneVerifySchema);

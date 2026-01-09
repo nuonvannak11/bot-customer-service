@@ -50,6 +50,8 @@ export function createSocketAuthMiddleware(options: { jwtAlgorithms?: Algorithm[
 
 			const userId = decoded.user_id.trim();
 			const sessionId = decoded.session_id.trim();
+			// Fix: reject empty/whitespace user_id or session_id from the token.
+			if (!userId || !sessionId) return next(new Error('TOKEN_INVALID'));
 
 			try {
 				const sessionCheck = await sessionStore.assertOrAdopt(userId, sessionId);

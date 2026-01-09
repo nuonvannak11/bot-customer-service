@@ -2,41 +2,36 @@ import { cookies } from "next/headers";
 import Shell from "@/components/layout/Shell";
 import { SocketProvider } from "@/contexts/SocketContext";
 import { redirect } from "next/navigation";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { checkJwtToken } from "@/hooks/use_check_jwt";
+import { get_env } from "@/libs/lib";
 
-// Your existing auth check logic
-async function checkAuth() {
+export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
-  const token = cookieStore.get("access_token");
-  if (!token) return false;
-
-  // Verify token (Mocking success for now to keep it simple)
-  // const res = await fetch("...", { ... });
-  // return res.ok;
-  return true;
-}
-
-export default async function ProtectedLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const isAuthenticated = await checkAuth();
-  if (!isAuthenticated) {
-    // redirect("/login"); // Uncomment this when ready
+  const token = cookieStore.get("authToken")?.value;
+  const auth = await checkJwtToken(token);
+  if (!auth.status) {
+    redirect("/login");
   }
-
-  const cookieStore = await cookies();
-  const defaultOpenState: Record<string, boolean> = {};
-
-  if (cookieStore.get("nexus_sidebar_telegram")?.value === "true") {
-    defaultOpenState["nexus_sidebar_telegram"] = true;
+  const defaultOpenState: Record<string, boolean> = {
+    nexus_sidebar_telegram: cookieStore.get("nexus_sidebar_telegram")?.value === "true",
+  };
+  const user = {
+    ...auth.data!,
+    token: token || "",
+  };
+  const get_socket_url = get_env("SERVER_SOCKET_URL");
+  const data_socket = {
+    ...user,
+    socket_url: get_socket_url
   }
-
   return (
-    <SocketProvider>
-      <Shell defaultOpenState={defaultOpenState}>
-        {children}
-      </Shell>
-    </SocketProvider>
+    <AuthProvider user={user}>
+      <SocketProvider data={data_socket}>
+        <Shell user={user} defaultOpenState={defaultOpenState}>
+          {children}
+        </Shell>
+      </SocketProvider>
+    </AuthProvider>
   );
 }

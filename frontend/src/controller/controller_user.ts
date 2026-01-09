@@ -51,16 +51,19 @@ class UserController {
     }
 
     public async login(req: NextRequest) {
-        const LoginSchema = z.object(this.json_protector).strict();
+        const Schema = z.object(this.json_protector).strict();
         try {
             const header = check_header(req);
             if (!header) {
                 return response_data(403, 403, "Forbidden", []);
             }
             const body = await req.json();
-            const validation = LoginSchema.safeParse(body);
+            const validation = Schema.safeParse(body);
             if (!validation.success) {
                 return response_data(400, 400, validation.error.issues[0].message, []);
+            }
+            if (this.hasDangerousKeys(validation.data)) {
+                return response_data(400, 400, "Invalid data", []);
             }
             const { phone, password, hash_key } = validation.data;
             const decrypt_key = HashKey.decrypt(hash_key);
@@ -82,7 +85,15 @@ class UserController {
                 }
             );
             const data = response.data;
-            return response_data(data.code, 200, data.message, data.data || []);
+            const res = response_data(data.code, 200, data.message, []);
+            res.cookies.set("authToken", data.token, {
+                httpOnly: true,
+                secure: get_env("NODE_ENV") === "production",
+                path: "/",
+                sameSite: "strict",
+                maxAge: 60 * 60 * 24 * 7,
+            });
+            return res;
         } catch (err: any) {
             eLog("Login Proxy Error:", err);
             if (axios.isAxiosError(err)) {
@@ -113,6 +124,9 @@ class UserController {
             const validation = Schema.safeParse(body);
             if (!validation.success) {
                 return response_data(400, 400, validation.error.issues[0].message, []);
+            }
+            if (this.hasDangerousKeys(validation.data)) {
+                return response_data(400, 400, "Invalid data", []);
             }
             const { phone, password, username, hash_key } = validation.data;
             const decrypt_key = HashKey.decrypt(hash_key);
@@ -166,6 +180,9 @@ class UserController {
             if (!validation.success) {
                 return response_data(400, 400, validation.error.issues[0].message, []);
             }
+            if (this.hasDangerousKeys(validation.data)) {
+                return response_data(400, 400, "Invalid data", []);
+            }
             const { phone, code, hash_key } = validation.data;
             const decrypt_key = HashKey.decrypt(hash_key);
             if (empty(decrypt_key)) {
@@ -186,7 +203,15 @@ class UserController {
                 }
             );
             const data = response.data;
-            return response_data(data.code, 200, data.message, data.data || []);
+            const res = response_data(data.code, 200, data.message, []);
+            res.cookies.set("authToken", data.token, {
+                httpOnly: true,
+                secure: get_env("NODE_ENV") === "production",
+                path: "/",
+                sameSite: "strict",
+                maxAge: 60 * 60 * 24 * 7,
+            });
+            return res;
         } catch (err: any) {
             eLog("Login Proxy Error:", err);
             if (axios.isAxiosError(err)) {
@@ -213,6 +238,9 @@ class UserController {
             const validation = Schema.safeParse(body);
             if (!validation.success) {
                 return response_data(400, 400, validation.error.issues[0].message, []);
+            }
+            if (this.hasDangerousKeys(validation.data)) {
+                return response_data(400, 400, "Invalid data", []);
             }
             const { phone, hash_key } = validation.data;
             const decrypt_key = HashKey.decrypt(hash_key);
@@ -256,5 +284,20 @@ class UserController {
         } catch (err) {
         }
     }
+
+    public async logout(req: NextRequest) {
+        try {
+            const header = check_header(req);
+            if (!header) {
+                return response_data(403, 403, "Forbidden", []);
+            }
+            req.cookies.delete("authToken");
+            return response_data(200, 200, "Logout successfully", []);
+        } catch (err: any) {
+            eLog("Login Proxy Error:", err);
+            return response_data(500, 500, "Internal Server Error", []);
+        }
+    }
+
 }
 export default new UserController;

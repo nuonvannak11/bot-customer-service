@@ -3,11 +3,14 @@
 import { useState } from "react";
 import Sidebar from "@/components/Sidebar"; 
 import Header from "@/components/Header";
+import { JWTPayload } from "@/types/auth";
 
 export default function Shell({ 
+  user,
   children,
   defaultOpenState, 
 }: { 
+  user: JWTPayload;
   children: React.ReactNode;
   defaultOpenState: Record<string, boolean>;
 }) {

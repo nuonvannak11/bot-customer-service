@@ -1,10 +1,11 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { socket } from "@/libs/socket";
+import { io, Socket } from "socket.io-client";
+import { SocketPayload } from "@/types/type";
 
 type SocketContextType = {
-  socket: typeof socket | null;
+  socket: Socket | null;
   connected: boolean;
 };
 
@@ -13,23 +14,45 @@ const SocketContext = createContext<SocketContextType>({
   connected: false,
 });
 
-export function SocketProvider({ children }: { children: React.ReactNode }) {
+interface SocketProviderProps {
+  data: SocketPayload;
+  children: React.ReactNode;
+}
+
+export function SocketProvider({ data, children }: SocketProviderProps) {
+  const [socketInstance, setSocketInstance] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
 
-  useEffect(() => {
-    socket.connect();
+  if (!data?.token) {
+    return (
+      <SocketContext.Provider value={{ socket: null, connected: false }}>
+        {children}
+      </SocketContext.Provider>
+    );
+  }
 
-    socket.on("connect", () => setConnected(true));
-    socket.on("disconnect", () => setConnected(false));
+  useEffect(() => {
+    const newSocket = io(data.socket_url, {
+      transports: ["websocket"],
+      autoConnect: true,
+      reconnection: true,
+      auth: {
+        token: data.token,
+      },
+    });
+
+    setSocketInstance(newSocket);
+
+    newSocket.on("connect", () => setConnected(true));
+    newSocket.on("disconnect", () => setConnected(false));
 
     return () => {
-      socket.off("connect");
-      socket.off("disconnect");
+      newSocket.disconnect();
     };
-  }, []);
+  }, [data.socket_url, data.token]);
 
   return (
-    <SocketContext.Provider value={{ socket, connected }}>
+    <SocketContext.Provider value={{ socket: socketInstance, connected }}>
       {children}
     </SocketContext.Provider>
   );

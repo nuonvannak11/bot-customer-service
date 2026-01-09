@@ -15,27 +15,29 @@ class HashData {
         this.SECRET_IV = crypto.createHash("sha256").update(iv).digest().subarray(0, 16);
     }
 
-    public encryptData(data: string): string {
-        if (empty(data)) return "";
+    public encryptData(data: string): string | null {
+        if (empty(data)) return null; // Fix: do not return empty string for invalid input.
         try {
             const cipher = crypto.createCipheriv(this.Algorithm, this.SECRET_KEY, this.SECRET_IV);
             let encrypted = cipher.update(data, "utf8", "hex");
             encrypted += cipher.final("hex");
             return encrypted;
         } catch (error) {
-            return "";
+            // Fix: surface encryption failures instead of silently returning "".
+            throw new Error("ENCRYPT_FAILED");
         }
     }
 
-    public decryptData(encryptedData: string): string {
-        if (empty(encryptedData)) return "";
+    public decryptData(encryptedData: string): string | null {
+        if (empty(encryptedData)) return null; // Fix: avoid empty-string success for missing data.
         try {
             const decipher = crypto.createDecipheriv(this.Algorithm, this.SECRET_KEY, this.SECRET_IV);
             let decrypted = decipher.update(encryptedData, "hex", "utf8");
             decrypted += decipher.final("utf8");
             return decrypted;
         } catch (error) {
-            return "";
+            // Fix: detect tampered ciphertext by throwing on decrypt failure.
+            throw new Error("DECRYPT_FAILED");
         }
     }
 }
