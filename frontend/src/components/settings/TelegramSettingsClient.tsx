@@ -15,11 +15,11 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import Toggle from "@/components/ToggleCheckBox";
+import { make_schema } from "@/helper/helper";
 
 interface TelegramConfig {
   botUsername: string;
   botToken: string;
-  adminGroupId: string;
   webhookUrl: string;
   webhookEnabled: boolean;
   notifyEnabled: boolean;
@@ -93,15 +93,16 @@ const SettingsInput = ({
 };
 
 export default function TelegramSettingsClient({
+  hash_key,
   initialSettings,
 }: {
+  hash_key: string;
   initialSettings?: { telegram?: Partial<TelegramConfig> };
 }) {
   const [isLoading, setIsLoading] = useState(false);
   const [settings, setSettings] = useState<TelegramConfig>({
     botUsername: initialSettings?.telegram?.botUsername ?? "",
     botToken: initialSettings?.telegram?.botToken ?? "",
-    adminGroupId: initialSettings?.telegram?.adminGroupId ?? "",
     webhookUrl: initialSettings?.telegram?.webhookUrl ?? "",
     webhookEnabled: initialSettings?.telegram?.webhookEnabled ?? false,
     notifyEnabled: initialSettings?.telegram?.notifyEnabled ?? true,
@@ -121,16 +122,18 @@ export default function TelegramSettingsClient({
     setIsLoading(true);
 
     try {
+      const schema = make_schema(settings).omit(["botUsername"]).extend({
+        hash_key,
+      }).get();
       const response = await fetch("/api/settings/telegram", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(schema),
       });
 
       const result = await response.json();
-
       if (!response.ok) {
-        throw new Error(result?.error || "Request failed");
+        throw new Error(result?.message || "Request failed");
       }
 
       if (result.code === 200) {
@@ -140,7 +143,7 @@ export default function TelegramSettingsClient({
         }));
         toast.success("Saved!", { id: toastId, duration: 1500 });
       } else {
-        throw new Error(result?.error || "Unknown backend error");
+        throw new Error(result?.message || "Something went wrong");
       }
     } catch (error: any) {
       toast.error(error.message || "Failed to save", { id: toastId });
@@ -192,14 +195,6 @@ export default function TelegramSettingsClient({
 
           <div className="w-full h-px bg-slate-800/50" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <SettingsInput
-              label="Admin Group ID"
-              icon={Hash}
-              value={settings.adminGroupId}
-              onChange={(v) => handleChange("adminGroupId", v)}
-              placeholder="-100xxxxxxxxx"
-            />
-
             <SettingsInput
               label="Webhook URL"
               icon={Globe}
