@@ -151,11 +151,16 @@ class UserController {
             const hashedPassword = await bcrypt.hash(password, 10);
             const expiresAtValue = expiresAt(3); // 3 min
             await PhoneVerify.findOneAndUpdate(
-                { phone: formatPhone },
+                { phone: formatPhone },          
                 {
-                    code: verificationCode,
-                    expiresAt: expiresAtValue,
-                    tempData: { name: username, passwordHash: hashedPassword },
+                    $set: {
+                        code: verificationCode,
+                        expiresAt: expiresAtValue,
+                        tempData: {
+                            name: username,
+                            passwordHash: hashedPassword,
+                        },
+                    },
                 },
                 { upsert: true, new: true }
             );

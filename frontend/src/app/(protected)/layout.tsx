@@ -20,7 +20,8 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     ...auth.data!,
     token: token || "",
   };
-  const get_socket_url = get_env("SERVER_SOCKET_URL");
+  const get_socket_url = get_env("SOCKET_URL");
+  console.log("get_socket_url=",get_socket_url);
   const data_socket = {
     ...user,
     socket_url: get_socket_url

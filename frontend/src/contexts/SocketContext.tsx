@@ -32,6 +32,7 @@ export function SocketProvider({ data, children }: SocketProviderProps) {
   }
 
   useEffect(() => {
+    if (!data.socket_url || !data.token) return;
     const newSocket = io(data.socket_url, {
       transports: ["websocket"],
       autoConnect: true,

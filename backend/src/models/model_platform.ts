@@ -1,12 +1,7 @@
 import mongoose from "mongoose";
 
 const PlatformSchema = new mongoose.Schema({
-    user_id: {
-        type: String,
-        required: true,
-        unique: true,
-        index: true,
-    },
+    user_id: { type: String, required: true, unique: true, index: true },
     facebook: {
         data: {
             type: [
@@ -24,7 +19,7 @@ const PlatformSchema = new mongoose.Schema({
         bot: {
             type: [
                 {
-                    bot_username: { type: String, required: true },
+                    bot_username: { type: String},
                     bot_token_enc: { type: String, required: true, select: false },
                 }
             ],
