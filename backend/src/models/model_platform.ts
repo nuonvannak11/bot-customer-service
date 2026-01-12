@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
+import { IPlatform } from "../interface/interface_platform";
 
-const PlatformSchema = new mongoose.Schema({
+const PlatformSchema = new mongoose.Schema<IPlatform>({
     user_id: { type: String, required: true, unique: true, index: true },
     facebook: {
         data: {
@@ -13,13 +14,15 @@ const PlatformSchema = new mongoose.Schema({
                 }
             ],
             default: [],
-        }
+        },
+        default: { data: [] }
     },
     telegram: {
+        web_hook: { type: String, default: "" },
         bot: {
             type: [
                 {
-                    bot_username: { type: String},
+                    bot_username: String,
                     bot_token_enc: { type: String, required: true, select: false },
                 }
             ],
@@ -34,7 +37,8 @@ const PlatformSchema = new mongoose.Schema({
                 }
             ],
             default: [],
-        }
+        },
+        default: { bot: [], user: [] }
     },
     tiktok: {
         data: {
@@ -45,9 +49,10 @@ const PlatformSchema = new mongoose.Schema({
                 }
             ],
             default: [],
-        }
+        },
+        default: { data: [] }
     },
     active: { type: Boolean, default: true },
-}, { timestamps: true })
+}, { timestamps: true });
 
-export default mongoose.model("Platform", PlatformSchema);
+export default mongoose.model<IPlatform>("Platform", PlatformSchema);

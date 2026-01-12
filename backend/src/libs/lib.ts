@@ -3,7 +3,7 @@ import { get_env } from "../utils/get_env";
 import { empty } from "../utils/util";
 import { getIP } from "../helper/get_ip";
 import check_jwt from "../helper/check_jwt";
-import { JWTPayload } from "../types/type";
+import { JWTPayload } from "../interface/index";
 
 export function check_header(request: Request) {
     const cookie = request.get("cookie");

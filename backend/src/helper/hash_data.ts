@@ -27,8 +27,8 @@ class HashData {
         }
     }
 
-    public decryptData(encryptedData: string): string {
-        if (empty(encryptedData)) return "";
+    public decryptData(encryptedData?: string): string {
+        if (!encryptedData) return "";
         try {
             const decipher = crypto.createDecipheriv(this.Algorithm, this.SECRET_KEY, this.SECRET_IV);
             let decrypted = decipher.update(encryptedData, "hex", "utf8");

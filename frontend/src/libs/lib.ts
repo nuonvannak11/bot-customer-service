@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { empty } from "@/utils/util";
+import { cookies } from "next/headers";
 
 export const response_data = (code: number, status: number, message: string, data: any) => {
     return NextResponse.json(
@@ -65,4 +66,10 @@ export function mask_phone(phone: string | number) {
     const first3 = str.slice(0, 3);
     const last2 = str.slice(-2);
     return `${first3}***${last2}`;
+}
+
+export async function getServerToken() {
+    const cookie = await cookies();
+    const token = cookie.get("authToken")?.value;
+    return token;
 }

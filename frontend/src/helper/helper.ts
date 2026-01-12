@@ -1,5 +1,5 @@
 
-export function make_schema<T extends object>(base: Readonly<T>) {
+export function make_schema<T extends object>(base: T) {
     const value = { ...base } as T;
     return {
         value,
@@ -20,9 +20,13 @@ export function make_schema<T extends object>(base: Readonly<T>) {
 
         pick<K extends keyof T>(keys: readonly K[]) {
             const result = {} as Pick<T, K>;
-            for (const key of keys) result[key] = value[key];
 
-            return make_schema<Pick<T, K>>(result);
+            for (const key of keys) {
+                if (key in value) {
+                    result[key] = value[key];
+                }
+            }
+            return make_schema(result);
         },
 
         merge<U extends object>(other: Readonly<U>) {

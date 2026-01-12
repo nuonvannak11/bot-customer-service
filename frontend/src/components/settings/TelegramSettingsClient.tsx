@@ -6,7 +6,6 @@ import {
   Eye,
   EyeOff,
   Globe,
-  Hash,
   Save,
   ShieldCheck,
   Zap,
@@ -16,15 +15,7 @@ import {
 import toast from "react-hot-toast";
 import Toggle from "@/components/ToggleCheckBox";
 import { make_schema } from "@/helper/helper";
-
-interface TelegramConfig {
-  botUsername: string;
-  botToken: string;
-  webhookUrl: string;
-  webhookEnabled: boolean;
-  notifyEnabled: boolean;
-  silentMode: boolean;
-}
+import { TelegramBotSettingsConfig } from "@/interface/index";
 
 const SettingsInput = ({
   label,
@@ -97,19 +88,19 @@ export default function TelegramSettingsClient({
   initialSettings,
 }: {
   hash_key: string;
-  initialSettings?: { telegram?: Partial<TelegramConfig> };
+  initialSettings?: Partial<TelegramBotSettingsConfig>;
 }) {
   const [isLoading, setIsLoading] = useState(false);
-  const [settings, setSettings] = useState<TelegramConfig>({
-    botUsername: initialSettings?.telegram?.botUsername ?? "",
-    botToken: initialSettings?.telegram?.botToken ?? "",
-    webhookUrl: initialSettings?.telegram?.webhookUrl ?? "",
-    webhookEnabled: initialSettings?.telegram?.webhookEnabled ?? false,
-    notifyEnabled: initialSettings?.telegram?.notifyEnabled ?? true,
-    silentMode: initialSettings?.telegram?.silentMode ?? false,
+  const [settings, setSettings] = useState<TelegramBotSettingsConfig>({
+    botUsername: initialSettings?.botUsername ?? "",
+    botToken: initialSettings?.botToken ?? "",
+    webhookUrl: initialSettings?.webhookUrl ?? "",
+    webhookEnabled: initialSettings?.webhookEnabled ?? false,
+    notifyEnabled: initialSettings?.notifyEnabled ?? true,
+    silentMode: initialSettings?.silentMode ?? false,
   });
 
-  const handleChange = (field: keyof TelegramConfig, value: any) => {
+  const handleChange = (field: keyof TelegramBotSettingsConfig, value: any) => {
     setSettings((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -122,9 +113,12 @@ export default function TelegramSettingsClient({
     setIsLoading(true);
 
     try {
-      const schema = make_schema(settings).omit(["botUsername"]).extend({
-        hash_key,
-      }).get();
+      const schema = make_schema(settings)
+        .omit(["botUsername"])
+        .extend({
+          hash_key,
+        })
+        .get();
       const response = await fetch("/api/settings/telegram", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

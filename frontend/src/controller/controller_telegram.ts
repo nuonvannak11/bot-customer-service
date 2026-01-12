@@ -6,6 +6,7 @@ import { get_env } from "@/libs/lib";
 import { response_data } from "@/libs/lib";
 import HashData from "@/helper/hash_data";
 import { make_schema } from "@/helper/helper";
+import { defaultTelegramConfig } from "@/default/default";
 
 
 class TelegramController extends ProtectMiddleware {
@@ -18,7 +19,7 @@ class TelegramController extends ProtectMiddleware {
             notifyEnabled: z.boolean().optional(),
             silentMode: z.boolean().optional(),
         }, true);
-        if (!result) return result;
+        if (!result) return;
         const token = this.data.token;
         const format_data = make_schema(this.data as Record<string, any>).omit(["token"]).get();
         try {
@@ -35,7 +36,10 @@ class TelegramController extends ProtectMiddleware {
                     },
                 }
             );
-            return response_data(res.data.code, 200, res.data.message, res.data.data || []);
+            const formatData = HashData.decryptData(res.data.data);
+            const collections = JSON.parse(formatData);
+            const pickSchema = make_schema(collections as Record<string, any>).pick(["botToken", "webhookUrl", "webhookEnabled", "notifyEnabled", "silentMode"]).get();
+            return response_data(res.data.code, 200, res.data.message, pickSchema || []);
         } catch (err: any) {
             if (axios.isAxiosError(err) && err.code === "ECONNABORTED") {
                 return response_data(408, 408, "Request timeout (10s)", []);
@@ -44,6 +48,35 @@ class TelegramController extends ProtectMiddleware {
                 return response_data(err.response.status, err.response.status, err.response.statusText, []);
             }
             return response_data(500, 500, "Invalid request", []);
+        }
+    }
+
+    async get_setting_bot(token?: string) {
+        if (!token) {
+            return defaultTelegramConfig ;
+        }
+        const ApiUrl = get_env("BACKEND_URL");
+        try {
+            const res = await axios.get(
+                `${ApiUrl}/api/setting/telegram/setting_bot`,
+                {
+                    timeout: 10_000,
+                    headers: {
+                        authorization: `Bearer ${token}`
+                    }
+                });
+            const formatData = HashData.decryptData(res.data.data);
+            const collections = JSON.parse(formatData);
+            const pickSchema = make_schema(collections as Record<string, any>).pick(["botUsername", "botToken", "webhookUrl", "webhookEnabled", "notifyEnabled", "silentMode"]).get();
+            return pickSchema;
+        } catch (err: any) {
+            if (axios.isAxiosError(err) && err.code === "ECONNABORTED") {
+                return defaultTelegramConfig;
+            }
+            if (axios.isAxiosError(err) && err.response) {
+                return defaultTelegramConfig;
+            }
+            return defaultTelegramConfig;
         }
     }
 }

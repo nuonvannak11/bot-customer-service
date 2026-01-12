@@ -2,7 +2,12 @@ import axios from "axios";
 import { get_env, eLog } from "@/libs/lib";
 import { empty } from "@/utils/util";
 import { JWTPayload } from "@/types/auth";
-
+import { getServerToken } from "@/libs/lib";
+import { cache } from "react";
+import { error } from "console";
+import { redirect } from "next/navigation";
+import controller_telegram from "@/controller/controller_telegram";
+import { parse_telegram_bot_settings } from "@/parser/index";
 
 export async function getDashboardStats(user: JWTPayload) {
   await new Promise((resolve) => setTimeout(resolve, 300));
@@ -75,7 +80,19 @@ export async function getUserProfile() {
   };
 }
 
-export async function getSettings(user: JWTPayload) {
+export async function getBotSettings() {
+  const token = await getServerToken();
+  if (!token) redirect("/login");
+  try {
+    const data = await controller_telegram.get_setting_bot(token);
+    return parse_telegram_bot_settings(data);
+  } catch (error) {
+    eLog("Failed to fetch bot settings:", error);
+    return parse_telegram_bot_settings(null);
+  }
+}
+
+export async function getSettings() {
   return {
     general: {
       workspaceName: "Nexus HQ",

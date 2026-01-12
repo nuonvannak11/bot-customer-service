@@ -1,71 +1,143 @@
 import { Request, Response } from "express";
-import bcrypt from "bcryptjs";
+import mongoose, { set } from "mongoose";
 import AppUser from "../models/model_user";
+import Platform from "../models/model_platform";
+import Setting from "../models/model_settings";
+
 import hashData from "../helper/hash_data";
 import CheckJWT from "../helper/check_jwt";
-import Platform from "../models/model_platform";
-import { PHONE_REGEX, EMAIL_REGEX, GOOGLE_TOKEN_REGEX, EXPIRE_TOKEN_TIME } from "../constants";
+import { PlatformDoc, SettingDoc } from "../types/type";
+import { PHONE_REGEX, EMAIL_REGEX } from "../constants";
 import { get_env } from "../utils/get_env";
 import { empty, random_number, expiresAt, eLog, generate_string } from "../utils/util";
 import { get_session_id } from "../helper/random";
 import { ProtectController } from "./controller_protect";
-import { ca } from "zod/locales";
 import { response_data } from "../libs/lib";
-import mongoose from "mongoose";
+import { SaveTelegramBotDTO } from "../interface";
 
 class TelegramController extends ProtectController {
-    private readonly phoneRegex = PHONE_REGEX;
-    private readonly emailRegex = EMAIL_REGEX;
+    private validateTelegramToken(token: string): boolean {
+        const regex = /^[0-9]{7,12}:[A-Za-z0-9_-]{35}$/;
+        return regex.test(token.trim());
+    }
 
-    public async save(req: Request, res: Response) {
-        const result = await this.protect(req, res, true);
-        if (!result) return;
+    public async get_settings_bot(req: Request, res: Response) {
         try {
-            const user_id = this.data.user_id;
-            const bot_token_enc = this.data.botToken;
+            const result = await this.protect_get<{ user_id: string, session_id: string }>(req, res);
+            if (!result) return;
 
-            if (!user_id || !bot_token_enc) {
-                response_data(res, 400, "Invalid data request", []);
-                return;
-            }
-            const check_user = await AppUser.findOne({ user_id });
-            if (!check_user) {
-                response_data(res, 400, "Invalid user", []);
-                return;
-            }
+            const { user_id } = result;
 
-            const session = await mongoose.startSession();
-            session.startTransaction();
-            const update_platform = await Platform.findOneAndUpdate(
-                { user_id },
-                {
-                    $set: {
-                        "telegram.bot": [
-                            {
-                                bot_token_enc,
-                            }
-                        ]
-                    },
-                },
-                { upsert: true, new: true, session }
-            );
+            if (!user_id)
+                return response_data(res, 400, "Invalid request", []);
 
-            if (!update_platform) {
-                await session.abortTransaction();
-                session.endSession();
-                response_data(res, 500, "Failed to update platform", []);
-                return;
-            } else {
-                await session.commitTransaction();
-                session.endSession();
-                response_data(res, 200, "Success", []);
-                return;
-            }
+            const user = await AppUser.findOne({ user_id }).lean();
+            if (!user)
+                return response_data(res, 400, "Invalid user", []);
 
+            const settings = await Setting.findOne({ user_id }).lean() as SettingDoc;
+            const platform = await Platform.findOne({ user_id }).lean() as PlatformDoc;
+            const platFormList = platform?.telegram?.bot ?? [];
+
+            const webHook = platform?.telegram?.web_hook ?? "";
+            const botList = settings?.telegram?.bot ?? [];
+            const activeBot = botList.find(b => b.process === true) || botList[0] || null;
+            const botUsername = platFormList.find(b => b.bot_token_enc === activeBot?.bot_token)
+
+            const collection = {
+                botUsername: botUsername?.bot_username ?? "",
+                botToken: hashData.decryptData(activeBot?.bot_token ?? "") ?? "",
+                webhookUrl: webHook,
+                webhookEnabled: activeBot?.enable_web_hook ?? false,
+                notifyEnabled: activeBot?.push_notifications ?? false,
+                silentMode: activeBot?.silent_mode ?? false,
+            };
+
+            const encrypted = hashData.encryptData(JSON.stringify(collection));
+            return response_data(res, 200, "Success", encrypted);
         } catch (err) {
-            response_data(res, 500, "Internal server error", []);
             eLog(err);
-            return;
+            return response_data(res, 500, "Internal server error", []);
+        }
+    }
+
+    public async save_bot(req: Request, res: Response) {
+        const result = await this.protect_post<SaveTelegramBotDTO>(req, res, true);
+        if (!result) return;
+
+        const { user_id, botToken, webhookUrl, webhookEnabled, notifyEnabled, silentMode } = this.data_post;
+
+        if (!user_id || !botToken) {
+            return response_data(res, 400, "Invalid request", []);
+        }
+        if (!this.validateTelegramToken(botToken)) {
+            return response_data(res, 400, "Invalid bot token", []);
+        }
+        const bot_token_enc = hashData.encryptData(botToken);
+        const check_user = await AppUser.findOne({ user_id });
+        if (!check_user) return response_data(res, 400, "Invalid user", []);
+
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+            const platform = (await Platform.findOne({ user_id }).select("+telegram.bot.bot_token_enc").session(session)) || new Platform({ user_id });
+            const settings = (await Setting.findOne({ user_id }).session(session)) || new Setting({ user_id });
+
+            platform.telegram ||= { web_hook: "", bot: [], user: [] };
+            settings.telegram ||= { bot: [], user: [] };
+
+            const botList = platform.telegram.bot;
+            const botSettingList = settings.telegram.bot;
+
+            if (botList.length >= 3) {
+                await session.abortTransaction();
+                return response_data(res, 400, "Max 3 Telegram bots", []);
+            }
+            const botIndex = botList.findIndex(b => b.bot_token_enc === bot_token_enc);
+            const settingIndex = botSettingList.findIndex(b => b.bot_token === bot_token_enc);
+
+            if (webhookUrl) {
+                platform.telegram.web_hook = webhookUrl;
+            }
+            if (botIndex === -1) {
+                botList.push({ bot_token_enc });
+            }
+            if (settingIndex === -1) {
+                botSettingList.push({
+                    bot_token: bot_token_enc,
+                    enable_web_hook: Boolean(webhookEnabled),
+                    push_notifications: Boolean(notifyEnabled),
+                    silent_mode: Boolean(silentMode),
+                });
+            } else {
+                console.log(this.data_post);
+                const botSetting = botSettingList[settingIndex];
+                botSetting.bot_token = bot_token_enc;
+                botSetting.enable_web_hook = Boolean(webhookEnabled);
+                botSetting.push_notifications = Boolean(notifyEnabled);
+                botSetting.silent_mode = Boolean(silentMode);
+                console.log(botSetting);
+            }
+
+            await platform.save({ session });
+            await settings.save({ session });
+            await session.commitTransaction();
+
+            const collection = {
+                botToken: hashData.decryptData(bot_token_enc),
+                webhookUrl: webhookUrl,
+                webhookEnabled: Boolean(webhookEnabled),
+                notifyEnabled: Boolean(notifyEnabled),
+                silentMode: Boolean(silentMode),
+            };
+            const formatData = JSON.stringify(collection);
+            const encryptedCollections = hashData.encryptData(formatData);
+            return response_data(res, 200, "Telegram bot updated", encryptedCollections);
+        } catch (err) {
+            await session.abortTransaction();
+            eLog(err);
+            return response_data(res, 500, "Failed to update bot", []);
         }
     }
 }

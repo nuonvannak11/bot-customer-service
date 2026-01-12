@@ -1,8 +1,7 @@
-export interface JWTPayload {
-  user_id: string;
-  session_id: string;
-  token?: string;
-  iat?: number;
-  exp?: number;
-  [key: string]: any;
-}
+
+import { HydratedDocument } from "mongoose";
+import { IPlatform } from "../interface/interface_platform";
+import { ISetting } from "../interface/interface_setting";
+
+export type PlatformDoc = HydratedDocument<IPlatform>;
+export type SettingDoc = HydratedDocument<ISetting>;
