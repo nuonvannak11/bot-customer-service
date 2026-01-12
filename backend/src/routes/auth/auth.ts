@@ -1,10 +1,13 @@
 import { NextFunction, Request, Response, Router } from "express";
 // import googleCallback from "./auth/google/callback";
-import UserController from "../../controller/controller_user";
+import userController from "../../controller/controller_user";
 import { safeWithTimeout } from "../../utils/util";
 
-const userController = new UserController();
 const router = Router();
+
+router.get("/check_auth", async (req: Request, res: Response, next: NextFunction) => {
+    return await safeWithTimeout(userController.check_auth(req, res), next);
+});
 
 router.post("/login", async (req: Request, res: Response, next: NextFunction) => {
     return await safeWithTimeout(userController.login(req, res), next);

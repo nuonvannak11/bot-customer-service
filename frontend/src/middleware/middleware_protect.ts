@@ -12,24 +12,41 @@ export class ProtectMiddleware {
     protected data: any = {};
     private token: any = "";
 
-    private hasDangerousKeys(obj: any): boolean {
-        if (typeof obj !== "object" || obj === null) return false;
+    private readonly dangerousKeys = new Set([
+        "__proto__",
+        "constructor",
+        "prototype",
+        "$gt", "$gte", "$lt", "$lte", "$ne", "$in", "$nin",
+        "$regex", "$where", "$expr", "$function", "$accumulator",
+        "$merge", "$out", "$project", "$lookup", "$group",
+        "$set", "$unset", "$push", "$pop"
+    ]);
+
+    public hasDangerousKeys(obj: any): boolean {
+        if (obj === null || typeof obj !== "object") return false;
+        if (Array.isArray(obj)) {
+            return obj.some((item) => this.hasDangerousKeys(item));
+        }
         for (const key in obj) {
-            if (key.startsWith("$") || key.includes(".")) return true;
             const value = obj[key];
-            if (typeof value === "object" && this.hasDangerousKeys(value)) return true;
+            if (this.dangerousKeys.has(key)) return true;
+            if (key.startsWith("$")) return true;
+            if (key.includes(".")) return true;
+            if (typeof value === "object" && this.hasDangerousKeys(value)) {
+                return true;
+            }
         }
         return false;
     }
 
-    private async extractToken(req: NextRequest): Promise<string | false> {
-        const get_token = req.cookies.get("authToken")?.value;
-        const verify = await checkJwtToken(get_token);
+    public async extractToken(req: NextRequest): Promise<string | null> {
+        const token = req.cookies.get("authToken")?.value ?? null;
+        if (!token) return null;
+        const verify = await checkJwtToken(token);
         if (!verify.status) {
-            response_data(401, 401, "Unauthorized", []);
-            return false;
+            return null;
         }
-        return get_token as string;
+        return token;
     }
 
     async protect<T extends z.ZodRawShape>(req: NextRequest, json_protector: T, check_token?: boolean) {

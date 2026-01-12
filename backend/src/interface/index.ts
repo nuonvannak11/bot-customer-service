@@ -8,10 +8,11 @@ export interface JWTPayload {
 }
 
 export interface SaveTelegramBotDTO {
+  user_id: string;
   botToken: string;
-  webHook?: string;
-  enableWebHook?: boolean;
-  pushNotifications?: boolean;
+  webhookUrl?: string;
+  webhookEnabled?: boolean;
+  notifyEnabled?: boolean;
   silentMode?: boolean;
   hash_key: string;
 }

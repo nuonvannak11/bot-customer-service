@@ -5,12 +5,17 @@ import { redirect } from "next/navigation";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { checkJwtToken } from "@/hooks/use_check_jwt";
 import { get_env } from "@/libs/lib";
+import controller_user from "@/controller/controller_user";
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
   const token = cookieStore.get("authToken")?.value;
   const auth = await checkJwtToken(token);
   if (!auth.status) {
+    redirect("/login");
+  }
+  const check_auth = await controller_user.check_auth(token);
+  if (check_auth.code !== 200) {
     redirect("/login");
   }
   const defaultOpenState: Record<string, boolean> = {
@@ -21,7 +26,6 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     token: token || "",
   };
   const get_socket_url = get_env("SOCKET_URL");
-  console.log("get_socket_url=",get_socket_url);
   const data_socket = {
     ...user,
     socket_url: get_socket_url

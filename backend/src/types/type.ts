@@ -5,3 +5,8 @@ import { ISetting } from "../interface/interface_setting";
 
 export type PlatformDoc = HydratedDocument<IPlatform>;
 export type SettingDoc = HydratedDocument<ISetting>;
+
+export type TokenData = {
+    user_id: string;
+    session_id: string;
+};

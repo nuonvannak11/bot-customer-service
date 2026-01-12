@@ -8,8 +8,11 @@ import HashKey from "@/helper/hash_key";
 import { empty } from "@/utils/util";
 import { rate_limit } from "@/helper/ratelimit";
 import { PHONE_REGEX, SAFE_TEXT } from "@/constants";
+import { ProtectMiddleware } from "@/middleware/middleware_protect";
+import { AuthResponse } from "@/types/type";
 
-class UserController {
+class UserController extends ProtectMiddleware {
+
     private json_protector = {
         phone: z
             .string()
@@ -30,24 +33,30 @@ class UserController {
             .regex(/^[A-Za-z0-9+/=]+$/, "Invalid hash format"),
     };
 
-    private operators = new Set(["$gt", "$gte", "$lt", "$lte", "$ne", "$in", "$nin", "$regex", "$where", "$function", "$accumulator", "$expr", "$merge", "$out", "$project", "$lookup", "$group", "$set", "$unset", "$push", "$pop", "__proto__", "constructor", "prototype", "hasOwnProperty", "isPrototypeOf", "propertyIsEnumerable", "toLocaleString", "toString", "valueOf"]);
-
-    private hasDangerousKeys(obj: any): boolean {
-        if (typeof obj !== "object" || obj === null) return false;
-        for (const key in obj) {
-            if (this.operators.has(key)) return true;
-            if (key.startsWith("$")) return true;
-            if (key.includes(".")) return true;
-            if (key.includes("\0")) return true;
-            const value = obj[key];
-            if (typeof value === "object" && this.hasDangerousKeys(value)) {
-                return true;
-            }
-            if (typeof value === "string" && value.trim().startsWith("$")) {
-                return true;
-            }
+    public async check_auth(token?: string): Promise<AuthResponse> {
+        if (!token) {
+            return { code: 401, message: "Unauthorized", data: [] };
         }
-        return false;
+        const ApiUrl = get_env("BACKEND_URL");
+        try {
+            const res = await axios.get(`${ApiUrl}/auth/check_auth`, {
+                timeout: 10_000,
+                headers: {
+                    authorization: `Bearer ${token}`,
+                },
+            });
+            return { code: res.data.code, message: res.data.message, data: res.data.data ?? [] };
+        } catch (err: any) {
+            if (axios.isAxiosError(err)) {
+                if (err.code === "ECONNABORTED") {
+                    return { code: 408, message: "Request timeout (10s)", data: [] };
+                }
+                if (err.response) {
+                    return { code: err.response.status, message: err.response.statusText || "Request Error", data: [] };
+                }
+            }
+            return { code: 500, message: "Internal Server Error", data: [] };
+        }
     }
 
     public async login(req: NextRequest) {

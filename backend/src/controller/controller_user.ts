@@ -13,11 +13,33 @@ import { get_env } from "../utils/get_env";
 import { empty, random_number, expiresAt, eLog, generate_string, str_number, format_phone } from "../utils/util";
 import { RequestSchema } from "../helper";
 import { get_session_id } from "../helper/random";
-import { check_header } from "../libs/lib";
+import { check_header, response_data } from "../libs/lib";
+import { ProtectController } from "./controller_protect";
+import { TokenData } from "../types/type";
 
-class UserController {
+class UserController extends ProtectController {
     private readonly phoneRegex = PHONE_REGEX;
     private readonly emailRegex = EMAIL_REGEX;
+
+    public async check_auth(req: Request, res: Response) {
+        const is_header = check_header(req);
+        if (!is_header) {
+            response_data(res, 403, "Forbidden", []);
+            return;
+        }
+        const check_token = await this.protect_get<TokenData>(req, res);
+        if (!check_token) {
+            response_data(res, 401, "Unauthorized", []);
+            return;
+        }
+        const { user_id, session_id } = check_token;
+        const user = await AppUser.findOne({ user_id }).lean();
+        if (!user) {
+            response_data(res, 401, "Unauthorized", []);
+            return;
+        }
+        return response_data(res, 200, "Success", []);
+    }
 
     public async login(req: Request, res: Response) {
         const is_header = check_header(req);
@@ -151,7 +173,7 @@ class UserController {
             const hashedPassword = await bcrypt.hash(password, 10);
             const expiresAtValue = expiresAt(3); // 3 min
             await PhoneVerify.findOneAndUpdate(
-                { phone: formatPhone },          
+                { phone: formatPhone },
                 {
                     $set: {
                         code: verificationCode,
@@ -404,4 +426,4 @@ class UserController {
     }
 }
 
-export default UserController;
+export default new UserController;

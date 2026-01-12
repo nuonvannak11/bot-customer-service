@@ -7,8 +7,6 @@ import { empty } from "../utils/util";
 // import { rate_limit } from "../helper/ratelimit";
 
 export class ProtectController {
-    protected data_post: any = {};
-
     private hasDangerousKeys(obj: any): boolean {
         if (typeof obj !== "object" || obj === null) return false;
         for (const key in obj) {
@@ -26,29 +24,44 @@ export class ProtectController {
         return token;
     }
 
-    async protect_post<T extends object>(req: Request, res: Response, check_token?: boolean): Promise<T | false> {
-        if (check_token) {
-            const get_token = this.extractBearerToken(req.headers.authorization);
-            if (!get_token) {
-                response_data(res, 401, "Invalid or missing token", []);
-                return false;
-            }
-            const verify = await checkJwtToken(get_token);
-            if (!verify.status) {
-                response_data(res, 401, "Unauthorized", []);
-                return false;
-            }
-            if (verify.data) {
-                this.data_post.user_id = verify.data.user_id;
-                this.data_post.session_id = verify.data.session_id;
-            }
+    private async extractToken(req: Request): Promise<{ user_id: string; session_id: string } | null> {
+        const header = req.headers.authorization;
+        if (!header || typeof header !== "string") {
+            return null;
         }
+        const [scheme, token] = header.trim().split(/\s+/);
+        if (scheme?.toLowerCase() !== "bearer" || !token) {
+            return null;
+        }
+
+        const verify = await checkJwtToken(token);
+
+        if (!verify.status || !verify.data) {
+            return null;
+        }
+
+        return {
+            user_id: verify.data.user_id,
+            session_id: verify.data.session_id,
+        };
+    }
+
+    async protect_post<T extends object>(req: Request, res: Response, check_token?: boolean): Promise<T | false> {
+        let data: any = {};
         const header = check_header(req);
         if (!header) {
             response_data(res, 403, "Forbidden", []);
             return false;
         }
-
+        if (check_token) {
+            const isToken = await this.extractToken(req);
+            if (!isToken) {
+                response_data(res, 401, "Unauthorized", []);
+                return false;
+            }
+            data.user_id = isToken.user_id;
+            data.session_id = isToken.session_id;
+        }
         const parsed = RequestSchema.safeParse(req.body);
         if (!parsed.success) {
             response_data(res, 400, "Invalid request", []);
@@ -78,36 +91,23 @@ export class ProtectController {
             }
         }
 
-        this.data_post = {
-            ...this.data_post,
-            ...parse_data
-        };
-
-        return parse_data;
+        return { ...data, ...parse_data };
     }
 
     async protect_get<T extends object>(req: Request, res: Response): Promise<T | false> {
+        let data: any = {}
         const header = check_header(req);
         if (!header) {
             response_data(res, 403, "Forbidden", []);
             return false;
         }
-
-        let data_get: any = {}
-        const get_token = this.extractBearerToken(req.headers.authorization);
-        if (!get_token) {
+        const isToken = await this.extractToken(req);
+        if (!isToken) {
             response_data(res, 401, "Unauthorized", []);
             return false;
         }
-        const verify = await checkJwtToken(get_token);
-        if (!verify.status) {
-            response_data(res, 401, "Unauthorized", []);
-            return false;
-        }
-        if (verify.data) {
-            data_get.user_id = verify.data.user_id;
-            data_get.session_id = verify.data.session_id;
-        }
+        data.user_id = isToken.user_id;
+        data.session_id = isToken.session_id;
         if (!empty(req.body)) {
             const parsed = RequestSchema.safeParse(req.body);
             if (!parsed.success) {
@@ -136,11 +136,11 @@ export class ProtectController {
                 }
             }
             return {
-                ...data_get,
+                ...data,
                 ...parse_data
             };
         } else {
-            return data_get;
+            return data;
         }
     }
 }

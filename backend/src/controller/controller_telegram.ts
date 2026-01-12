@@ -65,7 +65,7 @@ class TelegramController extends ProtectController {
         const result = await this.protect_post<SaveTelegramBotDTO>(req, res, true);
         if (!result) return;
 
-        const { user_id, botToken, webhookUrl, webhookEnabled, notifyEnabled, silentMode } = this.data_post;
+        const { user_id, botToken, webhookUrl, webhookEnabled, notifyEnabled, silentMode } = result;
 
         if (!user_id || !botToken) {
             return response_data(res, 400, "Invalid request", []);
@@ -111,13 +111,11 @@ class TelegramController extends ProtectController {
                     silent_mode: Boolean(silentMode),
                 });
             } else {
-                console.log(this.data_post);
                 const botSetting = botSettingList[settingIndex];
                 botSetting.bot_token = bot_token_enc;
                 botSetting.enable_web_hook = Boolean(webhookEnabled);
                 botSetting.push_notifications = Boolean(notifyEnabled);
                 botSetting.silent_mode = Boolean(silentMode);
-                console.log(botSetting);
             }
 
             await platform.save({ session });
