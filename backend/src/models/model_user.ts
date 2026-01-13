@@ -1,12 +1,13 @@
-
 import mongoose from "mongoose";
-
-export const AppUserSchema = new mongoose.Schema(
+import { IUser } from "../interface/interface_user";
+export const AppUserSchema = new mongoose.Schema<IUser>(
     {
         user_id: { type: String, required: true, unique: true },
         email: { type: String, unique: true, sparse: true },
         phone: { type: String, unique: true, sparse: true },
         name: { type: String, required: true },
+        bio: { type: String, default: "" },
+        point: { type: Number, default: 0 },
         avatar: String,
         password: { type: String, select: false },
         phone_verified: { type: Boolean, default: false },
@@ -32,4 +33,4 @@ export const AppUserSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-export default mongoose.model("AppUser", AppUserSchema);
+export default mongoose.model<IUser>("AppUser", AppUserSchema);

@@ -7,12 +7,15 @@ import HashData from "@/helper/hash_data";
 import HashKey from "@/helper/hash_key";
 import { empty } from "@/utils/util";
 import { rate_limit } from "@/helper/ratelimit";
-import { PHONE_REGEX, SAFE_TEXT } from "@/constants";
+import { PHONE_REGEX, SAFE_TEXT, EMAIL_REGEX } from "@/constants";
 import { ProtectMiddleware } from "@/middleware/middleware_protect";
-import { AuthResponse } from "@/types/type";
+import { AuthResponse, ResponseData } from "@/types/type";
+import { defaultUserProfileConfig } from "@/default/default";
+import { UserProfileConfig } from "@/interface";
+import { parse_user_profile } from "@/parser";
+import controller_r2 from "./controller_r2";
 
 class UserController extends ProtectMiddleware {
-
     private json_protector = {
         phone: z
             .string()
@@ -32,6 +35,13 @@ class UserController extends ProtectMiddleware {
             .max(100, "Invalid data")
             .regex(/^[A-Za-z0-9+/=]+$/, "Invalid hash format"),
     };
+
+    private isEmailValid(email: string): boolean {
+        if (!email) {
+            return false;
+        }
+        return EMAIL_REGEX.test(email);
+    }
 
     public async check_auth(token?: string): Promise<AuthResponse> {
         if (!token) {
@@ -308,5 +318,80 @@ class UserController extends ProtectMiddleware {
         }
     }
 
+    public async get_user_profile(token?: string): Promise<UserProfileConfig> {
+        if (!token) {
+            return defaultUserProfileConfig;
+        }
+        const ApiUrl = get_env("BACKEND_URL");
+        try {
+            const res = await axios.get(`${ApiUrl}/auth/get_user_profile`, {
+                timeout: 10_000,
+                headers: {
+                    authorization: `Bearer ${token}`,
+                },
+            });
+            if (res.data.code !== 200) {
+                return defaultUserProfileConfig;
+            }
+            const formatData = HashData.decryptData(res.data.data);
+            const collections = JSON.parse(formatData);
+            return parse_user_profile(collections);
+        } catch (err: any) {
+            return defaultUserProfileConfig;
+        }
+    }
+
+    public async update_user_profile(req: NextRequest) {
+        const Schema = z.object(this.json_protector).omit({ password: true, phone: true }).extend({
+            fullName: z.string().optional(),
+            username: z.string().optional(),
+            email: z.string().optional(),
+            phone: z.string().optional(),
+            bio: z.string().optional(),
+            emailNotifications: z.string().optional(),
+            twoFactor: z.string().optional(),
+        }).strict();
+
+        try {
+            const header = check_header(req);
+            if (!header) {
+                return response_data(403, 403, "Forbidden", []);
+            }
+            const results = await this.protect(req, Schema.shape, 10, true);
+            if (!results.ok) return results.response;
+            const { data, form } = results;
+            const avatar = await this.protect_file({ form: form || undefined, field: "avatar", maxSizeMB: 10 });
+            if (!avatar.ok) {
+                return response_data(400, 400, avatar.error || "Invalid file", []);
+            }
+            const token = data?.token;
+            const parseData = await this.parse_token(token);
+            if (!parseData) {
+                return response_data(401, 401, "Unauthorized", []);
+            }
+            const user_id = parseData.user_id;
+            const path_img = "/assets/img/user";
+            const file = avatar.file;
+            const upload_avatar = await controller_r2.save(token, file, path_img, user_id);
+            const collections = {
+                avatar: upload_avatar,
+                ...data
+            }
+            console.log(collections);
+            const apiUrl = get_env("BACKEND_URL");
+        } catch (err: any) {
+            eLog("Login Proxy Error:", err);
+            if (axios.isAxiosError(err)) {
+                if (err.code === "ECONNABORTED") {
+                    return response_data(408, 408, "Request timeout (10s)", []);
+                }
+                if (err.response) {
+                    const backendMessage = err.response.data?.message || err.response.statusText;
+                    return response_data(err.response.status, err.response.status, backendMessage, []);
+                }
+            }
+            return response_data(500, 500, "Internal Server Error", []);
+        }
+    }
 }
 export default new UserController;

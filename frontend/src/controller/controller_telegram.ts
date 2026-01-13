@@ -10,16 +10,19 @@ import { defaultTelegramConfig } from "@/default/default";
 
 
 class TelegramController extends ProtectMiddleware {
+    private readonly json_protector = {
+        hash_key: z.string().min(10, "Invalid data").max(100, "Invalid data").regex(/^[A-Za-z0-9+/=]+$/, "Invalid hash format"),
+        botToken: z.string().min(10, "Invalid data").max(100, "Invalid data"),
+        webhookUrl: z.string().optional(),
+        webhookEnabled: z.boolean().optional(),
+        notifyEnabled: z.boolean().optional(),
+        silentMode: z.boolean().optional(),
+    };
+    private readonly pick_schema = ["botUsername", "botToken", "webhookUrl", "webhookEnabled", "notifyEnabled", "silentMode"];
+
     async save(req: NextRequest) {
-        const result = await this.protect(req, {
-            hash_key: z.string().min(10, "Invalid data").max(100, "Invalid data").regex(/^[A-Za-z0-9+/=]+$/, "Invalid hash format"),
-            botToken: z.string().min(10, "Invalid data").max(100, "Invalid data"),
-            webhookUrl: z.string().optional(),
-            webhookEnabled: z.boolean().optional(),
-            notifyEnabled: z.boolean().optional(),
-            silentMode: z.boolean().optional(),
-        }, true);
-        if (!result) return;
+        const result = await this.protect(req, this.json_protector, 10, true);
+        if (result !== true) return result;
         const token = this.data.token;
         const format_data = make_schema(this.data as Record<string, any>).omit(["token"]).get();
         try {
@@ -38,7 +41,7 @@ class TelegramController extends ProtectMiddleware {
             );
             const formatData = HashData.decryptData(res.data.data);
             const collections = JSON.parse(formatData);
-            const pickSchema = make_schema(collections as Record<string, any>).pick(["botToken", "webhookUrl", "webhookEnabled", "notifyEnabled", "silentMode"]).get();
+            const pickSchema = make_schema(collections as Record<string, any>).pick(this.pick_schema).get();
             return response_data(res.data.code, 200, res.data.message, pickSchema || []);
         } catch (err: any) {
             if (axios.isAxiosError(err) && err.code === "ECONNABORTED") {
@@ -53,7 +56,7 @@ class TelegramController extends ProtectMiddleware {
 
     async get_setting_bot(token?: string) {
         if (!token) {
-            return defaultTelegramConfig ;
+            return defaultTelegramConfig;
         }
         const ApiUrl = get_env("BACKEND_URL");
         try {
@@ -67,7 +70,7 @@ class TelegramController extends ProtectMiddleware {
                 });
             const formatData = HashData.decryptData(res.data.data);
             const collections = JSON.parse(formatData);
-            const pickSchema = make_schema(collections as Record<string, any>).pick(["botUsername", "botToken", "webhookUrl", "webhookEnabled", "notifyEnabled", "silentMode"]).get();
+            const pickSchema = make_schema(collections as Record<string, any>).pick(this.pick_schema).get();
             return pickSchema;
         } catch (err: any) {
             if (axios.isAxiosError(err) && err.code === "ECONNABORTED") {

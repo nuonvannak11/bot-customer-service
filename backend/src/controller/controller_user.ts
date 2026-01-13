@@ -15,7 +15,10 @@ import { RequestSchema } from "../helper";
 import { get_session_id } from "../helper/random";
 import { check_header, response_data } from "../libs/lib";
 import { ProtectController } from "./controller_protect";
-import { TokenData } from "../types/type";
+import { SettingDoc, TokenData } from "../types/type";
+import model_settings from "../models/model_settings";
+import { ISetting } from "../interface/interface_setting";
+import { IUser } from "../interface/interface_user";
 
 class UserController extends ProtectController {
     private readonly phoneRegex = PHONE_REGEX;
@@ -411,18 +414,29 @@ class UserController extends ProtectController {
         }
     }
 
-    public async check_token(req: Request, res: Response) {
-        try {
-            const { token } = req.body;
-            const check_token = CheckJWT.verifyToken(token);
-            if (!check_token.status) {
-                return res.status(200).json({ code: 401, message: "Invalid token" });
-            } else {
-                return res.status(200).json({ code: 200, message: "Valid token" });
-            }
-        } catch (err) {
-            eLog(err);
+    public async get_user_profile(req: Request, res: Response) {
+        const is_header = check_header(req);
+        if (!is_header) {
+            response_data(res, 403, "Forbidden", []);
+            return;
         }
+        const check_token = await this.protect_get<TokenData>(req, res);
+        if (!check_token) {
+            response_data(res, 401, "Unauthorized", []);
+            return;
+        }
+        const { user_id } = check_token;
+        const user = await AppUser.findOne({ user_id }).lean<IUser | null>();
+        if (!user) {
+            response_data(res, 401, "Unauthorized", []);
+            return;
+        }
+        const settings = await model_settings.findOne({ user_id }).lean<ISetting | null>();
+        const { emailNotifications, twoFactor } = settings?.user || { emailNotifications: false, twoFactor: false };
+        const { email, phone, name, avatar, bio, point } = user;
+        const collection = { avatar, fullName: name, username: name, email, phone, bio, points: point, emailNotifications, twoFactor };
+        const encrypted = hashData.encryptData(JSON.stringify(collection));
+        return response_data(res, 200, "Success", encrypted);
     }
 }
 

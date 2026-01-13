@@ -7,7 +7,8 @@ import { cache } from "react";
 import { error } from "console";
 import { redirect } from "next/navigation";
 import controller_telegram from "@/controller/controller_telegram";
-import { parse_telegram_bot_settings } from "@/parser/index";
+import { parse_telegram_bot_settings, parse_user_profile } from "@/parser/index";
+import controller_user from "@/controller/controller_user";
 
 export async function getDashboardStats(user: JWTPayload) {
   await new Promise((resolve) => setTimeout(resolve, 300));
@@ -68,18 +69,6 @@ export async function getReportStats() {
   };
 }
 
-export async function getUserProfile() {
-  return {
-    name: "Alex Admin",
-    email: "alex@nexus.com",
-    role: "Administrator",
-    sessions: [
-      { device: "Chrome (Windows)", ip: "103.24.11.9", active: "Just now" },
-      { device: "Safari (iPhone)", ip: "27.116.2.30", active: "2 days ago" },
-    ]
-  };
-}
-
 export async function getBotSettings() {
   const token = await getServerToken();
   if (!token) redirect("/login");
@@ -89,6 +78,18 @@ export async function getBotSettings() {
   } catch (error) {
     eLog("Failed to fetch bot settings:", error);
     return parse_telegram_bot_settings(null);
+  }
+}
+
+export async function getUserProfile() {
+  const token = await getServerToken();
+  if (!token) redirect("/login");
+  try {
+    const data = await controller_user.get_user_profile(token);
+    return data;
+  } catch (error) {
+    eLog("Failed to fetch bot settings:", error);
+    return parse_user_profile(null);
   }
 }
 

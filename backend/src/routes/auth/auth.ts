@@ -5,6 +5,10 @@ import { safeWithTimeout } from "../../utils/util";
 
 const router = Router();
 
+router.get("/get_user_profile", async (req: Request, res: Response, next: NextFunction) => {
+    return await safeWithTimeout(userController.get_user_profile(req, res), next);
+});
+
 router.get("/check_auth", async (req: Request, res: Response, next: NextFunction) => {
     return await safeWithTimeout(userController.check_auth(req, res), next);
 });

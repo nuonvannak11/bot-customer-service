@@ -15,9 +15,14 @@ interface TelegramUser {
     silent_mode?: boolean;
 }
 
+interface UserSetting {
+    emailNotifications?: boolean;
+    twoFactor?: boolean;
+}
+
 export interface ISetting {
     user_id: string;
-    user: any;
+    user: UserSetting;
     facebook: any;
     telegram: {
         bot: TelegramBot[];

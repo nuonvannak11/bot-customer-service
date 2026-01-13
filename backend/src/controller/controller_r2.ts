@@ -1,20 +1,20 @@
+import { Request, Response } from "express";
 import { PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import sharp from "sharp";
 import { get_env } from "../utils/get_env";
 import { empty, str_lower, eLog } from "../utils/util";
 import r2 from "../config/r2";
+import { ProtectController } from "./controller_protect";
+import { check_header, response_data } from "../libs/lib";
+import AppUser from "../models/model_user";
+import hash_data from "../helper/hash_data";
 
-class R2Controller {
-    private bucket: string;
-    private publicUrl: string;
-
-    constructor() {
-        this.bucket = get_env("R2_BUCKET");
-        this.publicUrl = get_env("R2_PUBLIC_URL");
-    }
+class R2Controller extends ProtectController {
+    private bucket = get_env("R2_BUCKET");
+    private publicUrl = get_env("R2_PUBLIC_URL");
 
     valid_file(file: Express.Multer.File) {
-        const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+        const MAX_SIZE = 10 * 1024 * 1024; // 10MB
         const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
         const mimetype = file.mimetype;
         const size = file.size;
@@ -103,6 +103,43 @@ class R2Controller {
             eLog("Error deleting file from R2:", error);
             return { success: false, message: `Failed to delete file: ${error.message}` };
         }
+    }
+
+    async upload(req: Request, res: Response) {
+        const is_header = check_header(req);
+        if (!is_header) {
+            return response_data(res, 403, "Forbidden", []);
+        }
+        const check_token = await this.extractToken(req);
+        if (!check_token) {
+            return response_data(res, 401, "Unauthorized", []);
+        }
+        const check_user = await AppUser.findOne({ user_id: check_token.user_id });
+        if (!check_user) {
+            return response_data(res, 401, "Unauthorized", []);
+        }
+        
+        const file_name = req.body.name;
+        const file_path = req.body.path;
+        const format_name = hash_data.decryptData(file_name);
+        const format_path = hash_data.decryptData(file_path);
+        if (!format_name || !format_path) {
+            return response_data(res, 400, "Invalid request", []);
+        }
+        const file = req.file;
+        if (!file) {
+            return response_data(res, 400, "Invalid request", []);
+        }
+        const upload_file = await this.uploadFile(file, format_path, format_name);
+        console.log("err==", upload_file);
+        if (!upload_file.success) {
+            return response_data(res, 500, upload_file.message || "Internal server error", []);
+        }
+        return response_data(res, 200, "Success", upload_file.url);
+    }
+
+    async delete(req: Request, res: Response) {
+
     }
 }
 

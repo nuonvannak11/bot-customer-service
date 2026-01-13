@@ -24,7 +24,7 @@ export class ProtectController {
         return token;
     }
 
-    private async extractToken(req: Request): Promise<{ user_id: string; session_id: string } | null> {
+    public async extractToken(req: Request): Promise<{ user_id: string; session_id: string } | null> {
         const header = req.headers.authorization;
         if (!header || typeof header !== "string") {
             return null;

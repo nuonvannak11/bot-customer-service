@@ -42,10 +42,10 @@ class TelegramController extends ProtectController {
             const webHook = platform?.telegram?.web_hook ?? "";
             const botList = settings?.telegram?.bot ?? [];
             const activeBot = botList.find(b => b.process === true) || botList[0] || null;
-            const botUsername = platFormList.find(b => b.bot_token_enc === activeBot?.bot_token)
+            const botUsername = platFormList.find(b => b.bot_token_enc === activeBot?.bot_token)?.bot_username ?? "";
 
             const collection = {
-                botUsername: botUsername?.bot_username ?? "",
+                botUsername,
                 botToken: hashData.decryptData(activeBot?.bot_token ?? "") ?? "",
                 webhookUrl: webHook,
                 webhookEnabled: activeBot?.enable_web_hook ?? false,
@@ -103,6 +103,7 @@ class TelegramController extends ProtectController {
             if (botIndex === -1) {
                 botList.push({ bot_token_enc });
             }
+            const botUsername = botList.find(b => b.bot_token_enc === bot_token_enc)?.bot_username ?? "";
             if (settingIndex === -1) {
                 botSettingList.push({
                     bot_token: bot_token_enc,
@@ -123,6 +124,7 @@ class TelegramController extends ProtectController {
             await session.commitTransaction();
 
             const collection = {
+                botUsername,
                 botToken: hashData.decryptData(bot_token_enc),
                 webhookUrl: webhookUrl,
                 webhookEnabled: Boolean(webhookEnabled),

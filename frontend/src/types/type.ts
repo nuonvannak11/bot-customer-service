@@ -9,3 +9,9 @@ export type AuthResponse = {
   message: string;
   data: [];
 };
+
+export type ResponseData = {
+  code: number;
+  message: string;
+  data: any;
+};

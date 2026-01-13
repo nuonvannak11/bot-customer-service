@@ -1,4 +1,4 @@
-import type { TelegramBotSettingsConfig } from "@/interface/index";
+import type { TelegramBotSettingsConfig, UserProfileConfig } from "@/interface/index";
 
 export const defaultTelegramConfig: TelegramBotSettingsConfig = {
     botUsername: "",
@@ -8,3 +8,15 @@ export const defaultTelegramConfig: TelegramBotSettingsConfig = {
     notifyEnabled: false,
     silentMode: false,
 };
+
+export const defaultUserProfileConfig: UserProfileConfig = {
+    avatar: "https://buckets.onecontrol.store/assets/icon/user.png",
+    fullName: "",
+    username: "",
+    email: "",
+    phone: "",
+    bio: "",
+    points: 0,
+    emailNotifications: false,
+    twoFactor: false,
+}

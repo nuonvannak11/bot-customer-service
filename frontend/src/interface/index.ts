@@ -6,3 +6,22 @@ export interface TelegramBotSettingsConfig {
   notifyEnabled: boolean;
   silentMode: boolean;
 }
+
+export interface UserProfileConfig {
+  avatar: string;
+  fullName: string;
+  username: string;
+  email: string;
+  phone: string;
+  bio: string;
+  points: number;
+  emailNotifications: boolean;
+  twoFactor: boolean;
+}
+
+export interface ProtectFileOptions {
+    form?: FormData;
+    field: string;
+    maxSizeMB?: number;
+    allowed?: string[];
+}
