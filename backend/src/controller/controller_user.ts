@@ -19,24 +19,20 @@ import { SettingDoc, TokenData } from "../types/type";
 import model_settings from "../models/model_settings";
 import { ISetting } from "../interface/interface_setting";
 import { IUser } from "../interface/interface_user";
+import { console } from "inspector";
 
 class UserController extends ProtectController {
     private readonly phoneRegex = PHONE_REGEX;
     private readonly emailRegex = EMAIL_REGEX;
 
     public async check_auth(req: Request, res: Response) {
-        const is_header = check_header(req);
-        if (!is_header) {
-            response_data(res, 403, "Forbidden", []);
-            return;
-        }
         const check_token = await this.protect_get<TokenData>(req, res);
         if (!check_token) {
             response_data(res, 401, "Unauthorized", []);
             return;
         }
-        const { user_id, session_id, token } = check_token;
-        const user = await AppUser.findOne({access_token_hash: token }).lean();
+        const { token } = check_token;
+        const user = await AppUser.findOne({ access_token_hash: token }).lean();
         if (!user) {
             response_data(res, 401, "Unauthorized", []);
             return;

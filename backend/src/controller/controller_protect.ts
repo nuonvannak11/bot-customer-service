@@ -103,12 +103,15 @@ export class ProtectController {
             return false;
         }
         const isToken = await this.extractToken(req);
-        if (!isToken) {
+        if (isToken === null) {
             response_data(res, 401, "Unauthorized", []);
             return false;
         }
+        
         data.user_id = isToken.user_id;
         data.session_id = isToken.session_id;
+        data.token = isToken.token;
+
         if (!empty(req.body)) {
             const parsed = RequestSchema.safeParse(req.body);
             if (!parsed.success) {
