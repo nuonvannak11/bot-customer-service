@@ -1,4 +1,3 @@
-export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import controller_user from "@/controller/controller_user";
 import { withTimeout } from "@/helper/use_timeout";

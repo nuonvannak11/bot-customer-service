@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
+import "@/libs/redis";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import TranslationsProvider from "@/components/TranslationsProvider";
 import initTranslations from "../../i18n";

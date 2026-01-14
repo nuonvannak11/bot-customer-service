@@ -9,4 +9,5 @@ export type SettingDoc = HydratedDocument<ISetting>;
 export type TokenData = {
     user_id: string;
     session_id: string;
+    token: string;
 };

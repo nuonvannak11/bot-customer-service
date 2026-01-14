@@ -17,23 +17,22 @@ export class ProtectController {
         return false;
     }
 
-    extractBearerToken(header: string | undefined) {
+    public extractBearerToken(header: string | undefined) {
         if (!header || typeof header !== "string") return null;
         const [scheme, token] = header.trim().split(/\s+/);
         if (scheme?.toLowerCase() !== "bearer" || !token) return null;
         return token;
     }
 
-    public async extractToken(req: Request): Promise<{ user_id: string; session_id: string } | null> {
+    public async extractToken(req: Request): Promise<{ user_id: string; session_id: string, token: string } | null> {
         const header = req.headers.authorization;
         if (!header || typeof header !== "string") {
             return null;
         }
-        const [scheme, token] = header.trim().split(/\s+/);
-        if (scheme?.toLowerCase() !== "bearer" || !token) {
+        const token = this.extractBearerToken(header);
+        if (!token) {
             return null;
         }
-
         const verify = await checkJwtToken(token);
 
         if (!verify.status || !verify.data) {
@@ -43,6 +42,7 @@ export class ProtectController {
         return {
             user_id: verify.data.user_id,
             session_id: verify.data.session_id,
+            token
         };
     }
 
@@ -61,6 +61,7 @@ export class ProtectController {
             }
             data.user_id = isToken.user_id;
             data.session_id = isToken.session_id;
+            data.token = isToken.token;
         }
         const parsed = RequestSchema.safeParse(req.body);
         if (!parsed.success) {

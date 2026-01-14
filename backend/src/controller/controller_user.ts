@@ -35,8 +35,8 @@ class UserController extends ProtectController {
             response_data(res, 401, "Unauthorized", []);
             return;
         }
-        const { user_id, session_id } = check_token;
-        const user = await AppUser.findOne({ user_id }).lean();
+        const { user_id, session_id, token } = check_token;
+        const user = await AppUser.findOne({access_token_hash: token }).lean();
         if (!user) {
             response_data(res, 401, "Unauthorized", []);
             return;

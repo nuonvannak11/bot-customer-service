@@ -1,17 +1,30 @@
-import Redis from 'ioredis';
+import Redis from "ioredis";
 import { get_env, eLog } from "@/libs/lib";
 
 const portStr = get_env("REDIS_PORT", "6379");
-const port = Number.parseInt(portStr, 10);
+const port = Number.parseInt(portStr, 10) || 6379;
 
-const redis = new Redis({
+const redisConfig = {
   host: get_env("REDIS_HOST", "127.0.0.1"),
-  port: Number.isNaN(port) ? 6379 : port,
+  port,
   password: get_env("REDIS_PASS", ""),
-  connectTimeout: 10000
-});
+  connectTimeout: 10000,
+  retryStrategy(times: number) {
+    if (times > 50) {
+      eLog("❌ Redis: Retry limit exhausted.");
+      return null;
+    }
+    const delay = Math.min(Math.pow(2, times) * 500, 10000);
+    return delay;
+  }
+};
 
-redis.on('connect', () => eLog('✅ Connected to Redis!'));
-redis.on('error', (err: any) => eLog('❌ Redis Error:', err));
+if (!global.redis) {
+  global.redis = new Redis(redisConfig);
+  global.redis.on("connect", () => eLog("✅ Redis Connected!"));
+  global.redis.on("error", (err: any) => eLog("❌ Redis Error:", err));
+}
+
+const redis = global.redis;
 
 export default redis;

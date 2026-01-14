@@ -370,7 +370,7 @@ class UserController extends ProtectMiddleware {
                 return response_data(401, 401, "Unauthorized", []);
             }
             const user_id = parseData.user_id;
-            const path_img = "/assets/img/user";
+            const path_img = "assets/img/user";
             const file = avatar.file;
             const upload_avatar = await controller_r2.save(token, file, path_img, user_id);
             const collections = {
