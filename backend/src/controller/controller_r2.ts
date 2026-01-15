@@ -131,7 +131,6 @@ class R2Controller extends ProtectController {
             return response_data(res, 400, "Invalid request", []);
         }
         const upload_file = await this.uploadFile(file, format_path, format_name);
-        console.log("err==", upload_file);
         if (!upload_file.success) {
             return response_data(res, 500, upload_file.message || "Internal server error", []);
         }

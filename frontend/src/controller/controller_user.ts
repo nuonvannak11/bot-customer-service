@@ -14,6 +14,7 @@ import { defaultUserProfileConfig } from "@/default/default";
 import { UserProfileConfig } from "@/interface";
 import { parse_user_profile } from "@/parser";
 import controller_r2 from "./controller_r2";
+import { ca, da } from "zod/v4/locales";
 
 class UserController extends ProtectMiddleware {
     private json_protector = {
@@ -343,6 +344,8 @@ class UserController extends ProtectMiddleware {
 
     public async update_user_profile(req: NextRequest) {
         const Schema = z.object(this.json_protector).omit({ password: true, phone: true }).extend({
+            isAvatarUpdated: z.string().optional(),
+            avatar: z.string().optional(),
             fullName: z.string().optional(),
             username: z.string().optional(),
             email: z.string().optional(),
@@ -353,32 +356,51 @@ class UserController extends ProtectMiddleware {
         }).strict();
 
         try {
-            const header = check_header(req);
-            if (!header) {
-                return response_data(403, 403, "Forbidden", []);
-            }
             const results = await this.protect(req, Schema.shape, 10, true);
-            if (!results.ok) return results.response;
+            if (!results.ok) {
+                return results.response;
+            }
             const { data, form } = results;
-            const avatar = await this.protect_file({ form: form || undefined, field: "avatar", maxSizeMB: 10 });
-            if (!avatar.ok) {
-                return response_data(400, 400, avatar.error || "Invalid file", []);
+            if (!data) {
+                return response_data(400, 400, "Invalid data", []);
             }
             const token = data?.token;
-            const parseData = await this.parse_token(token);
-            if (!parseData) {
-                return response_data(401, 401, "Unauthorized", []);
+            const isAvatarUpdate = data.isAvatarUpdated === "true";
+            if (isAvatarUpdate) {
+                const updateAvatar = await this.protect_file({ form: form || undefined, field: "updateAvatar", maxSizeMB: 10 });
+                if (!updateAvatar.ok) {
+                    return response_data(400, 400, updateAvatar.error || "Invalid file", []);
+                }
+                const parseData = await this.parse_token(token);
+                if (!parseData) {
+                    return response_data(401, 401, "Unauthorized", []);
+                }
+                const user_id = parseData.user_id;
+                const path_img = "assets/img/user";
+                const file = updateAvatar.file;
+                const upload_avatar = await controller_r2.req_upload(token, file, path_img, user_id);
+                if (empty(upload_avatar)) {
+                    return response_data(400, 400, "Invalid file", []);
+                }
+                data.avatar = upload_avatar ?? undefined;
             }
-            const user_id = parseData.user_id;
-            const path_img = "assets/img/user";
-            const file = avatar.file;
-            const upload_avatar = await controller_r2.save(token, file, path_img, user_id);
-            const collections = {
-                avatar: upload_avatar,
-                ...data
-            }
-            console.log(collections);
+            const post_body = HashData.encryptData(JSON.stringify(data));
             const apiUrl = get_env("BACKEND_URL");
+            const response = await axios.patch(
+                `${apiUrl}/api/user/profile/update`,
+                { payload: post_body },
+                {
+                    timeout: 10_000,
+                    headers: {
+                        "Content-Type": "application/json",
+                        "authorization": `Bearer ${token}`,
+                    },
+                }
+            );
+            const res_data = response.data;
+            const formatData = HashData.decryptData(res_data.data);
+            const collections = JSON.parse(formatData);
+            return response_data(res_data.code, res_data.code, res_data.message, collections);
         } catch (err: any) {
             eLog("Login Proxy Error:", err);
             if (axios.isAxiosError(err)) {

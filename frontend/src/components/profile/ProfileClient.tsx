@@ -30,6 +30,7 @@ export default function ProfileClient({
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isAvatarUpdate, setIsAvatarUpdate] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const [formData, setFormData] = useState(profile);
@@ -81,8 +82,10 @@ export default function ProfileClient({
     try {
       const form_data = new FormData();
       if (selectedFile) {
-        form_data.append("avatar", selectedFile);
+        form_data.append("updateAvatar", selectedFile);
       }
+      form_data.append("isAvatarUpdated", isAvatarUpdate.toString());
+      form_data.append("avatar", formData.avatar);
       form_data.append("hash_key", hash_key);
       form_data.append("fullName", formData.fullName);
       form_data.append("username", formData.username);
@@ -166,6 +169,7 @@ export default function ProfileClient({
                     const url = URL.createObjectURL(file);
                     setPreviewUrl(url);
                     setFormData((p) => ({ ...p, avatar: url }));
+                    setIsAvatarUpdate(true);
                   }
                 }}
               />

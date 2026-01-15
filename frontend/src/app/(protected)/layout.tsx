@@ -11,9 +11,6 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   const cookieStore = await cookies();
   const token = cookieStore.get("authToken")?.value;
   const auth = await checkJwtToken(token);
-  if (!auth.status) {
-    redirect("/login");
-  }
   const check_auth = await controller_user.check_auth(token);
   if (check_auth.code !== 200) {
     redirect("/login");

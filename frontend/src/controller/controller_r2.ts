@@ -4,7 +4,7 @@ import hash_data from "@/helper/hash_data";
 import { eLog, get_env } from "@/libs/lib";
 
 class ControllerR2 {
-    async save(token?: string, file?: File, path?: string, name?: string): Promise<string | null> {
+    async req_upload(token?: string, file?: File, path?: string, name?: string): Promise<string | null> {
         if (!file || !path || !name || !token) return null;
         try {
             const apiUrl = get_env("BACKEND_URL");

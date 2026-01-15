@@ -22,7 +22,7 @@ class TelegramController extends ProtectMiddleware {
 
     async save(req: NextRequest) {
         const result = await this.protect(req, this.json_protector, 10, true);
-        if (result !== true) return result;
+        if (result.ok === false) return result;
         const token = this.data.token;
         const format_data = make_schema(this.data as Record<string, any>).omit(["token"]).get();
         try {

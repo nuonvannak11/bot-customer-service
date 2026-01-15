@@ -19,7 +19,6 @@ import { SettingDoc, TokenData } from "../types/type";
 import model_settings from "../models/model_settings";
 import { ISetting } from "../interface/interface_setting";
 import { IUser } from "../interface/interface_user";
-import { console } from "inspector";
 
 class UserController extends ProtectController {
     private readonly phoneRegex = PHONE_REGEX;
@@ -433,6 +432,13 @@ class UserController extends ProtectController {
         const collection = { avatar, fullName: name, username: name, email, phone, bio, points: point, emailNotifications, twoFactor };
         const encrypted = hashData.encryptData(JSON.stringify(collection));
         return response_data(res, 200, "Success", encrypted);
+    }
+
+    public async update_profile(req: Request, res: Response) {
+        const is_header = check_header(req);
+        if (!is_header)
+        response_data(res, 403, "Forbidden", []);
+        return;
     }
 }
 
