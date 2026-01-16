@@ -11,7 +11,7 @@ import Platform from "../models/model_platform";
 import { PHONE_REGEX, EMAIL_REGEX, GOOGLE_TOKEN_REGEX, EXPIRE_TOKEN_TIME } from "../constants";
 import { get_env } from "../utils/get_env";
 import { empty, random_number, expiresAt, eLog, generate_string, str_number, format_phone } from "../utils/util";
-import { RequestSchema } from "../helper";
+import { make_schema, RequestSchema } from "../helper";
 import { get_session_id } from "../helper/random";
 import { check_header, response_data } from "../libs/lib";
 import { ProtectController } from "./controller_protect";
@@ -19,10 +19,20 @@ import { SettingDoc, TokenData } from "../types/type";
 import model_settings from "../models/model_settings";
 import { ISetting } from "../interface/interface_setting";
 import { IUser } from "../interface/interface_user";
+import { SaveUserProfile } from "../interface";
+import mongoose, { set } from "mongoose";
 
 class UserController extends ProtectController {
     private readonly phoneRegex = PHONE_REGEX;
     private readonly emailRegex = EMAIL_REGEX;
+
+    private async active_token(user_id: string, token: string) {
+        if (!token || !user_id) return false;
+        const check_user = await AppUser.findOne({ user_id }).select("+access_token_hash").lean();
+        if (!check_user) return false;
+        if (token !== check_user.access_token_hash) return false;
+        return true;
+    }
 
     public async check_auth(req: Request, res: Response) {
         const check_token = await this.protect_get<TokenData>(req, res);
@@ -30,13 +40,20 @@ class UserController extends ProtectController {
             response_data(res, 401, "Unauthorized", []);
             return;
         }
-        const { token } = check_token;
-        const user = await AppUser.findOne({ access_token_hash: token }).lean();
-        if (!user) {
+        const { token, user_id } = check_token;
+        const user = await AppUser.findOne({ user_id }).select("+access_token_hash").lean();
+        if (!user || token !== user.access_token_hash) {
             response_data(res, 401, "Unauthorized", []);
             return;
         }
-        return response_data(res, 200, "Success", []);
+        const settings = await model_settings.findOne({ user_id }).lean<ISetting | null>();
+        const { emailNotifications, twoFactor } = settings?.user || { emailNotifications: false, twoFactor: false };
+        const format_email_notifications = emailNotifications ? "1" : "0";
+        const format_two_factor = twoFactor ? "1" : "0";
+        const { email, phone, name, avatar, bio, point } = user;
+        const collection = { avatar, fullName: name, username: name, email, phone, bio, points: point, emailNotifications: format_email_notifications, twoFactor: format_two_factor };
+        const encrypted = hashData.encryptData(JSON.stringify(collection));
+        return response_data(res, 200, "Success", encrypted);
     }
 
     public async login(req: Request, res: Response) {
@@ -410,16 +427,8 @@ class UserController extends ProtectController {
     }
 
     public async get_user_profile(req: Request, res: Response) {
-        const is_header = check_header(req);
-        if (!is_header) {
-            response_data(res, 403, "Forbidden", []);
-            return;
-        }
         const check_token = await this.protect_get<TokenData>(req, res);
-        if (!check_token) {
-            response_data(res, 401, "Unauthorized", []);
-            return;
-        }
+        if (!check_token) return;
         const { user_id } = check_token;
         const user = await AppUser.findOne({ user_id }).lean<IUser | null>();
         if (!user) {
@@ -435,10 +444,53 @@ class UserController extends ProtectController {
     }
 
     public async update_profile(req: Request, res: Response) {
-        const is_header = check_header(req);
-        if (!is_header)
-        response_data(res, 403, "Forbidden", []);
-        return;
+        try {
+            const result = await this.protect_post<SaveUserProfile>(req, res, true);
+            if (!result) return;
+            const { user_id, token, avatar, username, email, phone, bio, emailNotifications, twoFactor } = result;
+            const isToken = await this.active_token(user_id, token);
+            if (!isToken) {
+                return response_data(res, 401, "Unauthorized", []);
+            }
+
+            const session = await mongoose.startSession();
+            session.startTransaction();
+            try {
+                const user = await AppUser.findOne({ user_id }).session(session);
+                if (!user) {
+                    await session.abortTransaction();
+                    return response_data(res, 401, "Unauthorized", []);
+                }
+
+                const settings = (await model_settings.findOne({ user_id }).session(session)) || new model_settings({ user_id });
+                settings.user ||= { emailNotifications: false, twoFactor: false };
+                settings.user.emailNotifications = emailNotifications === "1";
+                settings.user.twoFactor = twoFactor === "1";
+
+                user.avatar = avatar ?? "";
+                user.name = username ?? "";
+                user.email = email ?? "";
+                user.phone = phone ?? "";
+                user.bio = bio ?? "";
+
+                await user.save({ session });
+                await settings.save({ session });
+                await session.commitTransaction();
+
+                const collection = make_schema(result).omit(["user_id", "session_id", "token", "hash_key"]).get();
+                const format_data = hashData.encryptData(JSON.stringify(collection));
+                return response_data(res, 200, "Success", format_data);
+            } catch (err) {
+                eLog(err);
+                await session.abortTransaction();
+                return response_data(res, 500, "Fail update profile", []);
+            } finally {
+                session.endSession();
+            }
+        } catch (err) {
+            eLog(err);
+            return response_data(res, 500, "Internal server error", []);
+        }
     }
 }
 

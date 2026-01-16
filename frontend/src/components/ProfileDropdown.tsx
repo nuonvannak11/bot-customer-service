@@ -6,8 +6,9 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ChevronDown, User, Settings, LogOut } from "lucide-react";
 import Link from "next/link";
+import { UserProfileConfig } from "@/interface";
 
-export default function ProfileDropdown() {
+export default function ProfileDropdown({ user }: { user: UserProfileConfig }) {
   const [isOpen, setIsOpen] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const { contextSafe } = useGSAP(
@@ -57,11 +58,11 @@ export default function ProfileDropdown() {
         >
           <img
             className="h-8 w-8 rounded-full object-cover border border-slate-200 dark:border-slate-700"
-            src="https://ui-avatars.com/api/?name=Admin+User&background=6366f1&color=fff&size=96"
+            src={user.avatar}
             alt="Avatar"
           />
           <span className="hidden sm:block text-sm text-slate-700 dark:text-slate-200 font-medium">
-            Alex
+            {user.username}
           </span>
           <ChevronDown size={16} className="text-slate-500" />
         </button>
@@ -70,12 +71,11 @@ export default function ProfileDropdown() {
       <DropdownMenu.Portal>
         <DropdownMenu.Content
           ref={contentRef}
-          // Prevent Radix from unmounting immediately so we can animate out
           onInteractOutside={(e) => {
             e.preventDefault();
             animateOut();
           }}
-          className="dropdown-content z-50 min-w-[12rem] bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 shadow-xl p-1.5 mr-4 mt-2 origin-top-right will-change-transform"
+          className="dropdown-content z-50 min-w-48 bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 shadow-xl p-1.5 mr-4 mt-2 origin-top-right will-change-transform"
           sideOffset={5}
           align="end"
         >

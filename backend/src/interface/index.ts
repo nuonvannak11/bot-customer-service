@@ -16,3 +16,19 @@ export interface SaveTelegramBotDTO {
   silentMode?: boolean;
   hash_key: string;
 }
+
+export interface SaveUserProfile {
+  token: string;
+  user_id: string;
+  session_id: string;
+  isAvatarUpdated: string,
+  avatar: string,
+  fullName: string,
+  username: string,
+  email: string,
+  phone: string,
+  bio: string,
+  emailNotifications: string,
+  twoFactor: string,
+  hash_key: string;
+}

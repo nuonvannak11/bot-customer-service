@@ -2,16 +2,40 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  LayoutGrid, LayoutDashboard, FileText, Send, Smartphone, 
-  Facebook, Bell, BarChart2, Settings, MessageSquare,
-  LayoutTemplate, Contact, Users, Megaphone, ShieldCheck, MoreHorizontal
+import {
+  LayoutGrid,
+  LayoutDashboard,
+  FileText,
+  Send,
+  Smartphone,
+  Facebook,
+  Bell,
+  BarChart2,
+  Settings,
+  MessageSquare,
+  LayoutTemplate,
+  Contact,
+  Users,
+  Megaphone,
+  ShieldCheck,
+  MoreHorizontal,
 } from "lucide-react";
 import clsx from "clsx";
 import SidebarDropdown from "./SidebarDropdown";
 import TiktokIcon from "./icons/TiktokIcon";
+import { UserProfileConfig } from "@/interface";
 
-export default function Sidebar({ sidebarOpen, setSidebarOpen, defaultOpenState }: { sidebarOpen: boolean, setSidebarOpen: (open: boolean) => void, defaultOpenState: Record<string, boolean> }) {
+export default function Sidebar({
+  user,
+  sidebarOpen,
+  setSidebarOpen,
+  defaultOpenState,
+}: {
+  user:UserProfileConfig
+  sidebarOpen: boolean;
+  setSidebarOpen: (open: boolean) => void;
+  defaultOpenState: Record<string, boolean>;
+}) {
   const pathname = usePathname();
 
   const handleLinkClick = () => {
@@ -45,67 +69,120 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, defaultOpenState 
       )}
     >
       <div className="flex items-center justify-center h-16 border-b border-gray-200 dark:border-slate-800">
-        <Link href="/dashboard" className="flex items-center gap-2 font-bold text-xl text-indigo-500">
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-2 font-bold text-xl text-indigo-500"
+        >
           <LayoutGrid size={24} />
           <span>Management System</span>
         </Link>
       </div>
 
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-        <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Main</p>
-        <Link href="/dashboard" className={navItemClass("/dashboard")} onClick={handleLinkClick}>
-          <LayoutDashboard size={20} className="mr-3" /> 
-          <span className={clsx(sidebarOpen ? "block" : "hidden lg:block")}>Dashboard</span>
+        <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+          Main
+        </p>
+        <Link
+          href="/dashboard"
+          className={navItemClass("/dashboard")}
+          onClick={handleLinkClick}
+        >
+          <LayoutDashboard size={20} className="mr-3" />
+          <span className={clsx(sidebarOpen ? "block" : "hidden lg:block")}>
+            Dashboard
+          </span>
         </Link>
-        <Link href="/pages" className={navItemClass("/pages")} onClick={handleLinkClick}>
-          <FileText size={20} className="mr-3" /> 
-          <span className={clsx(sidebarOpen ? "block" : "hidden lg:block")}>Pages</span>
+        <Link
+          href="/pages"
+          className={navItemClass("/pages")}
+          onClick={handleLinkClick}
+        >
+          <FileText size={20} className="mr-3" />
+          <span className={clsx(sidebarOpen ? "block" : "hidden lg:block")}>
+            Pages
+          </span>
         </Link>
 
-        <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">Integrations</p>
-  
-        <SidebarDropdown 
-          icon={Send} 
-          title="Telegram" 
-          mainHref="/telegram" 
+        <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">
+          Integrations
+        </p>
+
+        <SidebarDropdown
+          icon={Send}
+          title="Telegram"
+          mainHref="/telegram"
           items={telegramItems}
-          isOpen={true} 
+          isOpen={true}
           defaultOpen={defaultOpenState["nexus_sidebar_telegram"] === true}
           onLinkClick={handleLinkClick}
         />
 
-        <Link href="/mini-app" className={navItemClass("/mini-app")} onClick={handleLinkClick}>
+        <Link
+          href="/mini-app"
+          className={navItemClass("/mini-app")}
+          onClick={handleLinkClick}
+        >
           <Smartphone size={20} className="mr-3" /> Mini App
         </Link>
-        <Link href="/facebook" className={navItemClass("/facebook")} onClick={handleLinkClick}>
+        <Link
+          href="/facebook"
+          className={navItemClass("/facebook")}
+          onClick={handleLinkClick}
+        >
           <Facebook size={20} className="mr-3" /> Facebook
         </Link>
 
-         <Link href="/tiktok" className={navItemClass("/tiktok")} onClick={handleLinkClick}>
+        <Link
+          href="/tiktok"
+          className={navItemClass("/tiktok")}
+          onClick={handleLinkClick}
+        >
           <TiktokIcon size={15} className="mr-3" /> Tiktok
         </Link>
-        <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">System</p>
-        <Link href="/alerts" className={navItemClass("/alerts")} onClick={handleLinkClick}>
+        <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">
+          System
+        </p>
+        <Link
+          href="/alerts"
+          className={navItemClass("/alerts")}
+          onClick={handleLinkClick}
+        >
           <Bell size={20} className="mr-3" /> Alerts
         </Link>
-        <Link href="/reports" className={navItemClass("/reports")} onClick={handleLinkClick}>
+        <Link
+          href="/reports"
+          className={navItemClass("/reports")}
+          onClick={handleLinkClick}
+        >
           <BarChart2 size={20} className="mr-3" /> Reports
         </Link>
-        <Link href="/settings/general" className={navItemClass("/settings")} onClick={handleLinkClick}>
+        <Link
+          href="/settings/general"
+          className={navItemClass("/settings")}
+          onClick={handleLinkClick}
+        >
           <Settings size={20} className="mr-3" /> Settings
         </Link>
       </nav>
 
       <div className="border-t border-gray-200 dark:border-slate-800 p-4">
-        <Link href="/profile" className="flex items-center w-full group" onClick={handleLinkClick}>
+        <Link
+          href="/profile"
+          className="flex items-center w-full group"
+          onClick={handleLinkClick}
+        >
           <img
             className="h-9 w-9 rounded-full object-cover border border-slate-300 dark:border-slate-600"
-            src="https://ui-avatars.com/api/?name=Admin+User&background=6366f1&color=fff"
+            src={user.avatar}
             alt="User avatar"
           />
           <div className="ml-3 truncate">
-            <p className="text-sm font-medium text-slate-700 dark:text-slate-200 group-hover:text-indigo-500">Alex Admin</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">alex@nexus.com</p>
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-200 group-hover:text-indigo-500">
+              {user.username}
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+              {user.email}
+            </p>
           </div>
         </Link>
       </div>

@@ -85,7 +85,7 @@ export default function TelegramSettingsClient({
       <div className="absolute top-1/2 -right-10 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="relative bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-2xl overflow-hidden">
         <div className="px-8 py-6 border-b border-slate-800 bg-slate-900/50 flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl shadow-lg shadow-cyan-500/20">
+          <div className="p-3 bg-linear-to-r from-cyan-500 to-blue-600 rounded-xl shadow-lg shadow-cyan-500/20">
             <Bot className="text-white w-6 h-6" />
           </div>
           <div>

@@ -16,6 +16,7 @@ import {
 import SettingsInput from "@/components/SettingsInput";
 import Toggle from "@/components/ToggleCheckBox";
 import { UserProfileConfig } from "@/interface";
+import { toast } from "react-hot-toast";
 
 export default function ProfileClient({
   hash_key,
@@ -78,6 +79,7 @@ export default function ProfileClient({
   }, [previewUrl]);
 
   const handleSave = async () => {
+    const toastId = toast.loading("Saving configuration...");
     setIsLoading(true);
     try {
       const form_data = new FormData();
@@ -102,22 +104,24 @@ export default function ProfileClient({
         method: "POST",
         body: form_data
       });
-      console.log("res", res);
-      // if (res.ok) {
-      //   const data = await res.json();
-      //   if (data?.url) {
-      //     setFormData((p) => ({ ...p, avatar: data.url }));
-      //   }
-      // } else {
-      //   console.warn("Avatar upload failed", res.status);
-      // }
-    } catch (err) {
-      console.error("Avatar upload error:", err);
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data?.message, { id: toastId, duration: 1500 });
+      } else if (data?.code === 200) {
+        const format_two_factor = data.data.twoFactor === "1";
+        const format_email_notifications = data.data.emailNotifications === "1";
+        data.data.twoFactor = format_two_factor;
+        data.data.emailNotifications = format_email_notifications;
+        setFormData((p) => ({ ...p, ...data.data }));
+        toast.success("Update successful!", { id: toastId, duration: 1500 });
+      } else {
+        toast.error(data?.message || "Failed to save", { id: toastId, duration: 1500 });
+      }
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to save", { id: toastId, duration: 1500 });
     }
-
     await new Promise((resolve) => setTimeout(resolve, 800));
     setIsLoading(false);
-    console.log("Saved:", { ...formData });
   };
 
   return (
@@ -194,7 +198,7 @@ export default function ProfileClient({
                   className="absolute inset-0 bg-amber-500/10 rounded-xl"
                   style={{ opacity: 0.2 }}
                 />
-                <div className="absolute -inset-full top-0 block h-full w-1/2 -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-20 group-hover:animate-shine pointer-events-none" />
+                <div className="absolute -inset-full top-0 block h-full w-1/2 -skew-x-12 bg-linear-to-r from-transparent to-white opacity-20 group-hover:animate-shine pointer-events-none" />
                 <div className="relative z-10 w-12 h-12 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 ease-out">
                   <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full group-hover:bg-amber-500/40 transition-colors duration-300" />
                   <img
@@ -305,7 +309,7 @@ export default function ProfileClient({
           <button
             onClick={handleSave}
             disabled={isLoading}
-            className="w-full cursor-pointer bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold py-3 px-6 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+            className="w-full cursor-pointer bg-linear-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold py-3 px-6 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
             {isLoading ? (
               <>
                 <div className="animate-spin h-5 w-5 border-2 border-white/30 border-t-white rounded-full" />

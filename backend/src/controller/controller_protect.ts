@@ -74,7 +74,6 @@ export class ProtectController {
             response_data(res, 400, "Invalid payload", []);
             return false;
         }
-
         let parse_data: T;
 
         try {
@@ -83,7 +82,6 @@ export class ProtectController {
             response_data(res, 400, "Invalid JSON format", []);
             return false;
         }
-
         if ("hash_key" in parse_data) {
             const check_key = HashKey.decrypt((parse_data as any).hash_key);
             if (!check_key) {
@@ -91,8 +89,12 @@ export class ProtectController {
                 return false;
             }
         }
-
-        return { ...data, ...parse_data };
+        const collection = { ...data, ...parse_data };
+        if (this.hasDangerousKeys(collection)) {
+            response_data(res, 400, "Invalid request", []);
+            return false;
+        }
+        return collection;
     }
 
     async protect_get<T extends object>(req: Request, res: Response): Promise<T | false> {
@@ -107,7 +109,7 @@ export class ProtectController {
             response_data(res, 401, "Unauthorized", []);
             return false;
         }
-        
+
         data.user_id = isToken.user_id;
         data.session_id = isToken.session_id;
         data.token = isToken.token;
@@ -139,11 +141,18 @@ export class ProtectController {
                     return false;
                 }
             }
-            return {
-                ...data,
-                ...parse_data
-            };
+            const collection = { ...data, ...parse_data };
+            if (this.hasDangerousKeys(collection)) {
+                response_data(res, 400, "Invalid request", []);
+                return false;
+            }
+            return collection;
+
         } else {
+            if (this.hasDangerousKeys(data)) {
+                response_data(res, 400, "Invalid request", []);
+                return false;
+            }
             return data;
         }
     }

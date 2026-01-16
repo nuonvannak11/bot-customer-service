@@ -9,9 +9,8 @@ import { checkJwtToken } from "@/hooks/use_check_jwt";
 import { fileTypeFromBuffer } from "file-type";
 import { ProtectFileOptions } from "@/interface";
 
-export class ProtectMiddleware {
+export class ProtectController {
     protected data: any = {};
-    private token: any = "";
     private readonly default_extensions_img = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/bmp", "image/tiff", "image/svg+xml"];
     private readonly dangerousKeys = new Set([
         "__proto__",
@@ -114,7 +113,7 @@ export class ProtectMiddleware {
         return parse_data.data;
     }
 
-    async protect<T extends z.ZodRawShape>(req: NextRequest, json_protector: T, ratlimit = 5, check_token: boolean = false) {
+    async protect<T extends z.ZodRawShape>(req: NextRequest, json_protector: T, ratlimit = 5, check_token = false, time_limit = 120) {
         try {
             if (check_token) {
                 const token = req.cookies.get("authToken")?.value;
@@ -144,7 +143,7 @@ export class ProtectMiddleware {
             if (!decryptKey) {
                 return { ok: false, response: response_data(400, 400, "Invalid hash key", []) };
             }
-            const rl = await rate_limit(hash_key, ratlimit, 120);
+            const rl = await rate_limit(hash_key, ratlimit, time_limit);
             if (!rl.allowed) {
                 return { ok: false, response: response_data(429, 429, "Too many requests", []) };
             }

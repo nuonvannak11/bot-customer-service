@@ -7,10 +7,13 @@ import { useTranslation } from "react-i18next";
 import ProfileDropdown from "./ProfileDropdown";
 import LanguageDropdown from "./LanguageDropdown";
 import NotificationDropdown from "./alerts/NotificationDropdown";
+import { UserProfileConfig } from "@/interface";
 
-export default function Header({ 
-  setSidebarOpen, 
-}: { 
+export default function Header({
+  user,
+  setSidebarOpen,
+}: {
+  user: UserProfileConfig;
   setSidebarOpen: (v: boolean) => void,
 }) {
   const { t } = useTranslation();
@@ -49,14 +52,14 @@ export default function Header({
           />
         </div>
         <LanguageDropdown />
-        <button 
-          onClick={toggleTheme} 
+        <button
+          onClick={toggleTheme}
           className="p-2 rounded-full cursor-pointer text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors outline-none focus:ring-2 focus:ring-indigo-500/20"
         >
           {mounted && theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
         </button>
         <NotificationDropdown />
-        <ProfileDropdown />
+        <ProfileDropdown user={user} />
       </div>
     </header>
   );

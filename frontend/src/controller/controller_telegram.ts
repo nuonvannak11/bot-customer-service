@@ -1,5 +1,4 @@
 import { NextRequest } from "next/server";
-import { ProtectMiddleware } from "@/middleware/middleware_protect";
 import axios from "axios";
 import { z } from "zod";
 import { get_env } from "@/libs/lib";
@@ -7,9 +6,10 @@ import { response_data } from "@/libs/lib";
 import HashData from "@/helper/hash_data";
 import { make_schema } from "@/helper/helper";
 import { defaultTelegramConfig } from "@/default/default";
+import { ProtectController } from "./controller_protector";
 
 
-class TelegramController extends ProtectMiddleware {
+class TelegramController extends ProtectController {
     private readonly json_protector = {
         hash_key: z.string().min(10, "Invalid data").max(100, "Invalid data").regex(/^[A-Za-z0-9+/=]+$/, "Invalid hash format"),
         botToken: z.string().min(10, "Invalid data").max(100, "Invalid data"),

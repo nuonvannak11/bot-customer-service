@@ -8,15 +8,24 @@ import HashKey from "@/helper/hash_key";
 import { empty } from "@/utils/util";
 import { rate_limit } from "@/helper/ratelimit";
 import { PHONE_REGEX, SAFE_TEXT, EMAIL_REGEX } from "@/constants";
-import { ProtectMiddleware } from "@/middleware/middleware_protect";
-import { AuthResponse, ResponseData } from "@/types/type";
+import { AuthResponse } from "@/types/type";
 import { defaultUserProfileConfig } from "@/default/default";
 import { UserProfileConfig } from "@/interface";
 import { parse_user_profile } from "@/parser";
 import controller_r2 from "./controller_r2";
-import { ca, da } from "zod/v4/locales";
+import { ProtectController } from "./controller_protector";
 
-class UserController extends ProtectMiddleware {
+class UserController extends ProtectController {
+    private time_ratelimit = {
+        update_profile: 120,
+        login: 120,
+        register: 120,
+        verify_otp: 120,
+        resent_otp: 120,
+    }
+    private number_ratelimit = {
+        update_profile: 10
+    }
     private json_protector = {
         phone: z
             .string()
@@ -37,7 +46,7 @@ class UserController extends ProtectMiddleware {
             .regex(/^[A-Za-z0-9+/=]+$/, "Invalid hash format"),
     };
 
-    private isEmailValid(email: string): boolean {
+    private isEmailValid(email?: string): boolean {
         if (!email) {
             return false;
         }
@@ -56,7 +65,9 @@ class UserController extends ProtectMiddleware {
                     authorization: `Bearer ${token}`,
                 },
             });
-            return { code: res.data.code, message: res.data.message, data: res.data.data ?? [] };
+            const format_data = HashData.decryptData(res.data.data);
+            const collections = JSON.parse(format_data);
+            return { code: res.data.code, message: res.data.message, data: collections ?? [] };
         } catch (err: any) {
             if (axios.isAxiosError(err)) {
                 if (err.code === "ECONNABORTED") {
@@ -356,13 +367,18 @@ class UserController extends ProtectMiddleware {
         }).strict();
 
         try {
-            const results = await this.protect(req, Schema.shape, 10, true);
+            const number_limit = this.number_ratelimit.update_profile;
+            const time_limit = this.time_ratelimit.update_profile;
+            const results = await this.protect(req, Schema.shape, number_limit, true, time_limit);
             if (!results.ok) {
                 return results.response;
             }
             const { data, form } = results;
             if (!data) {
                 return response_data(400, 400, "Invalid data", []);
+            }
+            if (!empty(data.email) && !this.isEmailValid(data.email)) {
+                return response_data(400, 400, "Invalid email", []);
             }
             const token = data?.token;
             const isAvatarUpdate = data.isAvatarUpdated === "true";
@@ -399,8 +415,8 @@ class UserController extends ProtectMiddleware {
             );
             const res_data = response.data;
             const formatData = HashData.decryptData(res_data.data);
-            const collections = JSON.parse(formatData);
-            return response_data(res_data.code, res_data.code, res_data.message, collections);
+            const collection = JSON.parse(formatData);
+            return response_data(res_data.code, res_data.code, res_data.message, collection);
         } catch (err: any) {
             eLog("Login Proxy Error:", err);
             if (axios.isAxiosError(err)) {
