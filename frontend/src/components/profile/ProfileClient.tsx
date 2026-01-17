@@ -113,6 +113,7 @@ export default function ProfileClient({
         data.data.twoFactor = format_two_factor;
         data.data.emailNotifications = format_email_notifications;
         setFormData((p) => ({ ...p, ...data.data }));
+        setIsAvatarUpdate(false);
         toast.success("Update successful!", { id: toastId, duration: 1500 });
       } else {
         toast.error(data?.message || "Failed to save", { id: toastId, duration: 1500 });

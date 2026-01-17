@@ -7,6 +7,7 @@ import gsap from "gsap";
 import { ChevronDown, User, Settings, LogOut } from "lucide-react";
 import Link from "next/link";
 import { UserProfileConfig } from "@/interface";
+import { STATIC_IMG_PROFILE } from "@/constants/default";
 
 export default function ProfileDropdown({ user }: { user: UserProfileConfig }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -18,15 +19,15 @@ export default function ProfileDropdown({ user }: { user: UserProfileConfig }) {
       gsap.fromTo(
         contentRef.current,
         { opacity: 0, y: -10, scale: 0.98 },
-        { opacity: 1, y: 0, scale: 1, duration: 0.2, ease: "power2.out" }
+        { opacity: 1, y: 0, scale: 1, duration: 0.2, ease: "power2.out" },
       );
       gsap.fromTo(
         q(".dropdown-item"),
         { opacity: 0, x: -10 },
-        { opacity: 1, x: 0, duration: 0.2, stagger: 0.05, delay: 0.05 }
+        { opacity: 1, x: 0, duration: 0.2, stagger: 0.05, delay: 0.05 },
       );
     },
-    { dependencies: [isOpen] }
+    { dependencies: [isOpen] },
   );
 
   const animateOut = contextSafe(() => {
@@ -54,11 +55,10 @@ export default function ProfileDropdown({ user }: { user: UserProfileConfig }) {
       <DropdownMenu.Trigger asChild>
         <button
           suppressHydrationWarning={true}
-          className="flex items-center cursor-pointer gap-2 p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors"
-        >
+          className="flex items-center cursor-pointer gap-2 p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors">
           <img
             className="h-8 w-8 rounded-full object-cover border border-slate-200 dark:border-slate-700"
-            src={user.avatar}
+            src={user.avatar ?? STATIC_IMG_PROFILE}
             alt="Avatar"
           />
           <span className="hidden sm:block text-sm text-slate-700 dark:text-slate-200 font-medium">
@@ -77,15 +77,13 @@ export default function ProfileDropdown({ user }: { user: UserProfileConfig }) {
           }}
           className="dropdown-content z-50 min-w-48 bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 shadow-xl p-1.5 mr-4 mt-2 origin-top-right will-change-transform"
           sideOffset={5}
-          align="end"
-        >
+          align="end">
           {/* Group 1: Navigation */}
           <DropdownMenu.Group>
             <DropdownMenu.Item asChild className="dropdown-item outline-none">
               <Link
                 href="/profile"
-                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
-              >
+                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
                 <User size={16} className="text-slate-400" />
                 Profile
               </Link>
@@ -93,8 +91,7 @@ export default function ProfileDropdown({ user }: { user: UserProfileConfig }) {
             <DropdownMenu.Item asChild className="dropdown-item outline-none">
               <Link
                 href="/settings/general"
-                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
-              >
+                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
                 <Settings size={16} className="text-slate-400" />
                 Settings
               </Link>

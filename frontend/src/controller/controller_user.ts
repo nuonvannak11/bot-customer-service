@@ -396,7 +396,7 @@ class UserController extends ProtectController {
                 const file = updateAvatar.file;
                 const upload_avatar = await controller_r2.req_upload(token, file, path_img, user_id);
                 if (empty(upload_avatar)) {
-                    return response_data(400, 400, "Invalid file", []);
+                    return response_data(400, 400, "error upload avatar", []);
                 }
                 data.avatar = upload_avatar ?? undefined;
             }

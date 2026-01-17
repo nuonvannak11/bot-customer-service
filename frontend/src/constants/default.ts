@@ -1,0 +1,1 @@
+export const STATIC_IMG_PROFILE = "https://buckets.onecontrol.store/assets/icon/user.png";

@@ -24,6 +24,7 @@ import clsx from "clsx";
 import SidebarDropdown from "./SidebarDropdown";
 import TiktokIcon from "./icons/TiktokIcon";
 import { UserProfileConfig } from "@/interface";
+import { STATIC_IMG_PROFILE } from "@/constants/default";
 
 export default function Sidebar({
   user,
@@ -31,7 +32,7 @@ export default function Sidebar({
   setSidebarOpen,
   defaultOpenState,
 }: {
-  user:UserProfileConfig
+  user: UserProfileConfig;
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   defaultOpenState: Record<string, boolean>;
@@ -49,7 +50,7 @@ export default function Sidebar({
       "flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors",
       pathname === path || pathname.startsWith(`${path}/`)
         ? "bg-primary-50 text-primary-600 dark:bg-primary-900/10 dark:text-primary-400"
-        : "text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+        : "text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800",
     );
 
   const telegramItems = [
@@ -65,14 +66,12 @@ export default function Sidebar({
     <aside
       className={clsx(
         "fixed inset-y-0 left-0 z-30 w-64 transform bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 lg:static lg:translate-x-0 flex flex-col transition-transform duration-200 ease-in-out",
-        sidebarOpen ? "translate-x-0" : "-translate-x-full"
-      )}
-    >
+        sidebarOpen ? "translate-x-0" : "-translate-x-full",
+      )}>
       <div className="flex items-center justify-center h-16 border-b border-gray-200 dark:border-slate-800">
         <Link
           href="/dashboard"
-          className="flex items-center gap-2 font-bold text-xl text-indigo-500"
-        >
+          className="flex items-center gap-2 font-bold text-xl text-indigo-500">
           <LayoutGrid size={24} />
           <span>Management System</span>
         </Link>
@@ -85,8 +84,7 @@ export default function Sidebar({
         <Link
           href="/dashboard"
           className={navItemClass("/dashboard")}
-          onClick={handleLinkClick}
-        >
+          onClick={handleLinkClick}>
           <LayoutDashboard size={20} className="mr-3" />
           <span className={clsx(sidebarOpen ? "block" : "hidden lg:block")}>
             Dashboard
@@ -95,8 +93,7 @@ export default function Sidebar({
         <Link
           href="/pages"
           className={navItemClass("/pages")}
-          onClick={handleLinkClick}
-        >
+          onClick={handleLinkClick}>
           <FileText size={20} className="mr-3" />
           <span className={clsx(sidebarOpen ? "block" : "hidden lg:block")}>
             Pages
@@ -120,23 +117,20 @@ export default function Sidebar({
         <Link
           href="/mini-app"
           className={navItemClass("/mini-app")}
-          onClick={handleLinkClick}
-        >
+          onClick={handleLinkClick}>
           <Smartphone size={20} className="mr-3" /> Mini App
         </Link>
         <Link
           href="/facebook"
           className={navItemClass("/facebook")}
-          onClick={handleLinkClick}
-        >
+          onClick={handleLinkClick}>
           <Facebook size={20} className="mr-3" /> Facebook
         </Link>
 
         <Link
           href="/tiktok"
           className={navItemClass("/tiktok")}
-          onClick={handleLinkClick}
-        >
+          onClick={handleLinkClick}>
           <TiktokIcon size={15} className="mr-3" /> Tiktok
         </Link>
         <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">
@@ -145,22 +139,19 @@ export default function Sidebar({
         <Link
           href="/alerts"
           className={navItemClass("/alerts")}
-          onClick={handleLinkClick}
-        >
+          onClick={handleLinkClick}>
           <Bell size={20} className="mr-3" /> Alerts
         </Link>
         <Link
           href="/reports"
           className={navItemClass("/reports")}
-          onClick={handleLinkClick}
-        >
+          onClick={handleLinkClick}>
           <BarChart2 size={20} className="mr-3" /> Reports
         </Link>
         <Link
           href="/settings/general"
           className={navItemClass("/settings")}
-          onClick={handleLinkClick}
-        >
+          onClick={handleLinkClick}>
           <Settings size={20} className="mr-3" /> Settings
         </Link>
       </nav>
@@ -169,11 +160,10 @@ export default function Sidebar({
         <Link
           href="/profile"
           className="flex items-center w-full group"
-          onClick={handleLinkClick}
-        >
+          onClick={handleLinkClick}>
           <img
             className="h-9 w-9 rounded-full object-cover border border-slate-300 dark:border-slate-600"
-            src={user.avatar}
+            src={user.avatar ?? STATIC_IMG_PROFILE}
             alt="User avatar"
           />
           <div className="ml-3 truncate">
