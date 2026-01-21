@@ -2,6 +2,7 @@ import { Bot } from "grammy";
 // import controller_telegram from "../controller/controller_telegram";
 import { eLog } from "../utils/util";
 import https from 'https';
+import { ca } from "zod/v4/locales";
 
 type BotEntry = {
     bot: Bot;
@@ -20,64 +21,82 @@ class BotTelegram {
     }
 
     public async start(user_id: string, bot_token: string) {
-        if (this.bots.has(user_id)) {
-            return { status: false, message: "Bot already running for this user" }
-        }
-
-        const bot = new Bot(bot_token);
-
-        bot.command("start", (ctx) => ctx.reply("Bot started ✅"));
-        bot.on("message:text", (ctx) =>
-            ctx.reply(`Echo: ${ctx.message.text}`)
-        );
-
-        bot.catch((err) => {
-            eLog(`Bot error [${user_id}]`, err.error);
-        });
-
         try {
-            await bot.init();
-            bot.start({
-                allowed_updates: ["message", "callback_query"],
-                onStart: (botInfo) => {
-                    eLog(`Bot @${botInfo.username} started successfully!`);
-                }
+            if (this.bots.has(user_id)) {
+                return { status: false, message: "Bot already running for this user" }
+            }
+            const bot = new Bot(bot_token);
+            bot.command("start", (ctx) => ctx.reply("Bot started ✅"));
+            bot.on("message:text", (ctx) =>
+                ctx.reply(`Echo: ${ctx.message.text}`)
+            );
+
+            bot.catch((err) => {
+                eLog(`Bot error [${user_id}]`, err.error);
             });
-            this.bots.set(user_id, { bot, token: bot_token });
-            eLog(`Bot stored for user ${user_id}`);
+
+            try {
+                await bot.init();
+                bot.start({
+                    allowed_updates: ["message", "callback_query"],
+                    onStart: (botInfo) => {
+                        eLog(`Bot @${botInfo.username} started successfully!`);
+                    }
+                });
+                this.bots.set(user_id, { bot, token: bot_token });
+                return { status: true, message: "Bot started successfully" }
+            } catch (error) {
+                return { status: false, message: error }
+            }
         } catch (error) {
-            eLog(`Error starting bot for user ${user_id}:`, error);
-            throw error;
+            return { status: false, message: error }
         }
     }
 
     public async stop(user_id: string) {
         const entry = this.bots.get(user_id);
         if (!entry) {
-            throw new Error(`No running bot for user ${user_id}`);
+            return { status: false, message: "Bot not running for this user" }
         }
-
         await entry.bot.stop();
         this.bots.delete(user_id);
-        eLog(`Bot stopped for user ${user_id}`);
+        return { status: true, message: "Bot stopped successfully" }
     }
 
     public async replace(user_id: string, bot_token: string) {
-        if (this.bots.has(user_id)) {
-            await this.stop(user_id);
+        try {
+            if (this.bots.has(user_id)) {
+                await this.stop(user_id);
+            }
+            await this.start(user_id, bot_token);
+            return { status: true, message: "Bot replaced successfully" }
+        } catch (error) {
+            return { status: false, message: error }
         }
 
-        await this.start(user_id, bot_token);
-        eLog(`Bot replaced for user ${user_id}`);
     }
 
-    public isRunning(user_id: string): boolean {
-        return this.bots.has(user_id);
+    public isRunning(user_id: string) {
+        if (!this.bots.has(user_id)) {
+            return { status: false, message: "Bot not running for this user" };
+        }
+        return { status: true, message: "Bot is running" };
     }
 
     public async sendMessage(user_id: string, chat_id: number | string, text: string) {
-        const bot = this.getBot(user_id);
-        return bot.api.sendMessage(chat_id, text);
+        try {
+            const bot = this.getBot(user_id);
+            if (!bot) {
+                return { status: false, message: "Bot not running for this user" }
+            }
+            const message = await bot.api.sendMessage(chat_id, text);
+            if (!message) {
+                return { status: false, message: "Message not sent" }
+            }
+            return { status: true, message: "Message sent successfully" }
+        } catch (error) {
+            return { status: false, message: error }
+        }
     }
 
     public async deleteMessage(user_id: string, chat_id: number | string, message_id: number) {

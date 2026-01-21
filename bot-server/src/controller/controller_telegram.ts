@@ -10,7 +10,6 @@ import { PlatformDoc, SettingDoc } from "../types/type";
 import { PHONE_REGEX, EMAIL_REGEX } from "../constants";
 import { get_env } from "../utils/get_env";
 import { empty, random_number, expiresAt, eLog, generate_string } from "../utils/util";
-import { get_session_id } from "../helper/random";
 import { ProtectController } from "./controller_protect";
 import { response_data } from "../libs/lib";
 import { SaveTelegramBotDTO } from "../interface";
@@ -52,7 +51,6 @@ class TelegramController extends ProtectController {
                 notifyEnabled: activeBot?.push_notifications ?? false,
                 silentMode: activeBot?.silent_mode ?? false,
             };
-
             const encrypted = hashData.encryptData(JSON.stringify(collection));
             return response_data(res, 200, "Success", encrypted);
         } catch (err) {
@@ -62,7 +60,7 @@ class TelegramController extends ProtectController {
     }
 
     public async save_bot(req: Request, res: Response) {
-        const result = await this.protect_post<SaveTelegramBotDTO>(req, res, true);
+        const result = await this.protect_post<SaveTelegramBotDTO>(req, res);
         if (!result) return;
 
         const { user_id, botToken, webhookUrl, webhookEnabled, notifyEnabled, silentMode } = result;
