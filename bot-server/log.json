@@ -1,0 +1,499 @@
+{
+  "logs": [
+    {
+      "time": "2026-01-22T02:23:21.909Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T03:02:52.539Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T03:04:04.169Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T03:04:44.824Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T03:07:04.390Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T03:12:15.221Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T03:18:02.593Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T03:27:10.518Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T03:27:16.786Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T03:29:17.517Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T03:33:16.428Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T04:36:33.958Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T04:56:42.741Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T07:40:30.142Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T09:21:16.235Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T09:25:18.105Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T09:31:11.402Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T09:56:07.730Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T09:56:13.801Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T10:03:05.310Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T10:41:44.090Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T10:43:30.205Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T10:44:49.626Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T12:04:15.762Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T12:17:26.312Z",
+      "bot": {
+        "id": 8566437852,
+        "is_bot": true,
+        "first_name": "service_customer",
+        "username": "test2374bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": false,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T12:28:39.198Z",
+      "bot": {
+        "id": 6439993192,
+        "is_bot": true,
+        "first_name": "protect-attacker",
+        "username": "NuonVannak_bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": true,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T12:31:45.703Z",
+      "bot": {
+        "id": 6439993192,
+        "is_bot": true,
+        "first_name": "protect-attacker",
+        "username": "NuonVannak_bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": true,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T12:35:08.815Z",
+      "bot": {
+        "id": 6439993192,
+        "is_bot": true,
+        "first_name": "protect-attacker",
+        "username": "NuonVannak_bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": true,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T12:36:50.489Z",
+      "bot": {
+        "id": 6439993192,
+        "is_bot": true,
+        "first_name": "protect-attacker",
+        "username": "NuonVannak_bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": true,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T12:46:17.464Z",
+      "bot": {
+        "id": 6439993192,
+        "is_bot": true,
+        "first_name": "protect-attacker",
+        "username": "NuonVannak_bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": true,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T12:53:23.427Z",
+      "bot": {
+        "id": 6439993192,
+        "is_bot": true,
+        "first_name": "protect-attacker",
+        "username": "NuonVannak_bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": true,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T12:54:31.699Z",
+      "bot": {
+        "id": 6439993192,
+        "is_bot": true,
+        "first_name": "protect-attacker",
+        "username": "NuonVannak_bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": true,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    },
+    {
+      "time": "2026-01-22T13:01:41.667Z",
+      "bot": {
+        "id": 6439993192,
+        "is_bot": true,
+        "first_name": "protect-attacker",
+        "username": "NuonVannak_bot",
+        "can_join_groups": true,
+        "can_read_all_group_messages": true,
+        "supports_inline_queries": false,
+        "can_connect_to_business": false,
+        "has_main_web_app": false,
+        "has_topics_enabled": false
+      }
+    }
+  ]
+}

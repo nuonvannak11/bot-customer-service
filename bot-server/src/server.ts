@@ -21,14 +21,10 @@ app.use(express.urlencoded({ extended: true }));
 connectDB();
 middlewares(app);
 
-router.get("/test", async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    await bot_telegram.start("23", "8566437852:AAEbb2z0MKrYhK038lTiYZHqIioB4qVEPxU");
-    return res.status(200).json({ ok: true });
-  } catch (err) {
-    return next(err);
-  }
-});
+async function auto_start() {
+  await bot_telegram.start("23", "6439993192:AAFoWK6d5u2-7lgFFVTGTsUd2wIN7ko45RI")
+}
+auto_start()
 
 router.post("/api/executor", async (req: Request, res: Response, next: NextFunction) => {
   return await safeWithTimeout(controller_executor.executor(req, res), next);

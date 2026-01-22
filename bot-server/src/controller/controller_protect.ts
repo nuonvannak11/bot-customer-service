@@ -1,9 +1,26 @@
 import { Request, Response } from "express";
+import { fileTypeFromBuffer } from "file-type";
 import { response_data, checkJwtToken } from "../libs/lib";
 import hashData from "../helper/hash_data";
 import { RequestSchema } from "../helper";
 
 export class ProtectController {
+    public async protect_file(file: File, block = ["exe", "apk", "bat", "cmd"]) {
+        if (!file) {
+            return { status: false, message: "Missing file data" };
+        }
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const detected = await fileTypeFromBuffer(buffer);
+        if (!detected) {
+            return { status: false, message: "File is dangerous" };
+        }
+        const { ext } = detected;
+        if (ext && block.includes(ext)) {
+            return { status: false, message: "File is dangerous" };
+        }
+        return { safe: true, message: "File is safe", ext };
+    }
+
     private hasDangerousKeys(obj: any): boolean {
         if (typeof obj !== "object" || obj === null) return false;
         for (const key in obj) {

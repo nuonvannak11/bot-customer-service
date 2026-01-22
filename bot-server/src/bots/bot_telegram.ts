@@ -1,8 +1,8 @@
 import { Bot } from "grammy";
-// import controller_telegram from "../controller/controller_telegram";
+import type { Message } from "grammy/types";
+import controller_bot from "../controller/controller_telegram_bot";
 import { eLog } from "../utils/util";
-import https from 'https';
-import { ca } from "zod/v4/locales";
+import { readLogFile, writeLogFile } from "../helper/log";
 
 type BotEntry = {
     bot: Bot;
@@ -11,7 +11,7 @@ type BotEntry = {
 
 class BotTelegram {
     private bots = new Map<string, BotEntry>();
-
+    private tokenIndex = new Map<string, string>();
     private getBot(user_id: string): Bot {
         const entry = this.bots.get(user_id);
         if (!entry) {
@@ -25,12 +25,30 @@ class BotTelegram {
             if (this.bots.has(user_id)) {
                 return { status: false, message: "Bot already running for this user" }
             }
-            const bot = new Bot(bot_token);
-            bot.command("start", (ctx) => ctx.reply("Bot started ✅"));
-            bot.on("message:text", (ctx) =>
-                ctx.reply(`Echo: ${ctx.message.text}`)
-            );
-
+            if (this.tokenIndex.has(bot_token)) {
+                return { status: false, message: "Bot token already in use" };
+            }
+            const bot = new Bot(bot_token, {
+                client: {
+                    apiRoot: "http://142.93.27.35:9090",
+                },
+            });
+            bot.command(["start", "help"], async (ctx) => {
+                try {
+                    const command = ctx.update.message?.text?.split(" ")[0].replace("/", "");
+                    await controller_bot.command(ctx, user_id, command);
+                } catch (err) {
+                    eLog("Message handler error", err);
+                }
+            });
+            bot.on("message", async (ctx) => {
+                try {
+                    const msg = ctx.message as Message;
+                    await controller_bot.message(ctx, user_id, msg);
+                } catch (err) {
+                    eLog("Message handler error", err);
+                }
+            });
             bot.catch((err) => {
                 eLog(`Bot error [${user_id}]`, err.error);
             });
@@ -40,10 +58,17 @@ class BotTelegram {
                 bot.start({
                     allowed_updates: ["message", "callback_query"],
                     onStart: (botInfo) => {
+                        const jsonData = readLogFile();
+                        jsonData.logs.push({
+                            time: new Date().toISOString(),
+                            bot: botInfo
+                        });
+                        writeLogFile(jsonData);
                         eLog(`Bot @${botInfo.username} started successfully!`);
                     }
                 });
                 this.bots.set(user_id, { bot, token: bot_token });
+                this.tokenIndex.set(bot_token, user_id);
                 return { status: true, message: "Bot started successfully" }
             } catch (error) {
                 return { status: false, message: error }
@@ -60,6 +85,7 @@ class BotTelegram {
         }
         await entry.bot.stop();
         this.bots.delete(user_id);
+        this.tokenIndex.delete(entry.token);
         return { status: true, message: "Bot stopped successfully" }
     }
 
