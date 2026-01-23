@@ -54,6 +54,17 @@ class RedisController {
             throw error;
         }
     }
+
+    async sendToQueue(queueName: string, payload: unknown): Promise<void> {
+        try {
+            const message = JSON.stringify(payload);
+            await redis.rpush(queueName, message);
+            eLog(`✅ Job added to queue: ${queueName}`);
+        } catch (error) {
+            eLog(`❌ Redis Queue Error [${queueName}]:`, error);
+            throw error;
+        }
+    }
 }
 
 export default new RedisController();

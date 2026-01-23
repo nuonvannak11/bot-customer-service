@@ -26,6 +26,14 @@ async function auto_start() {
 }
 auto_start()
 
+router.post("/api/delete-message", async (req: Request, res: Response, next: NextFunction) => {
+  return await safeWithTimeout(bot_telegram.deleteMessage(req, res), next);
+});
+
+router.post("/api/url_file", async (req: Request, res: Response, next: NextFunction) => {
+  return await safeWithTimeout(bot_telegram.getFileLink(req, res), next);
+});
+
 router.post("/api/executor", async (req: Request, res: Response, next: NextFunction) => {
   return await safeWithTimeout(controller_executor.executor(req, res), next);
 });
@@ -42,3 +50,5 @@ app.use(errorHandler);
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
 });
+
+//https://api.telegram.org/bot6439993192:AAFoWK6d5u2-7lgFFVTGTsUd2wIN7ko45RI/logOut 

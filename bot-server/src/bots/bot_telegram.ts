@@ -1,8 +1,11 @@
+import { Request, Response } from "express";
 import { Bot } from "grammy";
 import type { Message } from "grammy/types";
 import controller_bot from "../controller/controller_telegram_bot";
 import { eLog } from "../utils/util";
 import { readLogFile, writeLogFile } from "../helper/log";
+import { API_TELEGRAM } from "../constants";
+import { response_data } from "../libs/lib";
 
 type BotEntry = {
     bot: Bot;
@@ -28,11 +31,7 @@ class BotTelegram {
             if (this.tokenIndex.has(bot_token)) {
                 return { status: false, message: "Bot token already in use" };
             }
-            const bot = new Bot(bot_token, {
-                client: {
-                    apiRoot: "http://142.93.27.35:9090",
-                },
-            });
+            const bot = new Bot(bot_token);
             bot.command(["start", "help"], async (ctx) => {
                 try {
                     const command = ctx.update.message?.text?.split(" ")[0].replace("/", "");
@@ -165,6 +164,29 @@ class BotTelegram {
     public async getAdmins(user_id: string, chat_id: number | string) {
         const bot = this.getBot(user_id);
         return bot.api.getChatAdministrators(chat_id);
+    }
+
+    public async getFileLink(req: Request, res: Response) {
+        try {
+            const body = req.body;
+            const user_id = body.user_id;
+            const file_id = body.file_id;
+            if (!user_id || !file_id) {
+                return response_data(res, 400, "Missing user_id or file_id", []);
+            }
+            const entry = this.bots.get(user_id);
+            if (!entry) {
+                return response_data(res, 400, "Bot not running for this user", []);
+            }
+            const file = await entry.bot.api.getFile(file_id);
+            if (!file.file_path) {
+                return response_data(res, 400, "File not found", []);
+            }
+            const downloadUrl = `${API_TELEGRAM}/file/bot${entry.token}/${file.file_path}`;
+            return response_data(res, 200, "Link generated successfully", downloadUrl);
+        } catch (error) {
+            return response_data(res, 500, "Error generating link", []);
+        }
     }
 }
 

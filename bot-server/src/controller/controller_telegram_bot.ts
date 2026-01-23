@@ -1,3 +1,4 @@
+import { Request, Response } from "express";
 import { Context } from "grammy";
 import type { Message } from "grammy/types";
 import mongoose, { set } from "mongoose";
@@ -10,6 +11,9 @@ import { get_env } from "../utils/get_env";
 import { empty, eLog } from "../utils/util";
 import { ProtectController } from "./controller_protect";
 import processor from "../bots/bot_process_bg_img";
+import FileStore from "../models/model_file_store";
+import { response_data } from "../libs/lib";
+import controller_redis from "./controller_redis";
 
 class ControllerTelegramBot extends ProtectController {
     public async message(ctx: Context, user_id: string, msg: Message) {
@@ -37,17 +41,36 @@ class ControllerTelegramBot extends ProtectController {
         eLog("PHOTO:", msg.photo);
     }
     private async onDocument(ctx: Context, user_id: string, msg: Message.DocumentMessage) {
+        if (!ctx.chat || !ctx.message) return;
         const doc = msg.document;
         const fileName = doc.file_name || "unknown";
-        if ((doc.file_size || 0) > 100 * 1024 * 1024) {
-            return ctx.reply("⚠️ File too large (Max 100MB).");
+        if (doc.file_size && doc.file_size > 300) { //3 * 1024 * 1024
+            await FileStore.create({
+                user_id: user_id,
+                telegram_file_id: doc.file_id,
+                telegram_unique_id: doc.file_unique_id,
+                telegram_chat_id: ctx.chat.id.toString(),
+                telegram_message_id: ctx.message.message_id,
+                file_name: doc.file_name,
+                mime_type: doc.mime_type,
+                file_size: doc.file_size,
+                bot_token_id: ctx.api.token
+            });
+            const jobData = {
+                recordId: fileRecord._id,
+                fileId: fileRecord.telegram_file_id,
+                chatId: fileRecord.telegram_chat_id,
+                messageId: fileRecord.telegram_message_id
+            };
+            await controller_redis.sendToQueue('scan_queue', jobData);
+            ctx.reply("File saved to database! I can generate a link anytime.");
         }
         const badExts = [".exe", ".bat", ".cmd", ".sh", ".apk"];
         if (badExts.some(ext => fileName.toLowerCase().endsWith(ext))) {
             await ctx.deleteMessage();
             return ctx.reply("🚨 File type not allowed.");
         }
-        processor.addTask(ctx, doc);
+        processor.addTask(ctx, doc, user_id);
     }
     private async onAudio(ctx: Context, user_id: string, msg: Message.AudioMessage) {
         eLog("AUDIO:", msg.audio);

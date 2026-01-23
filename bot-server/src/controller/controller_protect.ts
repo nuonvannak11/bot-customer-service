@@ -5,20 +5,26 @@ import hashData from "../helper/hash_data";
 import { RequestSchema } from "../helper";
 
 export class ProtectController {
-    public async protect_file(file: File, block = ["exe", "apk", "bat", "cmd"]) {
-        if (!file) {
+
+    public async protect_buffer(buffer: Buffer, block = ["exe", "apk", "bat", "cmd"], is_magic = false) {
+        if (!buffer || buffer.length === 0) {
             return { status: false, message: "Missing file data" };
         }
-        const buffer = Buffer.from(await file.arrayBuffer());
+        if (is_magic) {
+            const magic = buffer.toString("ascii", 0, 2);
+            if (magic === "MZ") {
+                return { status: true, message: "Executable disguised as safe file" };
+            }
+        }
         const detected = await fileTypeFromBuffer(buffer);
         if (!detected) {
-            return { status: false, message: "File is dangerous" };
+            return { status: false, message: "Unknown or dangerous file" };
         }
         const { ext } = detected;
-        if (ext && block.includes(ext)) {
-            return { status: false, message: "File is dangerous" };
+        if (block.includes(ext)) {
+            return { status: true, message: `Blocked file type: ${ext}` };
         }
-        return { safe: true, message: "File is safe", ext };
+        return { status: false, message: "File safe", ext };
     }
 
     private hasDangerousKeys(obj: any): boolean {
