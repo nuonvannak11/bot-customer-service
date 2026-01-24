@@ -168,24 +168,23 @@ class BotTelegram {
 
     public async getFileLink(req: Request, res: Response) {
         try {
-            const body = req.body;
-            const user_id = body.user_id;
-            const file_id = body.file_id;
+            const user_id = req.query.user_id as string;
+            const file_id = req.query.file_id as string;
             if (!user_id || !file_id) {
-                return response_data(res, 400, "Missing user_id or file_id", []);
+                return response_data(res, 400, "Missing user_id or file_id", "");
             }
             const entry = this.bots.get(user_id);
             if (!entry) {
-                return response_data(res, 400, "Bot not running for this user", []);
+                return response_data(res, 400, "Bot not running for this user", "");
             }
             const file = await entry.bot.api.getFile(file_id);
             if (!file.file_path) {
-                return response_data(res, 400, "File not found", []);
+                return response_data(res, 400, "File not found", "");
             }
             const downloadUrl = `${API_TELEGRAM}/file/bot${entry.token}/${file.file_path}`;
             return response_data(res, 200, "Link generated successfully", downloadUrl);
         } catch (error) {
-            return response_data(res, 500, "Error generating link", []);
+            return response_data(res, 500, "Error generating link", "");
         }
     }
 }

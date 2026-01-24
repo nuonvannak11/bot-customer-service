@@ -2,14 +2,10 @@ import Redis from 'ioredis';
 import { get_env } from "../utils/get_env";
 import { eLog } from '../utils/util';
 
-declare global {
-  var __redis__: Redis | undefined;
-}
-
 const portStr = get_env("REDIS_PORT", "6379");
 const port = Number.parseInt(portStr, 10);
 
-const redis = global.__redis__ ?? new Redis({
+const redisConfig = {
   host: get_env("REDIS_HOST", "127.0.0.1"),
   port: Number.isNaN(port) ? 6379 : port,
   password: get_env("REDIS_PASS", ""),
@@ -22,8 +18,26 @@ const redis = global.__redis__ ?? new Redis({
     const delay = Math.min(Math.pow(2, times) * 500, 10000);
     return delay;
   }
-});
+};
 
-global.__redis__ = redis;
 
+// Connection for general operations (get, set, del, etc.)
+const redis = new Redis(redisConfig);
+
+// Connection for publishing only
+export const redisPublisher = new Redis(redisConfig);
+
+// Connection for subscribing only
+export const redisSubscriber = new Redis(redisConfig);
+
+export function connectRedis() {
+  redis.on('connect', () => eLog('✅ Connected to Redis (general)!'));
+  redis.on('error', (err) => eLog('❌ Redis Error (general):', err));
+  
+  redisPublisher.on('connect', () => eLog('✅ Connected to Redis (publisher)!'));
+  redisPublisher.on('error', (err) => eLog('❌ Redis Error (publisher):', err));
+  
+  redisSubscriber.on('connect', () => eLog('✅ Connected to Redis (subscriber)!'));
+  redisSubscriber.on('error', (err) => eLog('❌ Redis Error (subscriber):', err));
+}
 export default redis;

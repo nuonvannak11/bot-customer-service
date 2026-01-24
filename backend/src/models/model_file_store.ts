@@ -1,10 +1,11 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IFileStore extends Document {
+    _id: mongoose.Types.ObjectId;
     user_id: string;
     telegram_file_id: string;
     telegram_unique_id: string;
-    telegram_chat_id?: string;    // Use String (safest for big Group IDs)
+    telegram_chat_id?: string;
     telegram_message_id?: number;
     file_name?: string;
     mime_type?: string;

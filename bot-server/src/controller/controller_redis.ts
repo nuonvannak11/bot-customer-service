@@ -1,4 +1,4 @@
-import redis from "../config/redis";
+import redis, { redisPublisher } from "../config/redis";
 import { eLog } from "../utils/util";
 
 class RedisController {
@@ -48,20 +48,9 @@ class RedisController {
     async publish(channel: string, payload: unknown): Promise<void> {
         try {
             const message = JSON.stringify(payload);
-            await redis.publish(channel, message);
+            await redisPublisher.publish(channel, message);
         } catch (error) {
             eLog(`❌ Redis Publish Error [${channel}]:`, error);
-            throw error;
-        }
-    }
-
-    async sendToQueue(queueName: string, payload: unknown): Promise<void> {
-        try {
-            const message = JSON.stringify(payload);
-            await redis.rpush(queueName, message);
-            eLog(`✅ Job added to queue: ${queueName}`);
-        } catch (error) {
-            eLog(`❌ Redis Queue Error [${queueName}]:`, error);
             throw error;
         }
     }

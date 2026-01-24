@@ -14,6 +14,7 @@ import { get_session_id } from "../helper/random";
 import { ProtectController } from "./controller_protect";
 import { response_data } from "../libs/lib";
 import { SaveTelegramBotDTO } from "../interface";
+import axios from "axios";
 
 class TelegramController extends ProtectController {
     private validateTelegramToken(token: string): boolean {
@@ -138,6 +139,26 @@ class TelegramController extends ProtectController {
             await session.abortTransaction();
             eLog(err);
             return response_data(res, 500, "Failed to update bot", []);
+        }
+    }
+
+    public async get_file_link(user_id: string, file_id: string) {
+        try {
+            if (!user_id || !file_id) return null;
+            const url_path = get_env("SERVER_BOT_URL", "http://127.0.0.1");
+            const res = await axios.get(`${url_path}/api/get-file-link`, {
+                params: { user_id, file_id },
+                timeout: 5000
+            });
+            const { code, message, data } = res.data;
+            if (code !== 200) {
+                eLog("❌ get_file_link error:", message);
+                return null;
+            }
+            return data;
+        } catch (err: any) {
+            eLog("❌ get_file_link error:", err?.message || err);
+            return null;
         }
     }
 }
