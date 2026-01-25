@@ -1,10 +1,9 @@
 import { Request, Response } from "express";
 import { OAuth2Client } from "google-auth-library";
 import bcrypt from "bcryptjs";
-import AppUser from "../models/model_user";
+import model_user from "../models/model_user";
 import hashData from "../helper/hash_data";
 import CheckJWT from "../helper/check_jwt";
-import PhoneVerify from "../models/model_phone_verify";
 import Platform from "../models/model_platform";
 import { PHONE_REGEX, EMAIL_REGEX, GOOGLE_TOKEN_REGEX, EXPIRE_TOKEN_TIME } from "../constants";
 import { get_env } from "../utils/get_env";
@@ -17,17 +16,31 @@ import model_settings from "../models/model_settings";
 import { ISetting } from "../interface/interface_setting";
 import { IUser } from "../interface/interface_user";
 import mongoose, { set } from "mongoose";
+import controller_redis from "./controller_redis";
+import model_scan_file, { IScanFile } from "../models/model_scan_file";
 
 class UserController extends ProtectController {
-    private readonly phoneRegex = PHONE_REGEX;
-    private readonly emailRegex = EMAIL_REGEX;
+    private build_key_scan_file(user_id: string) {
+        return `scan_file_${user_id}`;
+    }
 
-    private async active_token(user_id: string, token: string) {
-        if (!token || !user_id) return false;
-        const check_user = await AppUser.findOne({ user_id }).select("+access_token_hash").lean();
-        if (!check_user) return false;
-        if (token !== check_user.access_token_hash) return false;
-        return true;
+    public async get_user_settings(user_id: string): Promise<{ chat_id: string; files: string[]; }[] | null> {
+        if (!user_id) return null;
+        let settings = await controller_redis.get<{
+            chat_id: string;
+            files: string[];
+        }[]>(this.build_key_scan_file(user_id));
+
+        if (!settings) {
+            const user_settings = await model_scan_file.findOne({ user_id }).select("chats").exec();
+            if (user_settings) {
+                settings = user_settings.chats;
+                await controller_redis.set(this.build_key_scan_file(user_id), settings);
+            } else {
+                settings = null;
+            }
+        }
+        return settings;
     }
 }
 

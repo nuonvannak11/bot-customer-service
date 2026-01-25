@@ -3,14 +3,10 @@ import { Bot } from "grammy";
 import type { Message } from "grammy/types";
 import controller_bot from "../controller/controller_telegram_bot";
 import { eLog } from "../utils/util";
-import { readLogFile, writeLogFile } from "../helper/log";
 import { API_TELEGRAM } from "../constants";
 import { response_data } from "../libs/lib";
+import { BotEntry, BotInfo } from "../types/type";
 
-type BotEntry = {
-    bot: Bot;
-    token: string;
-};
 
 class BotTelegram {
     private bots = new Map<string, BotEntry>();
@@ -33,6 +29,7 @@ class BotTelegram {
             }
             const bot = new Bot(bot_token);
             bot.command(["start", "help"], async (ctx) => {
+                console.log("Received command:", ctx.update.message?.text);
                 try {
                     const command = ctx.update.message?.text?.split(" ")[0].replace("/", "");
                     await controller_bot.command(ctx, user_id, command);
@@ -41,6 +38,7 @@ class BotTelegram {
                 }
             });
             bot.on("message", async (ctx) => {
+                console.log("Received message:", ctx.message);
                 try {
                     const msg = ctx.message as Message;
                     await controller_bot.message(ctx, user_id, msg);
@@ -48,6 +46,7 @@ class BotTelegram {
                     eLog("Message handler error", err);
                 }
             });
+
             bot.catch((err) => {
                 eLog(`Bot error [${user_id}]`, err.error);
             });
@@ -56,14 +55,9 @@ class BotTelegram {
                 await bot.init();
                 bot.start({
                     allowed_updates: ["message", "callback_query"],
-                    onStart: (botInfo) => {
-                        const jsonData = readLogFile();
-                        jsonData.logs.push({
-                            time: new Date().toISOString(),
-                            bot: botInfo
-                        });
-                        writeLogFile(jsonData);
-                        eLog(`Bot @${botInfo.username} started successfully!`);
+                    onStart: async (botInfo: BotInfo) => {
+                        await controller_bot.save_bot(botInfo, user_id, bot_token);
+                        eLog(`Bot started for user ${user_id} as @${botInfo.username}`);
                     }
                 });
                 this.bots.set(user_id, { bot, token: bot_token });
@@ -187,6 +181,50 @@ class BotTelegram {
             return response_data(res, 500, "Error generating link", "");
         }
     }
+
+    async get_profile_photo(req: Request, res: Response) {
+        try {
+            const query = req.query || {};
+            const user_id = query.user_id as string;
+            const type = query.type as string;
+            const targetId = query.target_id as string;
+
+            if (!user_id || !type || !targetId) {
+                return response_data(res, 400, "Missing required parameters", "");
+            }
+            const entry = this.getBot(user_id);
+            if (!entry) {
+                return response_data(res, 400, "Bot not running for this user", "");
+            }
+            let fileId: string | null = null;
+            if (type === "bot" || type === "user") {
+                const targetUserId = parseInt(targetId, 10);
+                const photos = await entry.api.getUserProfilePhotos(targetUserId);
+                if (photos.total_count === 0) {
+                    return response_data(res, 400, "User not found", "");
+                };
+                fileId = photos.photos[0][0].file_id;
+            }
+
+            if (type === "group" || type === "channel") {
+                const chat = await entry.api.getChat(targetId);
+                if (!chat.photo) {
+                    return response_data(res, 400, "Chat not found", "");
+                }
+                fileId = chat.photo.big_file_id;
+            }
+
+            if (!fileId) {
+                return response_data(res, 400, "File not found", "");
+            }
+            const file = await entry.api.getFile(fileId);
+            const url = `https://api.telegram.org/file/bot${entry.token}/${file.file_path}`;
+            return response_data(res, 200, "Success", url);
+        } catch (err) {
+            return response_data(res, 500, "Error retrieving profile photo", "");
+        }
+    }
+
 }
 
 export default new BotTelegram();

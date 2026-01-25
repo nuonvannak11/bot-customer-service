@@ -1,21 +1,47 @@
 import { Request, Response } from "express";
 import { Context } from "grammy";
 import type { Message } from "grammy/types";
-import mongoose, { set } from "mongoose";
-import AppUser from "../models/model_user";
 import Platform from "../models/model_platform";
 import Setting from "../models/model_settings";
 
-import CheckJWT from "../helper/check_jwt";
 import { get_env } from "../utils/get_env";
 import { empty, eLog } from "../utils/util";
 import { ProtectController } from "./controller_protect";
-import processor from "../bots/bot_process_bg_img";
 import FileStore from "../models/model_file_store";
 import { response_data } from "../libs/lib";
 import controller_redis from "./controller_redis";
+import controller_user from "./controller_user";
+import controller_executor_img from "../controller/controller_executor_img";
+import model_settings_bot_telegram from "../models/model_setting_bot_telegram";
+import model_bot from "../models/model_bot";
+import { BotSettingDTO } from "../interface";
+import { default_settings_bot } from "../defaultSettings";
+import { BotInfo } from "../types/type";
+import hash_data from "../helper/hash_data";
+
 
 class ControllerTelegramBot extends ProtectController {
+    public async bot_setting(): Promise<BotSettingDTO> {
+        let settings = await controller_redis.get<BotSettingDTO>("bot_settings");
+        if (!settings) {
+            const bot_settings = await model_settings_bot_telegram
+                .findOne().sort({ createdAt: -1 })
+                .select("max_download_size max_upload_size max_retry_download")
+                .exec();
+            if (bot_settings) {
+                settings = {
+                    max_download_size: bot_settings.max_download_size,
+                    max_upload_size: bot_settings.max_upload_size,
+                    max_retry_download: bot_settings.max_retry_download,
+                };
+            } else {
+                settings = default_settings_bot;
+            }
+            await controller_redis.set("bot_settings", settings);
+        }
+        return settings;
+    }
+
     public async message(ctx: Context, user_id: string, msg: Message) {
         if ("text" in msg) return this.onText(ctx, user_id, msg as Message.TextMessage);
         if ("photo" in msg) return this.onPhoto(ctx, user_id, msg as Message.PhotoMessage);
@@ -35,41 +61,70 @@ class ControllerTelegramBot extends ProtectController {
     }
 
     private async onText(ctx: Context, user_id: string, msg: Message.TextMessage) {
+        const chat_message = msg.text || "";
+        if (chat_message.startsWith("@")) {
+            return;
+        }
         eLog("TEXT:", msg.text);
     }
     private async onPhoto(ctx: Context, user_id: string, msg: Message.PhotoMessage) {
         eLog("PHOTO:", msg.photo);
     }
+
     private async onDocument(ctx: Context, user_id: string, msg: Message.DocumentMessage) {
-        if (!ctx.chat || !ctx.message) return;
-        const doc = msg.document;
-        const fileName = doc.file_name || "unknown";
-        //if (doc.file_size && doc.file_size > 300) { //3 * 1024 * 1024 3MB
-        await FileStore.create({
-            user_id: user_id,
-            telegram_file_id: doc.file_id,
-            telegram_unique_id: doc.file_unique_id,
-            telegram_chat_id: ctx.chat.id.toString(),
-            telegram_message_id: ctx.message.message_id,
-            file_name: doc.file_name,
-            mime_type: doc.mime_type,
-            file_size: doc.file_size,
-            bot_token_id: ctx.api.token
-        });
-        await controller_redis.publish("virus_alerts", {
-            user_id: user_id,
-            chat_id: ctx.chat.id.toString(),
-            message_id: ctx.message.message_id,
-        });
-        //}
-        // const badExts = [".exe", ".bat", ".cmd", ".sh", ".apk"];
-        // if (badExts.some(ext => fileName.toLowerCase().endsWith(ext))) {
-        //     await ctx.deleteMessage();
-        //     eLog("🚨 File type not allowed.");
-        //     return;
-        // }
-        // processor.addTask(ctx, doc, user_id);
+        try {
+            const doc = msg.document;
+            const file_size = doc.file_size || 0;
+            const settings_bot = await this.bot_setting();
+            if (!ctx.chat || !ctx.message || file_size > settings_bot.max_download_size) return;
+
+            const chat_id = ctx.chat?.id?.toString();
+            if (!chat_id) return;
+
+            const get_check_file = await controller_user.get_user_settings(user_id);
+            if (!get_check_file) return;
+
+            const chatSetting = get_check_file.find(item => item.chat_id === chat_id);
+            if (!chatSetting) return;
+
+            const fileName = (doc.file_name || "").toLowerCase();
+            if (!fileName) return;
+
+            const badExts = chatSetting.files.map(ext => ext.toLowerCase().trim());
+            const blocked = badExts.some(ext => fileName.endsWith(ext));
+
+            if (blocked) {
+                await ctx.deleteMessage();
+                eLog(`🚨 Blocked file: ${fileName}`);
+                return;
+            }
+            if (file_size < settings_bot.max_upload_size) { //3MB
+                controller_executor_img.addTask(ctx, doc, user_id, badExts, settings_bot);
+            } else {
+                const add_file = await FileStore.create({
+                    user_id: user_id,
+                    telegram_file_id: doc.file_id,
+                    telegram_unique_id: doc.file_unique_id,
+                    telegram_chat_id: chat_id,
+                    telegram_message_id: ctx.message.message_id,
+                    file_name: doc.file_name,
+                    mime_type: doc.mime_type,
+                    file_size: doc.file_size,
+                    bot_token_id: ctx.api.token
+                });
+                if (add_file) {
+                    await controller_redis.publish("virus_alerts", {
+                        user_id: user_id,
+                        chat_id: ctx.chat.id.toString(),
+                        message_id: ctx.message.message_id,
+                    });
+                }
+            }
+        } catch (error) {
+            eLog("❌ onDocument Error:", error);
+        }
     }
+
     private async onAudio(ctx: Context, user_id: string, msg: Message.AudioMessage) {
         eLog("AUDIO:", msg.audio);
     }
@@ -115,8 +170,6 @@ class ControllerTelegramBot extends ProtectController {
         eLog("OTHER:", msg);
     }
 
-
-
     public async command(ctx: Context, user_id: string, command?: string) {
         if (!command) return;
         if (command === "start") {
@@ -124,6 +177,28 @@ class ControllerTelegramBot extends ProtectController {
         }
         if (command === "help") {
             ctx.reply("Here are the available commands:\n/start - Start the bot\n/help - Show this help message");
+        }
+    }
+
+    public async save_bot(bot_data: BotInfo, user_id: string, bot_token: string) {
+        return;
+        try {
+            const format_token = hash_data.encryptData(bot_token);
+            await model_bot.updateOne({ user_id }, {
+                $set: {
+                    bot_id: bot_data.id,
+                    is_bot: bot_data.is_bot,
+                    first_name: bot_data.first_name,
+                    username: bot_data.username,
+                    can_join_groups: bot_data.can_join_groups,
+                    can_read_all_group_messages: bot_data.can_read_all_group_messages,
+                    supports_inline_queries: bot_data.supports_inline_queries,
+                    user_id: user_id,
+                    bot_token: format_token
+                }
+            }, { upsert: true }).exec();
+        } catch (err) {
+            eLog("Save bot error:", err);
         }
     }
 }

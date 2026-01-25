@@ -8,7 +8,7 @@ export const AppUserSchema = new mongoose.Schema<IUser>(
         name: { type: String, required: true },
         bio: { type: String, default: "" },
         point: { type: Number, default: 0 },
-        avatar: String,
+        avatar: { type: String, default: "" },
         password: { type: String, select: false },
         phone_verified: { type: Boolean, default: false },
         google_id: { type: String, unique: true, sparse: true },

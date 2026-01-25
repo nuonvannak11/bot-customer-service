@@ -32,3 +32,9 @@ export interface SaveUserProfile {
   twoFactor: string,
   hash_key: string;
 }
+
+export interface BotSettingDTO {
+  max_upload_size: number;
+  max_download_size: number;
+  max_retry_download: number;
+}
