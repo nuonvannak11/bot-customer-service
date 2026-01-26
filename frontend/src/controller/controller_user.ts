@@ -8,12 +8,13 @@ import HashKey from "@/helper/hash_key";
 import { empty } from "@/utils/util";
 import { rate_limit } from "@/helper/ratelimit";
 import { PHONE_REGEX, SAFE_TEXT, EMAIL_REGEX } from "@/constants";
-import { AuthResponse } from "@/types/type";
+import { AuthResponse } from "@/@types/type";
 import { defaultUserProfileConfig } from "@/default/default";
 import { UserProfileConfig } from "@/interface";
 import { parse_user_profile } from "@/parser";
 import controller_r2 from "./controller_r2";
 import { ProtectController } from "./controller_protector";
+import { request_get } from "@/libs/request_server";
 
 class UserController extends ProtectController {
     private time_ratelimit = {
@@ -430,6 +431,22 @@ class UserController extends ProtectController {
             }
             return response_data(500, 500, "Internal Server Error", []);
         }
+    }
+
+    async protect_data(token?: string) {
+        if (!token) return [];
+        const ApiUrl = get_env("BACKEND_URL");
+        const url = `${ApiUrl}/api/telegram/bot/groups`;
+        const res = await request_get({
+            url,
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+        if (!res || !res.success) {
+            return [];
+        }
+        return res.data ?? [];
     }
 }
 export default new UserController;

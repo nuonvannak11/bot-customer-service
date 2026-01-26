@@ -1,7 +1,7 @@
-import { getTelegramData } from "@/libs/data";
+import { getProtects } from "@/libs/data";
 import TelegramProtectPage from "@/components/telegram/TelegramProtectPage";
 
 export default async function TelegramPage() {
-  const data = await getTelegramData();
-  return <TelegramProtectPage data={data} />;
+  const protects = await getProtects();
+  return <TelegramProtectPage protects={protects} />;
 }

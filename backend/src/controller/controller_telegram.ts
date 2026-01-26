@@ -15,6 +15,7 @@ import { ProtectController } from "./controller_protect";
 import { response_data } from "../libs/lib";
 import { SaveTelegramBotDTO } from "../interface";
 import axios from "axios";
+import { cache } from "sharp";
 
 class TelegramController extends ProtectController {
     private validateTelegramToken(token: string): boolean {
@@ -29,8 +30,7 @@ class TelegramController extends ProtectController {
 
             const { user_id } = result;
 
-            if (!user_id)
-                return response_data(res, 400, "Invalid request", []);
+            if (!user_id) return response_data(res, 400, "Invalid request", []);
 
             const user = await AppUser.findOne({ user_id }).lean();
             if (!user)
@@ -159,6 +159,24 @@ class TelegramController extends ProtectController {
         } catch (err: any) {
             eLog("❌ get_file_link error:", err?.message || err);
             return null;
+        }
+    }
+
+    public async get_group_telegram(req: Request, res: Response) {
+
+    }
+
+    public async protects(req: Request, res: Response) {
+        try {
+            const result = await this.protect_get<{ user_id: string, session_id: string }>(req, res);
+            if (!result) return;
+
+            const { user_id } = result;
+
+            if (!user_id) return response_data(res, 400, "Invalid request", []);
+        } catch (err) {
+            eLog("❌ protects error:", err);
+            return response_data(res, 500, "Internal server error", []);
         }
     }
 }

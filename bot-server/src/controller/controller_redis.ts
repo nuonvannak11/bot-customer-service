@@ -54,6 +54,30 @@ class RedisController {
             throw error;
         }
     }
+
+    async set_object(key: string, field: string, value: any, ttlSeconds?: number): Promise<void> {
+        await redis.hset(key, field, value.toString());
+        if (ttlSeconds) {
+            await redis.expire(key, ttlSeconds);
+        }
+    }
+
+    async get_object(key: string, field: string): Promise<string | null> {
+        return await redis.hget(key, field);
+    }
+
+    async del_object(key: string, field: string): Promise<void> {
+        await redis.hdel(key, field);
+    }
+
+    async exists_object(key: string, field: string): Promise<boolean> {
+        return (await redis.hexists(key, field)) === 1;
+    }
+
+    async get_all_objects(key: string) {
+        return await redis.hgetall(key);
+    }
+
 }
 
 export default new RedisController();

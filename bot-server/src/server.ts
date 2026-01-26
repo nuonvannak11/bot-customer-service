@@ -23,7 +23,7 @@ middlewares(app);
 setUpRoutes(app);
 
 async function auto_start() {
-  await bot_telegram.start("23", "6439993192:AAFoWK6d5u2-7lgFFVTGTsUd2wIN7ko45RI")
+  await bot_telegram.start("b7e3c00588a16940a82994869c904e01", "6439993192:AAFoWK6d5u2-7lgFFVTGTsUd2wIN7ko45RI")
 }
 auto_start()
 

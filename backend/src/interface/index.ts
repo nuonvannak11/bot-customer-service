@@ -46,3 +46,15 @@ export interface VirusAlert {
   chat_id: string,
   message_id: number,
 }
+
+export interface AuthData {
+    user_id: string;
+    session_id: string;
+    token: string;
+}
+
+export interface ValidationResult<T> {
+    success: boolean;
+    data?: T;
+    error?: { code: number; message: string };
+}

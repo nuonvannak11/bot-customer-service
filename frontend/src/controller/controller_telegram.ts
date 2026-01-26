@@ -1,86 +1,145 @@
 import { NextRequest } from "next/server";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { z } from "zod";
-import { get_env } from "@/libs/lib";
-import { response_data } from "@/libs/lib";
+import { get_env, response_data } from "@/libs/lib";
 import HashData from "@/helper/hash_data";
 import { make_schema } from "@/helper/helper";
 import { defaultTelegramConfig } from "@/default/default";
 import { ProtectController } from "./controller_protector";
+import { request_get, request_post } from "@/libs/request_server";
+import { REQUEST_TIMEOUT_MS } from "@/constants";
 
+const TELEGRAM_SAVE_PATH = "/api/setting/telegram/save";
+const TELEGRAM_SETTING_BOT_PATH = "/api/setting/telegram/setting_bot";
+const TELEGRAM_GROUPS_PATH = "/api/telegram/bot/groups";
+const TELEGRAM_PROTECTS_PATH = "/api/setting/telegram/protects";
+
+const TELEGRAM_SETTING_KEYS = [
+    "botUsername",
+    "botToken",
+    "webhookUrl",
+    "webhookEnabled",
+    "notifyEnabled",
+    "silentMode",
+] as const;
+
+const telegramPayloadSchema = {
+    hash_key: z
+        .string()
+        .min(10, "Invalid data")
+        .max(100, "Invalid data")
+        .regex(/^[A-Za-z0-9+/=]+$/, "Invalid hash format"),
+    botToken: z.string().min(10, "Invalid data").max(100, "Invalid data"),
+    webhookUrl: z.string().optional(),
+    webhookEnabled: z.boolean().optional(),
+    notifyEnabled: z.boolean().optional(),
+    silentMode: z.boolean().optional(),
+};
 
 class TelegramController extends ProtectController {
-    private readonly json_protector = {
-        hash_key: z.string().min(10, "Invalid data").max(100, "Invalid data").regex(/^[A-Za-z0-9+/=]+$/, "Invalid hash format"),
-        botToken: z.string().min(10, "Invalid data").max(100, "Invalid data"),
-        webhookUrl: z.string().optional(),
-        webhookEnabled: z.boolean().optional(),
-        notifyEnabled: z.boolean().optional(),
-        silentMode: z.boolean().optional(),
-    };
-    private readonly pick_schema = ["botUsername", "botToken", "webhookUrl", "webhookEnabled", "notifyEnabled", "silentMode"];
+    private readonly baseUrl = get_env("BACKEND_URL");
 
-    async save(req: NextRequest) {
-        const result = await this.protect(req, this.json_protector, 10, true);
-        if (result.ok === false) return result;
-        const token = this.data.token;
-        const format_data = make_schema(this.data as Record<string, any>).omit(["token"]).get();
-        try {
-            const ApiUrl = get_env("BACKEND_URL");
-            const post_body = HashData.encryptData(JSON.stringify(format_data));
-            const res = await axios.post(
-                `${ApiUrl}/api/setting/telegram/save`,
-                { payload: post_body },
-                {
-                    timeout: 10_000,
-                    headers: {
-                        "Content-Type": "application/json",
-                        "authorization": `Bearer ${token}`,
-                    },
-                }
-            );
-            const formatData = HashData.decryptData(res.data.data);
-            const collections = JSON.parse(formatData);
-            const pickSchema = make_schema(collections as Record<string, any>).pick(this.pick_schema).get();
-            return response_data(res.data.code, 200, res.data.message, pickSchema || []);
-        } catch (err: any) {
-            if (axios.isAxiosError(err) && err.code === "ECONNABORTED") {
+    private pickTelegramSettings(raw: Record<string, unknown>) {
+        return make_schema(raw).pick(TELEGRAM_SETTING_KEYS).get();
+    }
+
+    private parseEncryptedResponse(encrypted: string): Record<string, unknown> {
+        const decoded = HashData.decryptData(encrypted);
+        return JSON.parse(decoded) as Record<string, unknown>;
+    }
+
+    private handleSaveError(err: unknown): ReturnType<typeof response_data> {
+        if (axios.isAxiosError(err)) {
+            const ax = err as AxiosError<unknown>;
+            if (ax.code === "ECONNABORTED") {
                 return response_data(408, 408, "Request timeout (10s)", []);
             }
-            if (axios.isAxiosError(err) && err.response) {
-                return response_data(err.response.status, err.response.status, err.response.statusText, []);
+            if (ax.response) {
+                const status = ax.response.status;
+                return response_data(status, status, ax.response.statusText ?? "Error", []);
             }
-            return response_data(500, 500, "Invalid request", []);
+        }
+        return response_data(500, 500, "Invalid request", []);
+    }
+
+    async save(req: NextRequest) {
+        const result = await this.protect(req, telegramPayloadSchema, 10, true);
+        if (!result.ok) return result.response!;
+        const data = "data" in result ? result.data : undefined;
+        if (!data) return response_data(500, 500, "Server error", []);
+        const token = data.token;
+        const payload = make_schema(data as Record<string, unknown>)
+            .omit(["token"])
+            .get();
+
+        try {
+            const body = HashData.encryptData(JSON.stringify(payload));
+            const res = await request_post<{ data: string, code: number, message: string }>({
+                url: `${this.baseUrl}${TELEGRAM_SAVE_PATH}`,
+                data: { payload: body },
+                headers: {
+                    "Content-Type": "application/json",
+                    authorization: `Bearer ${token}`,
+                },
+                timeout: REQUEST_TIMEOUT_MS,
+            });
+            if (!res?.success || !res.data?.data) return response_data(500, 500, "Server error", []);
+            const data = res.data.data;
+            const parsed = this.parseEncryptedResponse(data);
+            const settings = this.pickTelegramSettings(parsed as Record<string, unknown>);
+            return response_data(res.data.code, 200, res.data.message, settings ?? []);
+        } catch (err) {
+            return this.handleSaveError(err);
         }
     }
 
     async get_setting_bot(token?: string) {
-        if (!token) {
-            return defaultTelegramConfig;
-        }
-        const ApiUrl = get_env("BACKEND_URL");
+        if (!token) return defaultTelegramConfig;
+
+        const res = await request_get<{ data: string }>({
+            url: `${this.baseUrl}${TELEGRAM_SETTING_BOT_PATH}`,
+            headers: { authorization: `Bearer ${token}` },
+            timeout: REQUEST_TIMEOUT_MS,
+        });
+
+        if (!res?.success || !res.data?.data) return defaultTelegramConfig;
         try {
-            const res = await axios.get(
-                `${ApiUrl}/api/setting/telegram/setting_bot`,
-                {
-                    timeout: 10_000,
-                    headers: {
-                        authorization: `Bearer ${token}`
-                    }
-                });
-            const formatData = HashData.decryptData(res.data.data);
-            const collections = JSON.parse(formatData);
-            const pickSchema = make_schema(collections as Record<string, any>).pick(this.pick_schema).get();
-            return pickSchema;
-        } catch (err: any) {
-            if (axios.isAxiosError(err) && err.code === "ECONNABORTED") {
-                return defaultTelegramConfig;
-            }
-            if (axios.isAxiosError(err) && err.response) {
-                return defaultTelegramConfig;
-            }
+            const parsed = this.parseEncryptedResponse(res.data.data);
+            return this.pickTelegramSettings(parsed as Record<string, unknown>) ?? defaultTelegramConfig;
+        } catch {
             return defaultTelegramConfig;
         }
     }
+
+    async get_group_telegram(token?: string) {
+        if (!token) return [];
+        const res = await request_get<{ groups?: unknown[] }>({
+            url: `${this.baseUrl}${TELEGRAM_GROUPS_PATH}`,
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`
+            },
+            timeout: REQUEST_TIMEOUT_MS,
+        });
+        if (!res?.success || !res.data) return [];
+        const data = res.data as { groups?: unknown[] };
+        return Array.isArray(data.groups) ? data.groups : [];
+    }
+
+    async protects(token?: string) {
+        if (!token) return [];
+        const res = await request_get<{ data: { protects?: string[] } }>({
+            url: `${this.baseUrl}${TELEGRAM_PROTECTS_PATH}`,
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`
+            },
+            timeout: REQUEST_TIMEOUT_MS,
+        });
+        if (!res?.success || !res.data?.data) return [];
+        const data = res.data.data;
+        return data.protects ?? [];
+    }
 }
-export default new TelegramController;
+
+export default new TelegramController();

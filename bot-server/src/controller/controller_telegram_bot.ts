@@ -5,7 +5,7 @@ import Platform from "../models/model_platform";
 import Setting from "../models/model_settings";
 
 import { get_env } from "../utils/get_env";
-import { empty, eLog } from "../utils/util";
+import { empty, eLog, str_lower } from "../utils/util";
 import { ProtectController } from "./controller_protect";
 import FileStore from "../models/model_file_store";
 import { response_data } from "../libs/lib";
@@ -14,6 +14,7 @@ import controller_user from "./controller_user";
 import controller_executor_img from "../controller/controller_executor_img";
 import model_settings_bot_telegram from "../models/model_setting_bot_telegram";
 import model_bot from "../models/model_bot";
+import model_telegram_group from "../models/model_telegram_group";
 import { BotSettingDTO } from "../interface";
 import { default_settings_bot } from "../defaultSettings";
 import { BotInfo } from "../types/type";
@@ -27,7 +28,7 @@ class ControllerTelegramBot extends ProtectController {
             const bot_settings = await model_settings_bot_telegram
                 .findOne().sort({ createdAt: -1 })
                 .select("max_download_size max_upload_size max_retry_download")
-                .exec();
+                .lean();
             if (bot_settings) {
                 settings = {
                     max_download_size: bot_settings.max_download_size,
@@ -42,8 +43,8 @@ class ControllerTelegramBot extends ProtectController {
         return settings;
     }
 
-    public async message(ctx: Context, user_id: string, msg: Message) {
-        if ("text" in msg) return this.onText(ctx, user_id, msg as Message.TextMessage);
+    public async message(ctx: Context, user_id: string, bot_token: string, msg: Message) {
+        if ("text" in msg) return this.onText(ctx, user_id, bot_token, msg as Message.TextMessage);
         if ("photo" in msg) return this.onPhoto(ctx, user_id, msg as Message.PhotoMessage);
         if ("document" in msg) return this.onDocument(ctx, user_id, msg as Message.DocumentMessage);
         if ("audio" in msg) return this.onAudio(ctx, user_id, msg as Message.AudioMessage);
@@ -60,12 +61,29 @@ class ControllerTelegramBot extends ProtectController {
         return this.onOther(ctx, user_id, msg);
     }
 
-    private async onText(ctx: Context, user_id: string, msg: Message.TextMessage) {
+    private async onText(ctx: Context, user_id: string, bot_token: string, msg: Message.TextMessage) {
         const chat_message = msg.text || "";
         if (chat_message.startsWith("@")) {
-            return;
+            const chat_id = ctx.chat?.id?.toString();
+            const chatType = ctx.chat?.type;
+            if (!chat_id || !user_id) return;
+            const format_token = hash_data.encryptData(bot_token);
+            const check_bot = await model_bot.findOne({ user_id: user_id, bot_token: format_token }).lean();
+            const get_username = check_bot?.username || "unknown_bot";
+            if (!check_bot || str_lower(chat_message) !== `@${str_lower(get_username)}`) {
+                return;
+            }
+            await model_telegram_group.findOneAndUpdate({ user_id, bot_token: format_token, chatId: chat_id }, {
+                $set: {
+                    user_id: user_id,
+                    bot_token: format_token,
+                    chatId: chat_id,
+                    name: ctx.chat?.title,
+                    type: chatType,
+                }
+            }, { upsert: true, new: true });
         }
-        eLog("TEXT:", msg.text);
+        //eLog("TEXT:", msg);
     }
     private async onPhoto(ctx: Context, user_id: string, msg: Message.PhotoMessage) {
         eLog("PHOTO:", msg.photo);
@@ -171,6 +189,7 @@ class ControllerTelegramBot extends ProtectController {
     }
 
     public async command(ctx: Context, user_id: string, command?: string) {
+        return;
         if (!command) return;
         if (command === "start") {
             ctx.reply("Welcome to the bot!");
@@ -184,7 +203,7 @@ class ControllerTelegramBot extends ProtectController {
         return;
         try {
             const format_token = hash_data.encryptData(bot_token);
-            await model_bot.updateOne({ user_id }, {
+            await model_bot.updateOne({ user_id: user_id }, {
                 $set: {
                     bot_id: bot_data.id,
                     is_bot: bot_data.is_bot,

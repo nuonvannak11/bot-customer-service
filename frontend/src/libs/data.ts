@@ -1,7 +1,7 @@
 import axios from "axios";
 import { get_env, eLog } from "@/libs/lib";
 import { empty } from "@/utils/util";
-import { JWTPayload } from "@/types/auth";
+import { JWTPayload } from "@/@types/auth";
 import { getServerToken } from "@/libs/lib";
 import { cache } from "react";
 import { error } from "console";
@@ -93,6 +93,18 @@ export async function getUserProfile() {
   }
 }
 
+export async function getProtectData() {
+  const token = await getServerToken();
+  if (!token) redirect("/login");
+  try {
+    const data = await controller_user.protect_data(token);
+    return data;
+  } catch (error) {
+    eLog("Failed to fetch bot settings:", error);
+    return [];
+  }
+}
+
 export async function getSettings() {
   return {
     general: {
@@ -112,4 +124,15 @@ export async function getSettings() {
       avatar: "https://example.com/avatar.png"
     }
   };
+}
+
+export async function getProtects() {
+  const token = await getServerToken();
+  if (!token) redirect("/login");
+  try {
+    return await controller_telegram.protects(token);
+  } catch (error) {
+    eLog("Failed to fetch protects:", error);
+    return [];
+  }
 }

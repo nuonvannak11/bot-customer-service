@@ -37,11 +37,11 @@ class BotTelegram {
                     eLog("Message handler error", err);
                 }
             });
+            await bot.api.getUpdates({ offset: -1 }); 
             bot.on("message", async (ctx) => {
-                console.log("Received message:", ctx.message);
                 try {
                     const msg = ctx.message as Message;
-                    await controller_bot.message(ctx, user_id, msg);
+                    await controller_bot.message(ctx, user_id, bot_token, msg);
                 } catch (err) {
                     eLog("Message handler error", err);
                 }
