@@ -1,16 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Users, Search, Plus, X, Megaphone, Shield } from 'lucide-react';
 import gsap from 'gsap';
-import { useGSAP } from '@gsap/react'; // Standard modern GSAP hook, or use useEffect
+import type { ManagedAsset, AssetType } from './useTelegramProtect';
 
-const GroupManagement = () => {
-  // 1. Data State
-  const [managedGroups, setManagedGroups] = useState([
-    { id: 1, name: 'VIP Traders', type: 'Group' },
-    { id: 2, name: 'Announcements', type: 'Channel' },
-  ]);
+interface GroupManagementProps {
+  managedAssets: ManagedAsset[];
+  activeId: number | null;
+  onSelect: (id: number) => void;
+  onAdd: (asset: ManagedAsset) => void;
+  onRemove: (id: number) => void;
+}
 
-  const availableAssets = [
+const GroupManagement: React.FC<GroupManagementProps> = ({
+  managedAssets,
+  activeId,
+  onSelect,
+  onAdd,
+  onRemove,
+}) => {
+
+  const availableAssets: ManagedAsset[] = [
     { id: 101, name: 'Public Chat', type: 'Group' },
     { id: 102, name: 'Degen Calls', type: 'Channel' },
     { id: 103, name: 'Whale Alerts', type: 'Channel' },
@@ -18,25 +27,19 @@ const GroupManagement = () => {
     { id: 105, name: 'Team Internal', type: 'Group' },
   ];
 
-  // 2. UI State
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeModal, setActiveModal] = useState(null); // 'Group' | 'Channel' | null
+  const [activeModal, setActiveModal] = useState<AssetType | null>(null);
   const [modalSearch, setModalSearch] = useState('');
 
-  // 3. GSAP Refs
   const modalOverlayRef = useRef(null);
   const modalContentRef = useRef(null);
+  const itemRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
-  // --- ANIMATION LOGIC ---
-
-  // Handle Entrance Animation
   useEffect(() => {
     if (activeModal) {
-      // 1. Set initial state (invisible and slightly scaled down)
       gsap.set(modalOverlayRef.current, { opacity: 0 });
       gsap.set(modalContentRef.current, { opacity: 0, scale: 0.95, y: 10 });
 
-      // 2. Animate In
       const tl = gsap.timeline();
       tl.to(modalOverlayRef.current, { 
         opacity: 1, 
@@ -48,12 +51,11 @@ const GroupManagement = () => {
         scale: 1, 
         y: 0, 
         duration: 0.4, 
-        ease: "back.out(1.2)" // A subtle 'pop' effect for cleanliness
-      }, "-=0.2"); // Overlap slightly
+        ease: "back.out(1.2)"
+      }, "-=0.2");
     }
   }, [activeModal]);
 
-  // Handle Exit Animation (Run animation THEN clear state)
   const closeModal = () => {
     if (!activeModal) return;
 
@@ -77,33 +79,31 @@ const GroupManagement = () => {
     }, "-=0.1");
   };
 
-  // --- HANDLERS ---
-
-  const addToManaged = (asset) => {
-    if (!managedGroups.find(g => g.id === asset.id)) {
-      setManagedGroups([...managedGroups, asset]);
-    }
-    closeModal(); // Use the animated close
+  const addToManaged = (asset: ManagedAsset) => {
+    onAdd(asset);
+    closeModal();
   };
 
-  const removeGroup = (id) => {
-    setManagedGroups(managedGroups.filter((g) => g.id !== id));
+  const removeGroup = (id: number) => {
+    onRemove(id);
   };
 
-  // Filters
-  const filteredManaged = managedGroups.filter(g => 
+  const filteredManaged = managedAssets.filter(g => 
     g.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const filteredAvailable = availableAssets.filter(asset => 
     asset.type === activeModal && 
-    !managedGroups.find(g => g.id === asset.id) && 
+    !managedAssets.find(g => g.id === asset.id) && 
     asset.name.toLowerCase().includes(modalSearch.toLowerCase())
   );
 
+  const handleSelect = (id: number) => {
+    onSelect(id);
+  };
+
   return (
-    <>
-      {/* --- MAIN DASHBOARD CARD --- */}
+    <React.Fragment>
       <div className="lg:col-span-2 flex flex-col bg-slate-900 border border-slate-800 rounded-xl shadow-lg h-[350px] overflow-hidden font-sans relative z-10">
         
         {/* Header */}
@@ -112,7 +112,7 @@ const GroupManagement = () => {
             <Shield size={16} className="text-indigo-400" />
             <h3 className="font-bold text-slate-200 text-sm">Protected Assets</h3>
             <span className="bg-slate-800 text-slate-500 text-[10px] px-1.5 py-0.5 rounded-full font-mono">
-              {managedGroups.length}
+              {managedAssets.length}
             </span>
           </div>
           <div className="relative">
@@ -130,32 +130,56 @@ const GroupManagement = () => {
         {/* Main List */}
         <div className="flex-1 overflow-y-auto p-2 space-y-0.5 scrollbar-thin scrollbar-thumb-slate-700">
           {filteredManaged.length > 0 ? (
-            filteredManaged.map((group) => (
-              <div
-                key={group.id}
-                className="group flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-800/60 border border-transparent hover:border-slate-700/50 transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-6 h-6 rounded flex items-center justify-center border ${
-                    group.type === 'Group' 
-                      ? 'bg-blue-500/10 border-blue-500/10 text-blue-400' 
-                      : 'bg-purple-500/10 border-purple-500/10 text-purple-400'
-                  }`}>
-                    {group.type === 'Group' ? <Users size={12} /> : <Megaphone size={12} />}
-                  </div>
-                  <div className="flex flex-col leading-none">
-                    <span className="text-xs font-medium text-slate-200 mb-1">{group.name}</span>
-                    <span className="text-[10px] text-slate-500 capitalize">{group.type}</span>
-                  </div>
-                </div>
-                <button
-                  onClick={() => removeGroup(group.id)}
-                  className="p-1 cursor-pointer text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-all opacity-0 group-hover:opacity-100"
+            filteredManaged.map((group) => {
+              const isActive = activeId === group.id;
+              return (
+                <div
+                  key={group.id}
+                  ref={(el) => {
+                    itemRefs.current[group.id] = el;
+                  }}
+                  onClick={() => handleSelect(group.id)}
+                  className={`group flex items-center justify-between px-3 py-2 rounded-lg transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-slate-800/80 border-slate-600 shadow-[0_0_0_1px_rgba(148,163,184,0.4)]'
+                      : 'hover:bg-slate-800/60 border border-transparent hover:border-slate-700/50'
+                  }`}
                 >
-                  <X size={14} />
-                </button>
-              </div>
-            ))
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-6 h-6 rounded flex items-center justify-center border ${
+                        group.type === 'Group'
+                          ? 'bg-blue-500/10 border-blue-500/10 text-blue-400'
+                          : 'bg-purple-500/10 border-purple-500/10 text-purple-400'
+                      }`}
+                    >
+                      {group.type === 'Group' ? (
+                        <Users size={12} />
+                      ) : (
+                        <Megaphone size={12} />
+                      )}
+                    </div>
+                    <div className="flex flex-col leading-none">
+                      <span className="text-xs font-medium text-slate-200 mb-1">
+                        {group.name}
+                      </span>
+                      <span className="text-[10px] text-slate-500 capitalize">
+                        {group.type}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeGroup(group.id);
+                    }}
+                    className="p-1 cursor-pointer text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-all opacity-0 group-hover:opacity-100"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              );
+            })
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-slate-500">
               <p className="text-xs">No assets found</p>
@@ -265,7 +289,7 @@ const GroupManagement = () => {
           </div>
         </div>
       )}
-    </>
+    </React.Fragment>
   );
 };
 

@@ -9,7 +9,7 @@ import {
   Lock,
 } from "lucide-react";
 import clsx from "clsx";
-import GroupManagement from "../settings/protect/GroupManagement";
+import GroupManagement from "./protect/GroupManagement";
 import {
   FileGuard,
   LinkSentry,
@@ -19,6 +19,12 @@ import {
 
 export default function TelegramProtectPage({ protects }: { protects: string[] }) {
   const {
+    managedAssets,
+    activeAssetId,
+    activeAsset,
+    setActiveAssetId,
+    addManagedAsset,
+    removeManagedAsset,
     blockedExtensions,
     newExt,
     setNewExt,
@@ -32,15 +38,6 @@ export default function TelegramProtectPage({ protects }: { protects: string[] }
     rulesCount,
   } = useTelegramProtect();
 
-  const [managedGroups, setManagedGroups] = useState([
-    { id: 1, name: "General Support", type: "Group" },
-    { id: 2, name: "Bot Updates", type: "Channel" },
-    { id: 3, name: "Premium Members", type: "Group" },
-  ]);
-  const [newGroupName, setNewGroupName] = useState("");
-  const [newGroupType, setNewGroupType] = useState("Group");
-
-  // --- Mock Data for Logs ---
   const threatLogs = [
     {
       id: 1,
@@ -76,33 +73,11 @@ export default function TelegramProtectPage({ protects }: { protects: string[] }
     },
   ];
 
-  const addGroup = () => {
-    if (newGroupName && newGroupName.trim()) {
-      setManagedGroups([
-        ...managedGroups,
-        {
-          id: Date.now(),
-          name: newGroupName,
-          type: newGroupType,
-        },
-      ]);
-      setNewGroupName("");
-      setNewGroupType("Group");
-    }
-  };
-
-  const removeGroup = (id: number) => {
-    setManagedGroups(managedGroups.filter((g) => g.id !== id));
-  };
-
   return (
     <div className="space-y-6 p-2 lg:p-0">
-      {/* 1. HERO / STATUS HUD */}
       <div className="relative overflow-hidden rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl p-6 lg:p-8">
-        {/* Background Glows */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-6">
             <div className="relative group">
@@ -150,10 +125,15 @@ export default function TelegramProtectPage({ protects }: { protects: string[] }
 
       {/* 2. CONFIGURATION GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* GROUP/CHANNEL MANAGEMENT*/}
-        <GroupManagement />
-
+        <GroupManagement
+          managedAssets={managedAssets}
+          activeId={activeAssetId}
+          onSelect={setActiveAssetId}
+          onAdd={addManagedAsset}
+          onRemove={removeManagedAsset}
+        />
         <FileGuard
+          contextLabel={activeAsset ? `${activeAsset.name} (${activeAsset.type})` : undefined}
           extensions={blockedExtensions}
           newExt={newExt}
           onNewExtChange={setNewExt}
@@ -162,6 +142,7 @@ export default function TelegramProtectPage({ protects }: { protects: string[] }
         />
 
         <LinkSentry
+          contextLabel={activeAsset ? `${activeAsset.name} (${activeAsset.type})` : undefined}
           domains={blacklistedDomains}
           newDomain={newDomain}
           onNewDomainChange={setNewDomain}
@@ -169,10 +150,8 @@ export default function TelegramProtectPage({ protects }: { protects: string[] }
           onRemove={removeDomain}
         />
 
-        <SpamAegis />
+        <SpamAegis contextLabel={activeAsset ? `${activeAsset.name} (${activeAsset.type})` : undefined} />
       </div>
-
-      {/* 3. RECENT THREAT LOGS */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-lg overflow-hidden">
         <div className="p-5 border-b border-slate-800 flex items-center justify-between">
           <h3 className="font-bold text-white flex items-center gap-2">
@@ -182,7 +161,6 @@ export default function TelegramProtectPage({ protects }: { protects: string[] }
             View All
           </button>
         </div>
-
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="bg-slate-950 text-slate-500 font-medium border-b border-slate-800">
@@ -235,6 +213,7 @@ export default function TelegramProtectPage({ protects }: { protects: string[] }
           </table>
         </div>
       </div>
+    
     </div>
   );
 }

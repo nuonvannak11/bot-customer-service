@@ -22,8 +22,7 @@ export default function GeneralSettingsClient({
         </label>
         <select
           defaultValue={initialSettings.general.timezone}
-          className="w-full px-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
-        >
+          className="w-full px-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white">
           <option value="Asia/Phnom_Penh">Asia/Phnom_Penh</option>
           <option value="UTC">UTC</option>
           <option value="Asia/Bangkok">Asia/Bangkok</option>

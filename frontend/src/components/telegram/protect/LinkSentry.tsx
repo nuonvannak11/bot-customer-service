@@ -1,9 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Link2Off, Plus, X } from "lucide-react";
 
 export interface LinkSentryProps {
+  contextLabel?: string;
   domains: string[];
   newDomain: string;
   onNewDomainChange: (value: string) => void;
@@ -13,6 +14,7 @@ export interface LinkSentryProps {
 }
 
 export default function LinkSentry({
+  contextLabel,
   domains,
   newDomain,
   onNewDomainChange,
@@ -20,6 +22,9 @@ export default function LinkSentry({
   onRemove,
   globalBlacklistCount = 1402,
 }: LinkSentryProps) {
+  
+  const [blockAllLinks, setBlockAllLinks] = useState(false);
+
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-lg flex flex-col">
       <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
@@ -32,6 +37,14 @@ export default function LinkSentry({
             <p className="text-xs text-slate-500">
               Anti-phishing & scam filter
             </p>
+            {contextLabel ? (
+              <p className="text-[10px] text-slate-400 mt-1">
+                Active:{" "}
+                <span className="text-slate-200 font-semibold">
+                  {contextLabel}
+                </span>
+              </p>
+            ) : null}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -52,8 +65,7 @@ export default function LinkSentry({
           />
           <button
             onClick={onAdd}
-            className="bg-amber-600 hover:bg-amber-500 text-white px-4 rounded-lg flex items-center justify-center transition"
-          >
+            className="bg-amber-600 hover:bg-amber-500 text-white px-4 rounded-lg flex items-center justify-center transition">
             <Plus size={18} />
           </button>
         </div>
@@ -62,13 +74,11 @@ export default function LinkSentry({
           {domains.map((domain) => (
             <span
               key={domain}
-              className="flex items-center gap-1 pl-3 pr-2 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-mono group hover:bg-amber-500/20 transition cursor-default"
-            >
+              className="flex items-center gap-1 pl-3 pr-2 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-mono group hover:bg-amber-500/20 transition cursor-default">
               {domain}
               <button
                 onClick={() => onRemove(domain)}
-                className="p-0.5 hover:bg-amber-500/30 rounded-full transition"
-              >
+                className="p-0.5 hover:bg-amber-500/30 rounded-full transition">
                 <X size={12} />
               </button>
             </span>
@@ -78,11 +88,27 @@ export default function LinkSentry({
           </span>
         </div>
 
-        <div className="flex items-center gap-2 pt-2">
-          <div className="w-8 h-4 bg-slate-700 rounded-full relative cursor-pointer">
-            <div className="absolute left-0.5 top-0.5 w-3 h-3 bg-slate-400 rounded-full" />
+        {/* 2. The Interactive Toggle Switch */}
+        <div
+          className="flex items-center gap-2 pt-2 cursor-pointer w-fit"
+          onClick={() => setBlockAllLinks(!blockAllLinks)}>
+          <div
+            className={`w-9 h-5 rounded-full relative transition-colors duration-300 ease-in-out ${
+              blockAllLinks ? "bg-amber-600" : "bg-slate-700"
+            }`}>
+            <div
+              className={`absolute top-0.5 w-4 h-4 rounded-full shadow-md transition-all duration-300 ease-in-out ${
+                blockAllLinks
+                  ? "left-[18px] bg-white"
+                  : "left-0.5 bg-slate-400"
+              }`}
+            />
           </div>
-          <span className="text-xs text-slate-400">
+
+          <span
+            className={`text-xs transition-colors duration-300 ${
+              blockAllLinks ? "text-slate-200" : "text-slate-400"
+            }`}>
             Block ALL links from non-admins
           </span>
         </div>

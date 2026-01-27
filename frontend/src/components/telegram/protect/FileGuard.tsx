@@ -4,6 +4,7 @@ import React from "react";
 import { FileWarning, Plus, X } from "lucide-react";
 
 export interface FileGuardProps {
+  contextLabel?: string;
   extensions: string[];
   newExt: string;
   onNewExtChange: (value: string) => void;
@@ -12,6 +13,7 @@ export interface FileGuardProps {
 }
 
 export default function FileGuard({
+  contextLabel,
   extensions,
   newExt,
   onNewExtChange,
@@ -30,6 +32,11 @@ export default function FileGuard({
             <p className="text-xs text-slate-500">
               Block malicious executables
             </p>
+            {contextLabel ? (
+              <p className="text-[10px] text-slate-400 mt-1">
+                Active: <span className="text-slate-200 font-semibold">{contextLabel}</span>
+              </p>
+            ) : null}
           </div>
         </div>
         <div className="flex items-center gap-2">
