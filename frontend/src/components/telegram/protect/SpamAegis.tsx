@@ -1,26 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { MessageSquareOff, Save, CheckCircle2 } from "lucide-react";
+import { SpamAegisProps, SpamConfigState, TransformedConfig } from "@/interface/telegram/interface.telegram";
 
-interface SpamConfigState {
-  rateLimit: number;
-  duplicateSensitivity: number;
-  newUserRestriction: number;
-}
-
-export interface TransformedConfig {
-  rateLimit: number;
-  duplicateSensitivity: string;
-  newUserRestriction: string;
-}
-
-interface SpamAegisProps {
-  contextLabel?: string;
-  onSave?: (data: TransformedConfig) => void;
-}
-
-export default function SpamAegis({ contextLabel, onSave }: SpamAegisProps) {
+export default function SpamAegis({ contextLabel, initialData, onSave }: SpamAegisProps) {
   const [isSaved, setIsSaved] = useState(false);
 
   const [config, setConfig] = useState<SpamConfigState>({
@@ -28,6 +12,12 @@ export default function SpamAegis({ contextLabel, onSave }: SpamAegisProps) {
     duplicateSensitivity: 3,
     newUserRestriction: 3,
   });
+
+  useEffect(() => {
+    if (initialData) {
+      setConfig(initialData);
+    }
+  }, [initialData]);
 
   const duplicateLabels = ["Off", "Lenient", "Standard", "Strict"];
   const restrictionLabels = ["None", "10 Min", "1 Hour", "24 Hours", "1 Week"];
@@ -43,13 +33,12 @@ export default function SpamAegis({ contextLabel, onSave }: SpamAegisProps) {
 
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 2000);
-    console.log("Saving Translated Data to DB:", payload);
+    
+    console.log("Saving Translated Data:", payload);
   };
 
   return (
     <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl shadow-lg overflow-hidden">
-      
-      {/* Header */}
       <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-indigo-500/10 rounded-lg border border-indigo-500/20 shadow-[0_0_15px_-3px_rgba(99,102,241,0.2)]">
@@ -78,17 +67,11 @@ export default function SpamAegis({ contextLabel, onSave }: SpamAegisProps) {
           {isSaved ? "Saved!" : "Save Config"}
         </button>
       </div>
-
-      {/* Controls Grid */}
       <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
-        
-        {/* 1. Rate Limit */}
         <div className="space-y-4 group">
           <div className="flex justify-between items-center">
-            <label className="text-sm font-medium text-slate-300 transition-colors group-hover:text-white">
-              Message Rate
-            </label>
-            <span className="text-xs font-bold text-indigo-300 bg-indigo-500/20 border border-indigo-500/20 px-2 py-0.5 rounded shadow-[0_0_10px_-4px_rgba(99,102,241,0.5)]">
+            <label className="text-sm font-medium text-slate-300">Message Rate</label>
+            <span className="text-xs font-bold text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded">
               {config.rateLimit} / 3s
             </span>
           </div>
@@ -103,20 +86,11 @@ export default function SpamAegis({ contextLabel, onSave }: SpamAegisProps) {
               className="aegis-slider w-full bg-transparent focus:outline-none"
             />
           </div>
-          <p className="text-[11px] text-slate-500">Max messages per user.</p>
         </div>
-
-        {/* 2. Duplicate Text */}
         <div className="space-y-4 group">
           <div className="flex justify-between items-center">
-            <label className="text-sm font-medium text-slate-300 transition-colors group-hover:text-white">
-              Duplicate Check
-            </label>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded border transition-all duration-300 ${
-                config.duplicateSensitivity === 0 
-                ? "text-slate-400 bg-slate-800 border-slate-700" 
-                : "text-indigo-300 bg-indigo-500/20 border-indigo-500/20 shadow-[0_0_10px_-4px_rgba(99,102,241,0.5)]"
-            }`}>
+            <label className="text-sm font-medium text-slate-300">Duplicate Check</label>
+            <span className="text-xs font-bold text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded">
               {duplicateLabels[config.duplicateSensitivity]}
             </span>
           </div>
@@ -128,24 +102,14 @@ export default function SpamAegis({ contextLabel, onSave }: SpamAegisProps) {
               step="1"
               value={config.duplicateSensitivity}
               onChange={(e) => setConfig({ ...config, duplicateSensitivity: Number(e.target.value) })}
-              // Added 'aegis-slider' class here
               className="aegis-slider w-full bg-transparent focus:outline-none"
             />
           </div>
-          <p className="text-[11px] text-slate-500">Block repeated text.</p>
         </div>
-
-        {/* 3. New User Restriction */}
         <div className="space-y-4 group">
           <div className="flex justify-between items-center">
-            <label className="text-sm font-medium text-slate-300 transition-colors group-hover:text-white">
-              New User Mute
-            </label>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded border transition-all duration-300 ${
-                config.newUserRestriction === 0 
-                ? "text-slate-400 bg-slate-800 border-slate-700" 
-                : "text-indigo-300 bg-indigo-500/20 border-indigo-500/20 shadow-[0_0_10px_-4px_rgba(99,102,241,0.5)]"
-            }`}>
+            <label className="text-sm font-medium text-slate-300">New User Mute</label>
+            <span className="text-xs font-bold text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded">
               {restrictionLabels[config.newUserRestriction]}
             </span>
           </div>
@@ -157,13 +121,10 @@ export default function SpamAegis({ contextLabel, onSave }: SpamAegisProps) {
               step="1"
               value={config.newUserRestriction}
               onChange={(e) => setConfig({ ...config, newUserRestriction: Number(e.target.value) })}
-              // Added 'aegis-slider' class here
               className="aegis-slider w-full bg-transparent focus:outline-none"
             />
           </div>
-          <p className="text-[11px] text-slate-500">Restrict media for new joins.</p>
         </div>
-
       </div>
     </div>
   );

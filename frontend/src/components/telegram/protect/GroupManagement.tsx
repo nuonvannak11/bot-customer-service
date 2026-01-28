@@ -1,15 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Users, Search, Plus, X, Megaphone, Shield } from 'lucide-react';
 import gsap from 'gsap';
-import type { ManagedAsset, AssetType } from './useTelegramProtect';
-
-interface GroupManagementProps {
-  managedAssets: ManagedAsset[];
-  activeId: number | null;
-  onSelect: (id: number) => void;
-  onAdd: (asset: ManagedAsset) => void;
-  onRemove: (id: number) => void;
-}
+import { GroupManagementProps, ManagedAsset } from '@/interface/telegram/interface.telegram';
+import { AssetType } from '@/@types/telegram/type.telegram';
 
 const GroupManagement: React.FC<GroupManagementProps> = ({
   managedAssets,
@@ -19,13 +12,16 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
   onRemove,
 }) => {
 
-  const availableAssets: ManagedAsset[] = [
-    { id: 101, name: 'Public Chat', type: 'Group' },
-    { id: 102, name: 'Degen Calls', type: 'Channel' },
-    { id: 103, name: 'Whale Alerts', type: 'Channel' },
-    { id: 104, name: 'Support Group', type: 'Group' },
-    { id: 105, name: 'Team Internal', type: 'Group' },
-  ];
+  const availableAssets = managedAssets.filter(item => item.allowScan == false);
+
+
+  //   : ManagedAsset[] = [
+  //   { id: 101, name: 'Public Chat', type: 'Group' },
+  //   { id: 102, name: 'Degen Calls', type: 'Channel' },
+  //   { id: 103, name: 'Whale Alerts', type: 'Channel' },
+  //   { id: 104, name: 'Support Group', type: 'Group' },
+  //   { id: 105, name: 'Team Internal', type: 'Group' },
+  // ];
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeModal, setActiveModal] = useState<AssetType | null>(null);
@@ -41,18 +37,18 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
       gsap.set(modalContentRef.current, { opacity: 0, scale: 0.95, y: 10 });
 
       const tl = gsap.timeline();
-      tl.to(modalOverlayRef.current, { 
-        opacity: 1, 
-        duration: 0.3, 
-        ease: "power2.out" 
+      tl.to(modalOverlayRef.current, {
+        opacity: 1,
+        duration: 0.3,
+        ease: "power2.out"
       })
-      .to(modalContentRef.current, { 
-        opacity: 1, 
-        scale: 1, 
-        y: 0, 
-        duration: 0.4, 
-        ease: "back.out(1.2)"
-      }, "-=0.2");
+        .to(modalContentRef.current, {
+          opacity: 1,
+          scale: 1,
+          y: 0,
+          duration: 0.4,
+          ease: "back.out(1.2)"
+        }, "-=0.2");
     }
   }, [activeModal]);
 
@@ -66,17 +62,17 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
       }
     });
 
-    tl.to(modalContentRef.current, { 
-      opacity: 0, 
-      scale: 0.95, 
+    tl.to(modalContentRef.current, {
+      opacity: 0,
+      scale: 0.95,
       y: 10,
-      duration: 0.2, 
-      ease: "power2.in" 
+      duration: 0.2,
+      ease: "power2.in"
     })
-    .to(modalOverlayRef.current, { 
-      opacity: 0, 
-      duration: 0.2 
-    }, "-=0.1");
+      .to(modalOverlayRef.current, {
+        opacity: 0,
+        duration: 0.2
+      }, "-=0.1");
   };
 
   const addToManaged = (asset: ManagedAsset) => {
@@ -88,13 +84,13 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
     onRemove(id);
   };
 
-  const filteredManaged = managedAssets.filter(g => 
+  const filteredManaged = managedAssets.filter(g =>
     g.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredAvailable = availableAssets.filter(asset => 
-    asset.type === activeModal && 
-    !managedAssets.find(g => g.id === asset.id) && 
+  const filteredAvailable = availableAssets.filter(asset =>
+    asset.type === activeModal &&
+    !managedAssets.find(g => g.id === asset.id) &&
     asset.name.toLowerCase().includes(modalSearch.toLowerCase())
   );
 
@@ -105,8 +101,6 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
   return (
     <React.Fragment>
       <div className="lg:col-span-2 flex flex-col bg-slate-900 border border-slate-800 rounded-xl shadow-lg h-[350px] overflow-hidden font-sans relative z-10">
-        
-        {/* Header */}
         <div className="px-4 py-3 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Shield size={16} className="text-indigo-400" />
@@ -139,19 +133,17 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
                     itemRefs.current[group.id] = el;
                   }}
                   onClick={() => handleSelect(group.id)}
-                  className={`group flex items-center justify-between px-3 py-2 rounded-lg transition-all cursor-pointer ${
-                    isActive
+                  className={`group flex items-center justify-between px-3 py-2 rounded-lg transition-all cursor-pointer ${isActive
                       ? 'bg-slate-800/80 border-slate-600 shadow-[0_0_0_1px_rgba(148,163,184,0.4)]'
                       : 'hover:bg-slate-800/60 border border-transparent hover:border-slate-700/50'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className={`w-6 h-6 rounded flex items-center justify-center border ${
-                        group.type === 'Group'
+                      className={`w-6 h-6 rounded flex items-center justify-center border ${group.type === 'Group'
                           ? 'bg-blue-500/10 border-blue-500/10 text-blue-400'
                           : 'bg-purple-500/10 border-purple-500/10 text-purple-400'
-                      }`}
+                        }`}
                     >
                       {group.type === 'Group' ? (
                         <Users size={12} />
@@ -194,17 +186,17 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
             className="flex cursor-pointer items-center justify-center gap-2 bg-slate-900 hover:bg-indigo-900/20 border border-slate-800 hover:border-indigo-500/30 text-slate-300 hover:text-indigo-400 py-2 rounded-lg transition-all text-xs font-semibold group"
           >
             <div className="p-1 rounded bg-slate-800 group-hover:bg-indigo-500/20 transition-colors">
-               <Users size={12} />
+              <Users size={12} />
             </div>
             Add Group
           </button>
 
           <button
-             onClick={() => setActiveModal('Channel')}
-             className="flex cursor-pointer items-center justify-center gap-2 bg-slate-900 hover:bg-purple-900/20 border border-slate-800 hover:border-purple-500/30 text-slate-300 hover:text-purple-400 py-2 rounded-lg transition-all text-xs font-semibold group"
+            onClick={() => setActiveModal('Channel')}
+            className="flex cursor-pointer items-center justify-center gap-2 bg-slate-900 hover:bg-purple-900/20 border border-slate-800 hover:border-purple-500/30 text-slate-300 hover:text-purple-400 py-2 rounded-lg transition-all text-xs font-semibold group"
           >
             <div className="p-1 rounded bg-slate-800 group-hover:bg-purple-500/20 transition-colors">
-               <Megaphone size={12} />
+              <Megaphone size={12} />
             </div>
             Add Channel
           </button>
@@ -213,25 +205,25 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
 
       {/* --- GSAP ANIMATED MODAL --- */}
       {activeModal && (
-        <div 
+        <div
           ref={modalOverlayRef}
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-md p-4"
           onClick={(e) => {
-              if (e.target === modalOverlayRef.current) closeModal();
+            if (e.target === modalOverlayRef.current) closeModal();
           }}
         >
-          <div 
+          <div
             ref={modalContentRef}
             className="w-full max-w-sm bg-slate-900 border border-slate-700/50 rounded-xl shadow-2xl shadow-black/50 flex flex-col overflow-hidden"
           >
-            
+
             {/* Modal Header */}
             <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900">
               <div>
                 <h3 className="text-sm font-bold text-white">Select {activeModal}</h3>
                 <p className="text-[10px] text-slate-500">Choose a {activeModal.toLowerCase()} to protect</p>
               </div>
-              <button 
+              <button
                 onClick={closeModal}
                 className="p-1.5 cursor-pointer text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
               >
@@ -241,17 +233,17 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
 
             {/* Modal Search */}
             <div className="px-4 py-3 bg-slate-950/50">
-               <div className="relative">
-                 <input 
-                   autoFocus
-                   type="text"
-                   value={modalSearch}
-                   onChange={(e) => setModalSearch(e.target.value)}
-                   placeholder={`Search available ${activeModal.toLowerCase()}s...`}
-                   className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-xs text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 outline-none"
-                 />
-                 <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-500" />
-               </div>
+              <div className="relative">
+                <input
+                  autoFocus
+                  type="text"
+                  value={modalSearch}
+                  onChange={(e) => setModalSearch(e.target.value)}
+                  placeholder={`Search available ${activeModal.toLowerCase()}s...`}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-xs text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 outline-none"
+                />
+                <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-500" />
+              </div>
             </div>
 
             {/* Modal List */}
@@ -264,15 +256,14 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
                     className="w-full cursor-pointer flex items-center justify-between p-3 rounded-lg hover:bg-slate-800 group transition-all text-left border border-transparent hover:border-slate-700"
                   >
                     <div className="flex items-center gap-3">
-                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                         asset.type === 'Group' ? 'bg-indigo-500/10 text-indigo-400' : 'bg-purple-500/10 text-purple-400'
-                       }`}>
-                         <span className="text-xs font-bold">{asset.name.substring(0,2).toUpperCase()}</span>
-                       </div>
-                       <div>
-                         <p className="text-xs font-medium text-slate-200 group-hover:text-white">{asset.name}</p>
-                         <p className="text-[10px] text-slate-500">ID: {asset.id}</p>
-                       </div>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${asset.type === 'Group' ? 'bg-indigo-500/10 text-indigo-400' : 'bg-purple-500/10 text-purple-400'
+                        }`}>
+                        <span className="text-xs font-bold">{asset.name.substring(0, 2).toUpperCase()}</span>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-slate-200 group-hover:text-white">{asset.name}</p>
+                        <p className="text-[10px] text-slate-500">ID: {asset.id}</p>
+                      </div>
                     </div>
                     <div className="opacity-0 group-hover:opacity-100 bg-indigo-600 text-white p-1 rounded transition-all transform scale-90 group-hover:scale-100">
                       <Plus size={14} />

@@ -41,3 +41,4 @@ export function make_schema<T extends object>(base: T) {
         },
     };
 }
+

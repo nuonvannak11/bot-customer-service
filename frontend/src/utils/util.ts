@@ -1,4 +1,3 @@
-
 export function empty(data: any): boolean {
     if (data == null) return true;
     const type = typeof data;

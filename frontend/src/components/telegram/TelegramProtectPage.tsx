@@ -1,78 +1,54 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  Shield,
-  ShieldAlert,
-  ShieldCheck,
-  Activity,
-  Lock,
-} from "lucide-react";
-import clsx from "clsx";
+import { ShieldCheck, Activity, Shield, ShieldAlert, Lock } from "lucide-react";
 import GroupManagement from "./protect/GroupManagement";
+import FileGuard from "./protect/FileGuard";
+import LinkSentry from "./protect/LinkSentry";
+import SpamAegis from "./protect/SpamAegis";
+import clsx from "clsx";
 import {
-  FileGuard,
-  LinkSentry,
-  SpamAegis,
-  useTelegramProtect,
-} from "./protect";
+  PreparedData,
+  TransformedConfig,
+} from "@/interface/telegram/interface.telegram";
+import { useTranslation } from "react-i18next";
 
-export default function TelegramProtectPage({ protects }: { protects: string[] }) {
-  const {
-    managedAssets,
-    activeAssetId,
-    activeAsset,
-    setActiveAssetId,
-    addManagedAsset,
-    removeManagedAsset,
-    blockedExtensions,
-    newExt,
-    setNewExt,
-    addExtension,
-    removeExtension,
-    blacklistedDomains,
-    newDomain,
-    setNewDomain,
-    addDomain,
-    removeDomain,
-    rulesCount,
-  } = useTelegramProtect();
+export default function TelegramProtectPage({
+  protects,
+}: {
+  protects: PreparedData;
+  }) {
+  const { t } = useTranslation();
+  const [group, setGroup] = useState(protects.group);
+  const [channel, setChannel] = useState(protects.channel);
+  const [threatLogs, setThreatLogs] = useState(protects.threatLogs);
+  const [newExt, setNewExt] = useState("");
+  const [newDomain, setNewDomain] = useState("");
 
-  const threatLogs = [
-    {
-      id: 1,
-      user: "BadGuy_99",
-      type: "File",
-      content: "free_nitro.exe",
-      action: "Blocked",
-      time: "10:42 AM",
-    },
-    {
-      id: 2,
-      user: "SpamBot_X",
-      type: "Link",
-      content: "http://click-me.sus",
-      action: "Blocked",
-      time: "10:35 AM",
-    },
-    {
-      id: 3,
-      user: "Unknown",
-      type: "Spam",
-      content: "Buy Crypto!!! Buy Crypto!!!",
-      action: "Muted (1h)",
-      time: "09:12 AM",
-    },
-    {
-      id: 4,
-      user: "ScriptKiddie",
-      type: "Injection",
-      content: "<script>alert('hack')</script>",
-      action: "Ban",
-      time: "Yesterday",
-    },
-  ];
+  const [activeId, setActiveId] = useState<number | null>(
+    collections.groupChannel[0]?.id || null,
+  );
+  const activeAsset =
+    collections.groupChannel.find((p) => p.id === activeId) || null;
+  const handleUpdateExtensions = (newExtensions: string[]) => {
+    console.log(`Update Asset ${activeId} extensions to:`, newExtensions);
+  };
 
+  const handleUpdateDomains = (newDomains: string[]) => {
+    console.log(`Update Asset ${activeId} domains to:`, newDomains);
+  };
+
+  const handleSaveSpam = (config: TransformedConfig) => {
+    console.log(`Update Asset ${activeId} spam config:`, config);
+  };
+
+  const handleUpdateBlockAllLinksFromNoneAdmin = (value: boolean) => {
+    console.log("blockAllLinksFromNoneAdmin:", value);
+  };
+
+  if (!activeAsset) {
+    return <div className="p-10 text-white">No assets found.</div>;
+  }
   return (
     <div className="space-y-6 p-2 lg:p-0">
       <div className="relative overflow-hidden rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl p-6 lg:p-8">
@@ -96,61 +72,96 @@ export default function TelegramProtectPage({ protects }: { protects: string[] }
               </p>
               <div className="flex gap-4 mt-3 text-xs font-mono text-slate-500">
                 <span className="flex items-center gap-1">
-                  <Activity size={12} /> Uptime: 99.9%
+                  <Activity size={12} />
+                  {activeAsset?.upTime || 0} days
                 </span>
                 <span className="flex items-center gap-1">
-                  <Shield size={12} /> Rules: {rulesCount}
+                  <Shield size={12} /> Rules:{" "}
+                  {activeAsset?.config.rulesCount || 0}
                 </span>
               </div>
             </div>
           </div>
-
-          {/* Quick Stats */}
           <div className="flex gap-4">
             <div className="px-5 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-center">
               <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">
                 Threats Blocked
               </p>
-              <p className="text-2xl font-black text-rose-400 mt-1">1,204</p>
+              <p className="text-2xl font-black text-rose-400 mt-1">
+                {activeAsset.threatsBlocked}
+              </p>
             </div>
             <div className="px-5 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-center">
               <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">
                 Safe Files
               </p>
-              <p className="text-2xl font-black text-emerald-400 mt-1">84.2k</p>
+              <p className="text-2xl font-black text-emerald-400 mt-1">
+                {activeAsset.safeFiles}
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 2. CONFIGURATION GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <GroupManagement
-          managedAssets={managedAssets}
-          activeId={activeAssetId}
-          onSelect={setActiveAssetId}
-          onAdd={addManagedAsset}
-          onRemove={removeManagedAsset}
+          managedAssets={protects.groupChannel}
+          activeId={activeId}
+          onSelect={setActiveId}
+          onAdd={() => console.log("Add Asset Clicked")}
+          onRemove={(id) => console.log("Remove Asset", id)}
         />
+
         <FileGuard
-          contextLabel={activeAsset ? `${activeAsset.name} (${activeAsset.type})` : undefined}
-          extensions={blockedExtensions}
+          contextLabel={activeAsset.name}
+          extensions={activeAsset.config.blockedExtensions}
           newExt={newExt}
           onNewExtChange={setNewExt}
-          onAdd={addExtension}
-          onRemove={removeExtension}
+          onAdd={() => {
+            const updated = [...activeAsset.config.blockedExtensions, newExt];
+            handleUpdateExtensions(updated);
+            setNewExt("");
+          }}
+          onRemove={(ext) => {
+            const updated = activeAsset.config.blockedExtensions.filter(
+              (e) => e !== ext,
+            );
+            handleUpdateExtensions(updated);
+          }}
         />
 
         <LinkSentry
-          contextLabel={activeAsset ? `${activeAsset.name} (${activeAsset.type})` : undefined}
-          domains={blacklistedDomains}
+          contextLabel={activeAsset.name}
+          domains={activeAsset.config.blacklistedDomains}
           newDomain={newDomain}
           onNewDomainChange={setNewDomain}
-          onAdd={addDomain}
-          onRemove={removeDomain}
+          onAdd={() => {
+            const updated = [
+              ...activeAsset.config.blacklistedDomains,
+              newDomain,
+            ];
+            handleUpdateDomains(updated);
+            setNewDomain("");
+          }}
+          onRemove={(domain) => {
+            const updated = activeAsset.config.blacklistedDomains.filter(
+              (d) => d !== domain,
+            );
+            handleUpdateDomains(updated);
+          }}
+          onBlockAllLinksFromNoneAdmin={(blockAllLinksFromNoneAdmin) => {
+            handleUpdateBlockAllLinksFromNoneAdmin(blockAllLinksFromNoneAdmin);
+          }}
+          blockAllLinksFromNoneAdmin={
+            activeAsset.config.blockAllLinksFromNoneAdmin
+          }
         />
 
-        <SpamAegis contextLabel={activeAsset ? `${activeAsset.name} (${activeAsset.type})` : undefined} />
+        <SpamAegis
+          contextLabel={activeAsset.name}
+          initialData={activeAsset.config.spam}
+          onSave={handleSaveSpam}
+        />
       </div>
       <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-lg overflow-hidden">
         <div className="p-5 border-b border-slate-800 flex items-center justify-between">
@@ -173,47 +184,60 @@ export default function TelegramProtectPage({ protects }: { protects: string[] }
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800 text-slate-300">
-              {threatLogs.map((log) => (
-                <tr
-                  key={log.id}
-                  className="hover:bg-slate-800/50 transition-colors">
-                  <td className="px-6 py-4 font-mono text-xs text-slate-500">
-                    {log.time}
-                  </td>
-                  <td className="px-6 py-4 font-medium text-white">
-                    {log.user}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={clsx(
-                        "px-2 py-1 rounded text-xs font-bold border",
-                        log.type === "File" &&
-                          "bg-rose-500/10 border-rose-500/20 text-rose-400",
-                        log.type === "Link" &&
-                          "bg-amber-500/10 border-amber-500/20 text-amber-400",
-                        log.type === "Spam" &&
-                          "bg-indigo-500/10 border-indigo-500/20 text-indigo-400",
-                        log.type === "Injection" &&
-                          "bg-red-600/10 border-red-600/20 text-red-500",
-                      )}>
-                      {log.type}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 font-mono text-xs text-slate-400 truncate max-w-[200px]">
-                    {log.content}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <span className="flex items-center justify-end gap-1 text-emerald-400 text-xs font-bold">
-                      <Lock size={12} /> {log.action}
-                    </span>
+              {threatLogs?.length ? (
+                threatLogs.map((log) => (
+                  <tr
+                    key={log.id}
+                    className="hover:bg-slate-800/50 transition-colors">
+                    <td className="px-6 py-4 font-mono text-xs text-slate-500">
+                      {log.time}
+                    </td>
+
+                    <td className="px-6 py-4 font-medium text-white">
+                      {log.user}
+                    </td>
+
+                    <td className="px-6 py-4">
+                      <span
+                        className={clsx(
+                          "px-2 py-1 rounded text-xs font-bold border",
+                          log.type === "File" &&
+                            "bg-rose-500/10 border-rose-500/20 text-rose-400",
+                          log.type === "Link" &&
+                            "bg-amber-500/10 border-amber-500/20 text-amber-400",
+                          log.type === "Spam" &&
+                            "bg-indigo-500/10 border-indigo-500/20 text-indigo-400",
+                          log.type === "Injection" &&
+                            "bg-red-600/10 border-red-600/20 text-red-500",
+                        )}>
+                        {log.type}
+                      </span>
+                    </td>
+
+                    <td className="px-6 py-4 font-mono text-xs text-slate-400 truncate max-w-[200px]">
+                      {log.content}
+                    </td>
+
+                    <td className="px-6 py-4 text-right">
+                      <span className="flex items-center justify-end gap-1 text-emerald-400 text-xs font-bold">
+                        <Lock size={12} /> {log.action}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-6 py-10 text-center text-slate-500 italic">
+                      {t("No records found") }
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
       </div>
-    
     </div>
   );
 }

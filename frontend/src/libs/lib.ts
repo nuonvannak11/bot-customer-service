@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { empty } from "@/utils/util";
 import { cookies } from "next/headers";
+import { GroupChannel, PreparedData, ProtectData } from "@/interface/telegram/interface.telegram";
 
 export const response_data = (code: number, status: number, message: string, data: any) => {
     return NextResponse.json(
@@ -72,4 +73,27 @@ export async function getServerToken() {
     const cookie = await cookies();
     const token = cookie.get("authToken")?.value;
     return token;
+}
+
+export function prepareProtectData(data: ProtectData): PreparedData {
+    const { groupChannel, threatLogs } = data;
+    return {
+        group: {
+            normal: filterChannels(groupChannel, "Group", false),
+            active: filterChannels(groupChannel, "Group", true),
+        },
+        channel: {
+            normal: filterChannels(groupChannel, "Channel", false),
+            active: filterChannels(groupChannel, "Channel", true),
+        },
+        threatLogs,
+    };
+}
+
+function filterChannels(channels: GroupChannel[], type: "Group" | "Channel", allowScan: boolean): GroupChannel[] {
+    const filtered = channels.filter((item) => item.type === type && item.allowScan === allowScan);
+    if (allowScan && filtered.length > 1) {
+        return filtered.sort((a, b) => b.upTime - a.upTime);
+    }
+    return filtered;
 }

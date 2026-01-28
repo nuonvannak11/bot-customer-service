@@ -2,16 +2,7 @@
 
 import React, { useState } from "react";
 import { Link2Off, Plus, X } from "lucide-react";
-
-export interface LinkSentryProps {
-  contextLabel?: string;
-  domains: string[];
-  newDomain: string;
-  onNewDomainChange: (value: string) => void;
-  onAdd: () => void;
-  onRemove: (domain: string) => void;
-  globalBlacklistCount?: number;
-}
+import { LinkSentryProps } from "@/interface/telegram/interface.telegram";
 
 export default function LinkSentry({
   contextLabel,
@@ -21,10 +12,10 @@ export default function LinkSentry({
   onAdd,
   onRemove,
   globalBlacklistCount = 1402,
+  onBlockAllLinksFromNoneAdmin,
+  blockAllLinksFromNoneAdmin
 }: LinkSentryProps) {
   
-  const [blockAllLinks, setBlockAllLinks] = useState(false);
-
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-lg flex flex-col">
       <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
@@ -88,17 +79,16 @@ export default function LinkSentry({
           </span>
         </div>
 
-        {/* 2. The Interactive Toggle Switch */}
         <div
           className="flex items-center gap-2 pt-2 cursor-pointer w-fit"
-          onClick={() => setBlockAllLinks(!blockAllLinks)}>
+          onClick={() => onBlockAllLinksFromNoneAdmin(!blockAllLinksFromNoneAdmin)}>
           <div
             className={`w-9 h-5 rounded-full relative transition-colors duration-300 ease-in-out ${
-              blockAllLinks ? "bg-amber-600" : "bg-slate-700"
+              blockAllLinksFromNoneAdmin ? "bg-amber-600" : "bg-slate-700"
             }`}>
             <div
               className={`absolute top-0.5 w-4 h-4 rounded-full shadow-md transition-all duration-300 ease-in-out ${
-                blockAllLinks
+                blockAllLinksFromNoneAdmin
                   ? "left-[18px] bg-white"
                   : "left-0.5 bg-slate-400"
               }`}
@@ -107,7 +97,7 @@ export default function LinkSentry({
 
           <span
             className={`text-xs transition-colors duration-300 ${
-              blockAllLinks ? "text-slate-200" : "text-slate-400"
+              blockAllLinksFromNoneAdmin ? "text-slate-200" : "text-slate-400"
             }`}>
             Block ALL links from non-admins
           </span>
