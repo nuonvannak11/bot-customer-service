@@ -2,6 +2,7 @@ import { getProtects } from "@/libs/data";
 import TelegramProtectPage from "@/components/telegram/TelegramProtectPage";
 import { ProtectData } from "@/interface/telegram/interface.telegram";
 import { prepareProtectData } from "@/libs/lib";
+import { get_key } from "@/libs/generate_key";
 
 export default async function TelegramPage() {
   // const protects = await getProtects();
@@ -33,8 +34,8 @@ export default async function TelegramPage() {
         name: "VIP Signals & Whales",
         avartar: "",
         type: "Group",
-        allowScan: false,
-        upTime: 0.1,
+        allowScan: true,
+        upTime: 11,
         config: {
           blockedExtensions: [".exe", ".zip", ".rar", ".pdf", ".js", ".vbs"],
           blacklistedDomains: ["drainer-wallet.xyz", "fake-ledger.io", "claim-airdrop.org"],
@@ -130,5 +131,5 @@ export default async function TelegramPage() {
 
   const prepareData = prepareProtectData(MOCK_DATA);
 
-  return <TelegramProtectPage protects={prepareData} />;
+  return <TelegramProtectPage hash_key={get_key()} protects={prepareData} />;
 }

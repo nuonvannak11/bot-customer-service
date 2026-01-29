@@ -23,6 +23,16 @@ export function empty(data: any): boolean {
     }
 }
 
+export function strval(data: any): string {
+    if (empty(data)) return "";
+    if (typeof data === "string") return data;
+    return data.toString();
+}
+
+export function strlower(data: any): string {
+    return strval(data).toLowerCase();
+}
+
 export function capitalize(word: string) {
     if (!word) return "";
     return word[0].toUpperCase() + word.slice(1);

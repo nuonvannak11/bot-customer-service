@@ -8,6 +8,7 @@ import LinkSentry from "./protect/LinkSentry";
 import SpamAegis from "./protect/SpamAegis";
 import clsx from "clsx";
 import {
+  GroupChannel,
   PreparedData,
   TransformedConfig,
 } from "@/interface/telegram/interface.telegram";
@@ -15,21 +16,22 @@ import { useTranslation } from "react-i18next";
 
 export default function TelegramProtectPage({
   protects,
+  hash_key,
 }: {
   protects: PreparedData;
-  }) {
+  hash_key: string;
+}) {
   const { t } = useTranslation();
   const [group, setGroup] = useState(protects.group);
   const [channel, setChannel] = useState(protects.channel);
+  const [active, setActive] = useState(protects.active);
   const [threatLogs, setThreatLogs] = useState(protects.threatLogs);
   const [newExt, setNewExt] = useState("");
   const [newDomain, setNewDomain] = useState("");
-
   const [activeId, setActiveId] = useState<number | null>(
-    collections.groupChannel[0]?.id || null,
+    active[0]?.id || null,
   );
-  const activeAsset =
-    collections.groupChannel.find((p) => p.id === activeId) || null;
+  const activeAsset = active.find((a) => a.id === activeId) || null;
   const handleUpdateExtensions = (newExtensions: string[]) => {
     console.log(`Update Asset ${activeId} extensions to:`, newExtensions);
   };
@@ -44,6 +46,13 @@ export default function TelegramProtectPage({
 
   const handleUpdateBlockAllLinksFromNoneAdmin = (value: boolean) => {
     console.log("blockAllLinksFromNoneAdmin:", value);
+  };
+
+  const handleAddActive = (asset:GroupChannel) => {
+    if (active.find((a) => a.id === asset.id)) {
+      return;
+    }
+    setActive((prev) => [...prev, asset]);
   };
 
   if (!activeAsset) {
@@ -105,10 +114,11 @@ export default function TelegramProtectPage({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <GroupManagement
-          managedAssets={protects.groupChannel}
+          managedAssets={[...group, ...channel]}
+          active={active}
           activeId={activeId}
           onSelect={setActiveId}
-          onAdd={() => console.log("Add Asset Clicked")}
+          onAdd={(asset) => handleAddActive(asset)}
           onRemove={(id) => console.log("Remove Asset", id)}
         />
 
@@ -230,7 +240,7 @@ export default function TelegramProtectPage({
                   <td
                     colSpan={5}
                     className="px-6 py-10 text-center text-slate-500 italic">
-                      {t("No records found") }
+                    {t("No records found")}
                   </td>
                 </tr>
               )}

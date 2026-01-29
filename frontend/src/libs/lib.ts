@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
-import { empty } from "@/utils/util";
+import { empty, strlower } from "@/utils/util";
 import { cookies } from "next/headers";
 import { GroupChannel, PreparedData, ProtectData } from "@/interface/telegram/interface.telegram";
 
@@ -76,24 +76,26 @@ export async function getServerToken() {
 }
 
 export function prepareProtectData(data: ProtectData): PreparedData {
-    const { groupChannel, threatLogs } = data;
+    const { groupChannel = [], threatLogs = [] } = data ?? {};
     return {
-        group: {
-            normal: filterChannels(groupChannel, "Group", false),
-            active: filterChannels(groupChannel, "Group", true),
-        },
-        channel: {
-            normal: filterChannels(groupChannel, "Channel", false),
-            active: filterChannels(groupChannel, "Channel", true),
-        },
+        group: filterChannels(groupChannel, "Group"),
+        channel: filterChannels(groupChannel, "Channel"),
+        active: filterActive(groupChannel),
         threatLogs,
     };
 }
 
-function filterChannels(channels: GroupChannel[], type: "Group" | "Channel", allowScan: boolean): GroupChannel[] {
-    const filtered = channels.filter((item) => item.type === type && item.allowScan === allowScan);
-    if (allowScan && filtered.length > 1) {
-        return filtered.sort((a, b) => b.upTime - a.upTime);
-    }
-    return filtered;
+function filterActive(data: GroupChannel[] = []): GroupChannel[] {
+    return data
+        .filter((item) => item.allowScan)
+        .sort((a, b) => b.upTime - a.upTime);
+}
+
+function filterChannels(
+    channels: GroupChannel[] = [],
+    type: "Group" | "Channel"
+): GroupChannel[] {
+    return channels.filter(
+        (item) => strlower(item.type) === strlower(type) && item.allowScan === false
+    );
 }

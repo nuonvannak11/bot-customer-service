@@ -4,7 +4,8 @@ export interface GroupManagementProps {
   managedAssets: GroupChannel[];
   activeId: number | null;
   onSelect: (id: number) => void;
-  onAdd: (asset: ManagedAsset) => void;
+  active: GroupChannel[];
+  onAdd: (asset: GroupChannel) => void;
   onRemove: (id: number) => void;
 }
 
@@ -85,13 +86,8 @@ export interface ThreatLog {
 }
 
 export interface PreparedData {
-  group: {
-    normal: GroupChannel[];
-    active: GroupChannel[];
-  };
-  channel: {
-    normal: GroupChannel[];
-    active: GroupChannel[];
-  };
+  group: GroupChannel[];
+  channel: GroupChannel[];
+  active: GroupChannel[];
   threatLogs: ThreatLog[];
 }
