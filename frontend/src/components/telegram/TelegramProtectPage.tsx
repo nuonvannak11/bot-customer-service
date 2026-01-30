@@ -56,6 +56,10 @@ export default function TelegramProtectPage({
     setActive((prev) => [...prev, asset]);
   };
 
+  const hadleRemoveGroupChannel = (id: number) => {
+    setActive((prev) => prev.filter((a) => a.id !== id));
+  };
+
   async function handledSubmit( payload: any) {
     console.log("Logging Change:", { payload });
 
@@ -142,7 +146,7 @@ export default function TelegramProtectPage({
           activeId={activeId}
           onSelect={setActiveId}
           onAdd={(asset) => handleAddActive(asset)}
-          onRemove={(id) => console.log("Remove Asset", id)}
+          onRemove={(id) => hadleRemoveGroupChannel(id)}
         />
 
         <FileGuard

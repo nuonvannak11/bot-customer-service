@@ -70,6 +70,7 @@ class ControllerTelegramBot extends ProtectController {
             const format_token = hash_data.encryptData(bot_token);
             const check_bot = await model_bot.findOne({ user_id: user_id, bot_token: format_token }).lean();
             const get_username = check_bot?.username || "unknown_bot";
+            console.log("Checking bot username:", get_username);
             if (!check_bot || str_lower(chat_message) !== `@${str_lower(get_username)}`) {
                 return;
             }
@@ -83,7 +84,7 @@ class ControllerTelegramBot extends ProtectController {
                 }
             }, { upsert: true, new: true });
         }
-        //eLog("TEXT:", msg);
+        eLog("TEXT:", msg);
     }
     private async onPhoto(ctx: Context, user_id: string, msg: Message.PhotoMessage) {
         eLog("PHOTO:", msg.photo);
