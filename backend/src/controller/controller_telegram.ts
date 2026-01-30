@@ -52,6 +52,7 @@ class TelegramController extends ProtectController {
                 webhookEnabled: activeBot?.enable_web_hook ?? false,
                 notifyEnabled: activeBot?.push_notifications ?? false,
                 silentMode: activeBot?.silent_mode ?? false,
+                exceptionLinks: settings?.user?.exceptionLinks ?? [],
             };
 
             const encrypted = hashData.encryptData(JSON.stringify(collection));
@@ -66,7 +67,7 @@ class TelegramController extends ProtectController {
         const result = await this.protect_post<SaveTelegramBotDTO>(req, res, true);
         if (!result) return;
 
-        const { user_id, botToken, webhookUrl, webhookEnabled, notifyEnabled, silentMode } = result;
+        const { exceptionLinks, user_id, botToken, webhookUrl, webhookEnabled, notifyEnabled, silentMode } = result;
 
         if (!user_id || !botToken) {
             return response_data(res, 400, "Invalid request", []);
@@ -98,9 +99,9 @@ class TelegramController extends ProtectController {
             const botIndex = botList.findIndex(b => b.bot_token_enc === bot_token_enc);
             const settingIndex = botSettingList.findIndex(b => b.bot_token === bot_token_enc);
 
-            if (webhookUrl) {
-                platform.telegram.web_hook = webhookUrl;
-            }
+            platform.telegram.web_hook = webhookUrl ?? "";
+            settings.user.exceptionLinks = exceptionLinks ?? [];
+
             if (botIndex === -1) {
                 botList.push({ bot_token_enc });
             }
@@ -131,6 +132,7 @@ class TelegramController extends ProtectController {
                 webhookEnabled: Boolean(webhookEnabled),
                 notifyEnabled: Boolean(notifyEnabled),
                 silentMode: Boolean(silentMode),
+                exceptionLinks,
             };
             const formatData = JSON.stringify(collection);
             const encryptedCollections = hashData.encryptData(formatData);

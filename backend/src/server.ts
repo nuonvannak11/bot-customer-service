@@ -5,11 +5,8 @@ import { errorHandler } from "./middleware/errorHandler";
 import connectDB from "./config/db";
 import { connectRedis } from "./config/redis";
 import setUpRoutes from "./routes";
-import redisController from "./controller/controller_redis";
-import Hash from "./helper/hash_data";
-import { get_session_id } from "./helper/random";
-import { eLog } from "./utils/util";
 import { startRealTimeListener } from "./worker/RedisListener";
+import cronJob from "./cron/cron.index";
 
 const app = express();
 const port = get_env("PORT", "3100");
@@ -23,6 +20,7 @@ connectRedis()
 middlewares(app);
 setUpRoutes(app);
 startRealTimeListener();
+cronJob();
 app.use(errorHandler);
 
 app.listen(port, () => {

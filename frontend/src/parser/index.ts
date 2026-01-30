@@ -9,6 +9,7 @@ export function parse_telegram_bot_settings(data: any): TelegramBotSettingsConfi
         webhookEnabled: data?.webhookEnabled ?? defaultTelegramConfig.webhookEnabled,
         notifyEnabled: data?.notifyEnabled ?? defaultTelegramConfig.notifyEnabled,
         silentMode: data?.silentMode ?? defaultTelegramConfig.silentMode,
+        exceptionLinks: data?.exceptionLinks ?? defaultTelegramConfig.exceptionLinks,
     };
 }
 

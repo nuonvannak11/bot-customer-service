@@ -15,6 +15,7 @@ export interface SaveTelegramBotDTO {
   notifyEnabled?: boolean;
   silentMode?: boolean;
   hash_key: string;
+  exceptionLinks?: string[];
 }
 
 export interface SaveUserProfile {

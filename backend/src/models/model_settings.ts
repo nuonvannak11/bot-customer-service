@@ -5,10 +5,11 @@ const SettingSchema = new mongoose.Schema<ISetting>({
     user_id: { type: String, required: true, unique: true, index: true },
     user: {
         type: {
+            exceptionLinks: { type: [String], default: [] },
             emailNotifications: { type: Boolean, default: false },
             twoFactor: { type: Boolean, default: false },
         },
-        default: { emailNotifications: false, twoFactor: false }
+        default: {exceptionLinks: [],emailNotifications: false, twoFactor: false }
     },
     facebook: {
     },

@@ -7,6 +7,7 @@ export const defaultTelegramConfig: TelegramBotSettingsConfig = {
     webhookEnabled: false,
     notifyEnabled: false,
     silentMode: false,
+    exceptionLinks: [],
 };
 
 export const defaultUserProfileConfig: UserProfileConfig = {

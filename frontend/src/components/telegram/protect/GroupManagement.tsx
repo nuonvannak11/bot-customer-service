@@ -4,7 +4,6 @@ import gsap from "gsap";
 import {
   GroupChannel,
   GroupManagementProps,
-  ManagedAsset,
 } from "@/interface/telegram/interface.telegram";
 import { AssetType } from "@/@types/telegram/type.telegram";
 import { strlower } from "@/utils/util";

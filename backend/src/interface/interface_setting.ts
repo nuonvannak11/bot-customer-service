@@ -16,6 +16,7 @@ interface TelegramUser {
 }
 
 interface UserSetting {
+    exceptionLinks?: string[];
     emailNotifications?: boolean;
     twoFactor?: boolean;
 }

@@ -5,6 +5,7 @@ export interface TelegramBotSettingsConfig {
   webhookEnabled: boolean;
   notifyEnabled: boolean;
   silentMode: boolean;
+  exceptionLinks: string[];
 }
 
 export interface UserProfileConfig {

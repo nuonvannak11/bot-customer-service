@@ -8,6 +8,7 @@ import { defaultTelegramConfig } from "@/default/default";
 import { ProtectController } from "./controller_protector";
 import { request_get, request_post } from "@/libs/request_server";
 import { REQUEST_TIMEOUT_MS } from "@/constants";
+import { validateDomains } from "@/helper/helper.domain";
 
 const TELEGRAM_SAVE_PATH = "/api/setting/telegram/save";
 const TELEGRAM_SETTING_BOT_PATH = "/api/setting/telegram/setting_bot";
@@ -21,6 +22,7 @@ const TELEGRAM_SETTING_KEYS = [
     "webhookEnabled",
     "notifyEnabled",
     "silentMode",
+    "exceptionLinks"
 ] as const;
 
 const telegramPayloadSchema = {
@@ -34,6 +36,8 @@ const telegramPayloadSchema = {
     webhookEnabled: z.boolean().optional(),
     notifyEnabled: z.boolean().optional(),
     silentMode: z.boolean().optional(),
+    exceptionLinks: z.array(z.string()).optional(),
+    botUsername: z.string().optional(),
 };
 
 class TelegramController extends ProtectController {
@@ -68,10 +72,17 @@ class TelegramController extends ProtectController {
         const data = "data" in result ? result.data : undefined;
         if (!data) return response_data(500, 500, "Server error", []);
         const token = data.token;
+        const check_links = validateDomains(data.exceptionLinks);
+        if (check_links.invalid.length > 0) {
+            return response_data(400, 400, `Invalid domain [${check_links.invalid.join(", ")}]`, check_links.invalid);
+        }
+        if (check_links.duplicates.length > 0) {
+            return response_data(400, 400, `Duplicate domain [${check_links.duplicates.join(", ")}]`, check_links.duplicates);
+        }
         const payload = make_schema(data as Record<string, unknown>)
-            .omit(["token"])
+            .omit(["token", "botUsername", "exceptionLinks"])
+            .extend({ exceptionLinks: check_links.valid })
             .get();
-
         try {
             const body = HashData.encryptData(JSON.stringify(payload));
             const res = await request_post<{ data: string, code: number, message: string }>({

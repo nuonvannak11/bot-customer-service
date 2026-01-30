@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ShieldCheck, Activity, Shield, ShieldAlert, Lock } from "lucide-react";
 import GroupManagement from "./protect/GroupManagement";
 import FileGuard from "./protect/FileGuard";
@@ -31,9 +31,10 @@ export default function TelegramProtectPage({
   const [activeId, setActiveId] = useState<number | null>(
     active[0]?.id || null,
   );
+  const [currentUpdate, setCurrentUpdate] = useState<string[]>([]);
   const activeAsset = active.find((a) => a.id === activeId) || null;
-  const handleUpdateExtensions = (newExtensions: string[]) => {
-    console.log(`Update Asset ${activeId} extensions to:`, newExtensions);
+  const handleUpdateExtensions = async (newExtensions: string[]) => {
+    setCurrentUpdate(newExtensions);
   };
 
   const handleUpdateDomains = (newDomains: string[]) => {
@@ -48,12 +49,34 @@ export default function TelegramProtectPage({
     console.log("blockAllLinksFromNoneAdmin:", value);
   };
 
-  const handleAddActive = (asset:GroupChannel) => {
+  const handleAddActive = (asset: GroupChannel) => {
     if (active.find((a) => a.id === asset.id)) {
       return;
     }
     setActive((prev) => [...prev, asset]);
   };
+
+  async function handledSubmit( payload: any) {
+    console.log("Logging Change:", { payload });
+
+    // await fetch("/api/audit-log", {
+    //   method: "POST",
+    //   body: JSON.stringify({
+    //     userId,
+    //     assetId: activeId,
+    //     action,
+    //     changes: payload,
+    //     time: new Date().toISOString(),
+    //   }),
+    // });
+  }
+
+  useEffect(() => {
+    if (currentUpdate.length > 0) {
+      handledSubmit(currentUpdate);
+      setCurrentUpdate([]);
+    }
+  }, [currentUpdate]);
 
   if (!activeAsset) {
     return <div className="p-10 text-white">No assets found.</div>;
