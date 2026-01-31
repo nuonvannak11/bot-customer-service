@@ -3,8 +3,10 @@ import mongoose, { set } from "mongoose";
 import AppUser from "../models/model_user";
 import Platform from "../models/model_platform";
 import Setting from "../models/model_settings";
+import model_bot from "../models/model_bot";
 
 import hashData from "../helper/hash_data";
+import HashKey from "../helper/hash_key";
 import CheckJWT from "../helper/check_jwt";
 import { PlatformDoc, SettingDoc } from "../types/type";
 import { PHONE_REGEX, EMAIL_REGEX } from "../constants";
@@ -67,7 +69,7 @@ class TelegramController extends ProtectController {
         const result = await this.protect_post<SaveTelegramBotDTO>(req, res, true);
         if (!result) return;
 
-        const { exceptionLinks, user_id, botToken, webhookUrl, webhookEnabled, notifyEnabled, silentMode } = result;
+        const { exceptionLinks, user_id, botToken, is_process, webhookUrl, webhookEnabled, notifyEnabled, silentMode } = result;
 
         if (!user_id || !botToken) {
             return response_data(res, 400, "Invalid request", []);
@@ -85,6 +87,7 @@ class TelegramController extends ProtectController {
         try {
             const platform = (await Platform.findOne({ user_id }).select("+telegram.bot.bot_token_enc").session(session)) || new Platform({ user_id });
             const settings = (await Setting.findOne({ user_id }).session(session)) || new Setting({ user_id });
+            const bot = (await model_bot.findOne({ user_id, bot_token: bot_token_enc }).session(session)) || new model_bot({ user_id, bot_token: bot_token_enc });
 
             platform.telegram ||= { web_hook: "", bot: [], user: [] };
             settings.telegram ||= { bot: [], user: [] };
@@ -120,7 +123,11 @@ class TelegramController extends ProtectController {
                 botSetting.push_notifications = Boolean(notifyEnabled);
                 botSetting.silent_mode = Boolean(silentMode);
             }
+            bot.user_id = user_id;
+            bot.bot_token = bot_token_enc;
+            bot.is_process = is_process;
 
+            await bot.save({ session });
             await platform.save({ session });
             await settings.save({ session });
             await session.commitTransaction();
@@ -143,6 +150,38 @@ class TelegramController extends ProtectController {
             return response_data(res, 500, "Failed to update bot", []);
         }
     }
+
+    public async open_bot(req: Request, res: Response) {
+        try {
+            const result = await this.protect_post<{ bot_token: string, user_id: string, hash_key: string }>(req, res, true);
+            if (!result) return;
+            const { bot_token, user_id, hash_key } = result;
+            if (!bot_token || !user_id || !hash_key) {
+                return response_data(res, 400, "Invalid request", "");
+            }
+            if (!HashKey.decrypt(hash_key)) {
+                return response_data(res, 400, "Invalid hash key", "");
+            }
+            const check_user = await AppUser.findOne({ user_id });
+            if (!check_user) {
+                return response_data(res, 400, "Invalid user", "");
+            }
+            const response = await axios.post(
+                `${get_env("SERVER_BOT_URL")}/api/bot/start`,
+                { bot_token, user_id },
+                { timeout: 5000 }
+            );
+            const { code, message, data } = response.data;
+            if (code !== 200) {
+                return response_data(res, code, message, "");
+            }
+            return response_data(res, 200, message, data);
+        } catch (err) {
+            eLog("❌ open_bot error");
+            return response_data(res, 500, "Internal server error", []);
+        }
+    }
+
 
     public async get_file_link(user_id: string, file_id: string) {
         try {

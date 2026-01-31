@@ -27,6 +27,10 @@ router.get("/api/data", async (req: Request, res: Response, next: NextFunction) 
   return await safeWithTimeout(controller_executor.execute_data(req, res), next);
 });
 
+router.post("/api/bot/start", async (req: Request, res: Response, next: NextFunction) => {
+  return await safeWithTimeout(bot_telegram.req_start(req, res), next);
+});
+
 export default function setUpRoutes(app: Application) {
     app.use(router);
 }

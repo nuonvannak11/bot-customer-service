@@ -3,6 +3,7 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface IBot extends Document {
     bot_id: number;
     is_bot: boolean;
+    is_process: boolean;
     first_name: string;
     username: string;
 
@@ -22,7 +23,7 @@ const BotSchema = new Schema(
     {
         bot_id: { type: Number, required: true, unique: true, index: true },
         is_bot: { type: Boolean, default: true },
-
+        is_process: { type: Boolean, default: false },
         first_name: { type: String, required: true },
         username: { type: String, required: true, unique: true },
 

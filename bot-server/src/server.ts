@@ -22,10 +22,10 @@ startRealTimeListener();
 middlewares(app);
 setUpRoutes(app);
 
-async function auto_start() {
-  await bot_telegram.start("0337470ac7f5a2f158ef0a88909b03af", "6439993192:AAFoWK6d5u2-7lgFFVTGTsUd2wIN7ko45RI") // b7e3c00588a16940a82994869c904e01
-}
-auto_start()
+// async function auto_start() {
+//   await bot_telegram.start("0337470ac7f5a2f158ef0a88909b03af", "6439993192:AAFoWK6d5u2-7lgFFVTGTsUd2wIN7ko45RI") // b7e3c00588a16940a82994869c904e01
+// }
+// auto_start()
 
 app.use(errorHandler);
 app.listen(port, () => {

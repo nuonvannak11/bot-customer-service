@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
+import Image from "next/image";
+
 import {
   Bot,
   Globe,
@@ -35,7 +37,11 @@ export default function TelegramSettingsClient({
     useState<TelegramBotSettingsConfig>(initialSettings);
 
   const handleChange = (field: keyof TelegramBotSettingsConfig, value: any) => {
-    setSettings((prev) => ({ ...prev, [field]: value }));
+    if (field === "is_process") {
+
+    } else {
+      setSettings((prev) => ({ ...prev, [field]: value }));
+    }
   };
 
   const handleAddLink = () => {
@@ -137,18 +143,76 @@ export default function TelegramSettingsClient({
       <div className="absolute -top-10 -left-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute top-1/2 -right-10 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="relative bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-2xl overflow-hidden">
-        <div className="px-8 py-6 border-b border-slate-800 bg-slate-900/50 flex items-center gap-4">
-          <div className="p-3 bg-linear-to-r from-cyan-500 to-blue-600 rounded-xl shadow-lg shadow-cyan-500/20">
-            <Bot className="text-white w-6 h-6" />
+        <div className="px-8 py-6 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="p-3 bg-linear-to-r from-cyan-500 to-blue-600 rounded-xl shadow-lg shadow-cyan-500/20">
+                <Bot className="text-white w-6 h-6" />
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-5 h-5 flex items-center justify-center">
+                <div
+                  className={`
+                absolute inset-0 rounded-full 
+                transition-all duration-300 ease-in-out
+                ${settings.is_process
+                      ? "bg-green-500 blur-[6px] opacity-80"
+                      : "bg-red-500 blur-[6px] opacity-80"
+                    }
+              `} />
+                <div className="relative z-10 w-full h-full rounded-full overflow-hidden ring-2 ring-slate-900 bg-slate-900 flex items-center justify-center">
+                  <Image
+                    src={
+                      settings.is_process
+                        ? "/icon/gif/running.gif"
+                        : "/icon/gif/closed.gif"
+                    }
+                    alt={
+                      settings.is_process
+                        ? "Webhook running"
+                        : "Webhook disabled"
+                    }
+                    width={25}
+                    height={25}
+                    className="object-cover"
+                    unoptimized
+                  />
+                </div>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-white tracking-tight">
+                Bot Configuration
+              </h3>
+              <p className="text-sm text-slate-400">
+                Manage your Telegram integration credentials
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-xl font-bold text-white tracking-tight">
-              Bot Configuration
-            </h3>
-            <p className="text-sm text-slate-400">
-              Manage your Telegram integration credentials
-            </p>
-          </div>
+          <button
+            onClick={() =>
+              handleChange("is_process", !settings.is_process)
+            }
+            className={`group cursor-pointer flex items-center gap-2 px-4 py-2 rounded-xl border transition-all
+            ${settings.is_process
+                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                : "bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-300"
+              }
+          `}>
+            {settings.is_process ? (
+              <React.Fragment>
+                <Zap
+                  size={16}
+                  className="animate-pulse group-hover:scale-110 transition-transform"
+                />
+                <span className="text-sm font-medium">Running</span>
+              </React.Fragment>
+            ) : (
+              <React.Fragment>
+                <ShieldCheck size={16} />
+                <span className="text-sm font-medium">Disabled</span>
+              </React.Fragment>
+            )}
+          </button>
         </div>
 
         <div className="p-8 space-y-8">
@@ -268,15 +332,15 @@ export default function TelegramSettingsClient({
               disabled={isLoading}
               className="w-full cursor-pointer bg-linear-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold py-3 px-6 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
               {isLoading ? (
-                <>
+                <React.Fragment>
                   <div className="animate-spin h-5 w-5 border-2 border-white/30 border-t-white rounded-full" />
                   <span>Saving...</span>
-                </>
+                </React.Fragment>
               ) : (
-                <>
+                <React.Fragment>
                   <Save size={18} />
                   <span>Save</span>
-                </>
+                </React.Fragment>
               )}
             </button>
           </div>

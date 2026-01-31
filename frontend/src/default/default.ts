@@ -3,6 +3,7 @@ import type { TelegramBotSettingsConfig, UserProfileConfig } from "@/interface/i
 export const defaultTelegramConfig: TelegramBotSettingsConfig = {
     botUsername: "",
     botToken: "",
+    is_process: false,
     webhookUrl: "",
     webhookEnabled: false,
     notifyEnabled: false,

@@ -5,6 +5,7 @@ export function parse_telegram_bot_settings(data: any): TelegramBotSettingsConfi
     return {
         botUsername: data?.botUsername ?? defaultTelegramConfig.botUsername,
         botToken: data?.botToken ?? defaultTelegramConfig.botToken,
+        is_process: data?.is_process ?? defaultTelegramConfig.is_process,
         webhookUrl: data?.webhookUrl ?? defaultTelegramConfig.webhookUrl,
         webhookEnabled: data?.webhookEnabled ?? defaultTelegramConfig.webhookEnabled,
         notifyEnabled: data?.notifyEnabled ?? defaultTelegramConfig.notifyEnabled,

@@ -19,7 +19,7 @@ class BotTelegram {
         return entry.bot;
     }
 
-    public async start(user_id: string, bot_token: string) {
+    public async start(user_id: string, bot_token: string): Promise<{ status: boolean, message: string }> {
         try {
             if (this.bots.has(user_id)) {
                 return { status: false, message: "Bot already running for this user" }
@@ -37,7 +37,7 @@ class BotTelegram {
                     eLog("Message handler error", err);
                 }
             });
-            await bot.api.getUpdates({ offset: -1 }); 
+            await bot.api.getUpdates({ offset: -1 });
             bot.on("message", async (ctx) => {
                 try {
                     const msg = ctx.message as Message;
@@ -56,7 +56,7 @@ class BotTelegram {
                 bot.start({
                     allowed_updates: ["message", "callback_query"],
                     onStart: async (botInfo: BotInfo) => {
-                        await controller_bot.save_bot(botInfo, user_id, bot_token);
+                        await controller_bot.save_bot(botInfo, user_id);
                         eLog(`Bot started for user ${user_id} as @${botInfo.username}`);
                     }
                 });
@@ -64,10 +64,10 @@ class BotTelegram {
                 this.tokenIndex.set(bot_token, user_id);
                 return { status: true, message: "Bot started successfully" }
             } catch (error) {
-                return { status: false, message: error }
+                return { status: false, message: "Error starting bot" }
             }
         } catch (error) {
-            return { status: false, message: error }
+            return { status: false, message: "Error starting bot" }
         }
     }
 
@@ -225,6 +225,23 @@ class BotTelegram {
         }
     }
 
+    async req_start(req: Request, res: Response) {
+        try {
+            const body = req.body || {};
+            const user_id = body.user_id as string;
+            const bot_token = body.bot_token as string;
+            if (!user_id || !bot_token) {
+                return response_data(res, 400, "Missing user_id or bot_token", "");
+            }
+            const result = await this.start(user_id, bot_token);
+            if (!result.status) {
+                return response_data(res, 400, result.message, "");
+            }
+            return response_data(res, 200, result.message, "");
+        } catch (err) {
+            return response_data(res, 500, "Internal server error", "");
+        }
+    }
 }
 
 export default new BotTelegram();

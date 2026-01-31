@@ -3,6 +3,7 @@ export interface TelegramBotSettingsConfig {
   botToken: string;
   webhookUrl: string;
   webhookEnabled: boolean;
+  is_process: boolean;
   notifyEnabled: boolean;
   silentMode: boolean;
   exceptionLinks: string[];

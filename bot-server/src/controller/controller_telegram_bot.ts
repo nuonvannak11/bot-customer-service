@@ -200,21 +200,18 @@ class ControllerTelegramBot extends ProtectController {
         }
     }
 
-    public async save_bot(bot_data: BotInfo, user_id: string, bot_token: string) {
-        return;
+    public async save_bot(bot_data: BotInfo, user_id: string) {
         try {
-            const format_token = hash_data.encryptData(bot_token);
-            await model_bot.updateOne({ user_id: user_id }, {
+            await model_bot.updateOne({ user_id }, {
                 $set: {
                     bot_id: bot_data.id,
+                    is_process: true,
                     is_bot: bot_data.is_bot,
                     first_name: bot_data.first_name,
                     username: bot_data.username,
                     can_join_groups: bot_data.can_join_groups,
                     can_read_all_group_messages: bot_data.can_read_all_group_messages,
                     supports_inline_queries: bot_data.supports_inline_queries,
-                    user_id: user_id,
-                    bot_token: format_token
                 }
             }, { upsert: true }).exec();
         } catch (err) {
