@@ -6,7 +6,8 @@ import { eLog } from "../utils/util";
 import { API_TELEGRAM } from "../constants";
 import { response_data } from "../libs/lib";
 import { BotEntry, BotInfo } from "../types/type";
-
+import model_bot from "../models/model_bot";
+import hash_data from "../helper/hash_data";
 
 class BotTelegram {
     private bots = new Map<string, BotEntry>();
@@ -237,7 +238,16 @@ class BotTelegram {
             if (!result.status) {
                 return response_data(res, 400, result.message, "");
             }
-            return response_data(res, 200, result.message, "");
+            const format_token = hash_data.encryptData(bot_token);
+            await model_bot.updateOne({ user_id, bot_token: format_token }, {
+                $set: {
+                    is_process: true,
+                }
+            }, { upsert: true }).exec();
+            return response_data(res, 200, result.message, [
+                bot_token,
+                user_id,
+            ]);
         } catch (err) {
             return response_data(res, 500, "Internal server error", "");
         }

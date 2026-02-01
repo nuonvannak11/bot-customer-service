@@ -4,7 +4,6 @@ import { get_env } from "./utils/get_env";
 import { connectRedis } from "./config/redis";
 import { errorHandler } from "./middleware/errorHandler";
 import connectDB from "./config/db";
-import bot_telegram from "./bots/bot_telegram";
 import { startRealTimeListener } from "./worker/RedisListener";
 import setUpRoutes from "./routes/route";
 

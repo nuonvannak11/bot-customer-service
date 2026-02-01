@@ -9,7 +9,6 @@ import { ProtectController } from "./controller_protector";
 import { request_get, request_post } from "@/libs/request_server";
 import { REQUEST_TIMEOUT_MS } from "@/constants";
 import { validateDomains } from "@/helper/helper.domain";
-import { ca } from "zod/v4/locales";
 
 const TELEGRAM_SAVE_PATH = "/api/setting/telegram/save";
 const TELEGRAM_SETTING_BOT_PATH = "/api/setting/telegram/setting_bot";
@@ -143,7 +142,7 @@ class TelegramController extends ProtectController {
 
     async bot_open(req: NextRequest) {
         const Schema = {
-            hash_key: z.string().min(10, "Invalid data").max(20, "Invalid data"),
+            hash_key: z.string().min(10, "Invalid data").max(50, "Invalid data"),
             bot_token: z.string().min(10, "Invalid data").max(100, "Invalid data"),
         };
         const result = await this.protect(req, Schema, 10, true);

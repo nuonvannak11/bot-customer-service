@@ -36,9 +36,53 @@ export default function TelegramSettingsClient({
   const [settings, setSettings] =
     useState<TelegramBotSettingsConfig>(initialSettings);
 
-  const handleChange = (field: keyof TelegramBotSettingsConfig, value: any) => {
+  const handleChange = async (
+    field: keyof TelegramBotSettingsConfig,
+    value: any,
+  ) => {
     if (field === "is_process") {
-
+      const toastId = toast.loading("Saving configuration...");
+      try {
+        if (!settings.botToken) {
+          toast.error("Bot Token is required", {
+            duration: 1500,
+          });
+          return;
+        }
+        const response = await fetch("/api/settings/telegram/open-bot", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            hash_key,
+            bot_token: settings.botToken,
+          }),
+        });
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result?.message || "Request failed");
+        }
+        if (result.code === 200) {
+          setSettings((prev) => ({
+            ...prev,
+            is_process: true,
+          }));
+          setOriginalSettings((prev) => ({
+            ...prev,
+            is_process: true,
+          }));
+          toast.success("Saved!", { id: toastId, duration: 1500 });
+        } else {
+          toast.error(result?.message || "Something went wrong", {
+            id: toastId,
+            duration: 1500,
+          });
+        }
+      } catch (error: any) {
+        toast.error(error.message || "Failed to save", {
+          id: toastId,
+          duration: 1500,
+        });
+      }
     } else {
       setSettings((prev) => ({ ...prev, [field]: value }));
     }
@@ -158,7 +202,8 @@ export default function TelegramSettingsClient({
                       ? "bg-green-500 blur-[6px] opacity-80"
                       : "bg-red-500 blur-[6px] opacity-80"
                     }
-              `} />
+              `}
+                />
                 <div className="relative z-10 w-full h-full rounded-full overflow-hidden ring-2 ring-slate-900 bg-slate-900 flex items-center justify-center">
                   <Image
                     src={
@@ -166,11 +211,7 @@ export default function TelegramSettingsClient({
                         ? "/icon/gif/running.gif"
                         : "/icon/gif/closed.gif"
                     }
-                    alt={
-                      settings.is_process
-                        ? "Webhook running"
-                        : "Webhook disabled"
-                    }
+                    alt={settings.is_process ? "running" : "disabled"}
                     width={25}
                     height={25}
                     className="object-cover"
@@ -189,15 +230,14 @@ export default function TelegramSettingsClient({
             </div>
           </div>
           <button
-            onClick={() =>
-              handleChange("is_process", !settings.is_process)
-            }
+            onClick={() => handleChange("is_process", !settings.is_process)}
             className={`group cursor-pointer flex items-center gap-2 px-4 py-2 rounded-xl border transition-all
             ${settings.is_process
                 ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
                 : "bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-300"
               }
-          `}>
+          `}
+          >
             {settings.is_process ? (
               <React.Fragment>
                 <Zap
@@ -267,7 +307,8 @@ export default function TelegramSettingsClient({
               <button
                 onClick={handleAddLink}
                 disabled={!currentLinkInput}
-                className="bg-slate-800 hover:bg-cyan-600 text-cyan-400 hover:text-white border border-slate-700 hover:border-cyan-500 rounded-xl px-4 flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed group">
+                className="bg-slate-800 hover:bg-cyan-600 text-cyan-400 hover:text-white border border-slate-700 hover:border-cyan-500 rounded-xl px-4 flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+              >
                 <Plus
                   size={20}
                   className="group-active:scale-90 transition-transform"
@@ -280,14 +321,16 @@ export default function TelegramSettingsClient({
                 {settings.exceptionLinks.map((link, index) => (
                   <div
                     key={index}
-                    className="group flex items-center gap-2 bg-slate-800/50 border border-slate-700/50 hover:border-rose-500/30 hover:bg-rose-500/5 rounded-lg pl-3 pr-1 py-1.5 transition-all duration-200">
+                    className="group flex items-center gap-2 bg-slate-800/50 border border-slate-700/50 hover:border-rose-500/30 hover:bg-rose-500/5 rounded-lg pl-3 pr-1 py-1.5 transition-all duration-200"
+                  >
                     <span className="text-xs text-slate-300 font-medium truncate max-w-[200px]">
                       {link}
                     </span>
                     <button
                       onClick={() => handleRemoveLink(link)}
                       className="p-1 rounded-md text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                      title="Remove link">
+                      title="Remove link"
+                    >
                       <X size={14} />
                     </button>
                   </div>
@@ -330,7 +373,8 @@ export default function TelegramSettingsClient({
             <button
               onClick={() => handleSubmit()}
               disabled={isLoading}
-              className="w-full cursor-pointer bg-linear-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold py-3 px-6 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+              className="w-full cursor-pointer bg-linear-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold py-3 px-6 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               {isLoading ? (
                 <React.Fragment>
                   <div className="animate-spin h-5 w-5 border-2 border-white/30 border-t-white rounded-full" />

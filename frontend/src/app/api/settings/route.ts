@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { get_env, empty } from "@/utils/util";
+import { empty } from "@/utils/util";
+import { get_env } from "@/libs/lib";
 import HashData from "@/helper/hash_data";
 
 const ALLOWED_KEYS = [

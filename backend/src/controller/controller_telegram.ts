@@ -125,7 +125,6 @@ class TelegramController extends ProtectController {
             }
             bot.user_id = user_id;
             bot.bot_token = bot_token_enc;
-            bot.is_process = is_process;
 
             await bot.save({ session });
             await platform.save({ session });
