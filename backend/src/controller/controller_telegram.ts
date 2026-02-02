@@ -11,9 +11,7 @@ import HashKey from "../helper/hash_key";
 import { ProtectController } from "./controller_protect";
 import { response_data } from "../libs/lib";
 import { SaveTelegramBotDTO } from "../interface";
-import { PlatformDoc, SettingDoc } from "../types/type";
 import { get_url } from "../libs/get_urls";
-import { BotInfo } from "../types/telegram_bot";
 
 interface OpenCloseBotRequest {
     token: string;
@@ -23,34 +21,37 @@ interface OpenCloseBotRequest {
     method: string;
 }
 
+interface GetBotSettingRequest {
+    token: string;
+    user_id: string;
+    session_id: string;
+}
+
 class TelegramController extends ProtectController {
     private validateTelegramToken(token: string): boolean {
         const regex = /^[0-9]{7,12}:[A-Za-z0-9_-]{35}$/;
         return regex.test(token.trim());
     }
 
-    public async get_settings_bot(req: Request, res: Response) {
+    public async get_settings_bot(req: Request, res: Response): Promise<Response | void> {
         try {
-            const result = await this.protect_get<{ user_id: string, session_id: string }>(req, res);
+            const result = await this.protect_get<GetBotSettingRequest>(req, res);
             if (!result) return;
+            const { user_id, token } = result;
+            if (!user_id || !token) return response_data(res, 400, "Invalid request", []);
 
-            const { user_id } = result;
-
-            if (!user_id) return response_data(res, 400, "Invalid request", []);
-
-            const user = await AppUser.findOne({ user_id }).lean();
-            if (!user)
-                return response_data(res, 400, "Invalid user", []);
-
-            const settings = await model_setting.findOne({ user_id }).lean() as SettingDoc;
-            const platform = await Platform.findOne({ user_id }).lean() as PlatformDoc;
+            const check_user = await AppUser.findOne({ user_id, access_token_hash: token }).lean();
+            if (!check_user) {
+                return response_data(res, 401, "Unauthorized user", []);
+            }
+            const settings = await model_setting.findOne({ user_id }).lean();
+            const platform = await Platform.findOne({ user_id }).select("+telegram.bot.bot_token_enc").lean();
             const platFormList = platform?.telegram?.bot ?? [];
 
             const webHook = platform?.telegram?.web_hook ?? "";
             const botList = settings?.telegram?.bot ?? [];
             const activeBot = botList.find(b => b.process === true) || botList[0] || null;
             const botUsername = platFormList.find(b => b.bot_token_enc === activeBot?.bot_token)?.bot_username ?? "";
-
             const collection = {
                 botUsername,
                 botToken: hashData.decryptData(activeBot?.bot_token ?? "") ?? "",
@@ -61,7 +62,6 @@ class TelegramController extends ProtectController {
                 silentMode: activeBot?.silent_mode ?? false,
                 exceptionLinks: settings?.user?.exceptionLinks ?? [],
             };
-
             const encrypted = hashData.encryptData(JSON.stringify(collection));
             return response_data(res, 200, "Success", encrypted);
         } catch (err) {
@@ -154,184 +154,23 @@ class TelegramController extends ProtectController {
         }
     }
 
-    // public async open_close_bot(req: Request, res: Response): Promise<Response | void> {
-    //     try {
-    //         const result = await this.protect_post<OpenCloseBotRequest>(req, res, true);
-    //         if (!result) return;
-    //         const { bot_token, user_id, hash_key, token, method } = result;
-    //         if (!bot_token || !user_id || !hash_key || !HashKey.decrypt(hash_key) || !this.validateTelegramToken(bot_token)) {
-    //             return response_data(res, 400, "Invalid request", null);
-    //         }
-    //         const check_user = await AppUser.findOne({ user_id, access_token_hash: token });
-    //         if (!check_user) {
-    //             return response_data(res, 400, "Invalid user", null);
-    //         }
-
-    //         const bot_token_enc = hashData.encryptData(bot_token);
-    //         const settings = await model_setting.findOne({ user_id });
-    //         const find_bot = model_bot.findOne({ user_id, bot_token: bot_token_enc });
-    //         const botSettingList = settings?.telegram.bot || [];
-    //         const botSetting = botSettingList.find(b => b.bot_token === bot_token_enc);
-    //         if (!botSetting || !find_bot) {
-    //             return response_data(res, 400, "Bot not found", null);
-    //         }
-    //         if (method === 'open') {
-    //             if (botSetting.process) {
-    //                 return response_data(res, 200, "Bot is already running", null);
-    //             }
-    //             const response = await axios.post(get_url("open_bot"),
-    //                 { bot_token, user_id },
-    //                 { timeout: 10000 }
-    //             );
-    //             const { code, message, data } = response.data;
-    //             if (code == 200) {
-    //                 const session = await mongoose.startSession();
-    //                 try {
-    //                     session.startTransaction();
-    //                     const update_model_bot = await model_bot.updateOne(
-    //                         { user_id, bot_token: bot_token_enc },
-    //                         {
-    //                             $set: {
-    //                                 bot_id: data.id,
-    //                                 is_process: true,
-    //                                 is_bot: data.is_bot,
-    //                                 first_name: data.first_name,
-    //                                 username: `@${data.username}`,
-    //                                 can_join_groups: data.can_join_groups,
-    //                                 can_read_all_group_messages: data.can_read_all_group_messages,
-    //                                 supports_inline_queries: data.supports_inline_queries,
-    //                             }
-    //                         },
-    //                         { session }
-    //                     );
-    //                     const update_setting = await model_setting.updateOne(
-    //                         {
-    //                             user_id,
-    //                             "telegram.bot.bot_token": bot_token_enc,
-    //                         },
-    //                         {
-    //                             $set: {
-    //                                 "telegram.bot.$.process": true
-    //                             }
-    //                         },
-    //                         { session }
-    //                     );
-    //                     const update_platform = await Platform.updateOne(
-    //                         {
-    //                             user_id,
-    //                             "telegram.bot.bot_token_enc": bot_token_enc,
-    //                         },
-    //                         {
-    //                             $set: {
-    //                                 "telegram.bot.$.bot_username": `@${data.username}`
-    //                             }
-    //                         },
-    //                         { session }
-    //                     );
-    //                     if (update_setting.matchedCount === 0 || update_model_bot.matchedCount === 0 || update_platform.matchedCount === 0) {
-    //                         throw new Error("Bot not found or already running");
-    //                     }
-    //                     const format_data = hashData.encryptData(JSON.stringify(data));
-    //                     await session.commitTransaction();
-    //                     session.endSession();
-    //                     return response_data(res, 200, "Bot started", format_data);
-    //                 } catch (err: any) {
-    //                     await axios.post(get_url("close_bot"),
-    //                         { bot_token, user_id },
-    //                         { timeout: 10000 }
-    //                     );
-    //                     await session.abortTransaction();
-    //                     session.endSession();
-    //                     return response_data(res, 500, err.message || "Internal server error", null);
-    //                 }
-    //             } else {
-    //                 return response_data(res, code, message, data);
-    //             }
-    //         } else if (method === "close") {
-    //             if (botSetting.process === false) {
-    //                 return response_data(res, 200, "Bot is already closed", null);
-    //             }
-    //             const response = await axios.post(get_url("close_bot"),
-    //                 { bot_token, user_id },
-    //                 { timeout: 10000 }
-    //             );
-    //             const { code, message, data } = response.data;
-    //             if (code == 200) {
-    //                 const session = await mongoose.startSession();
-    //                 try {
-    //                     session.startTransaction();
-    //                     const update_model_bot = await model_bot.updateOne(
-    //                         { user_id, bot_token: bot_token_enc },
-    //                         {
-    //                             $set: {
-    //                                 is_process: false,
-    //                             }
-    //                         },
-    //                         { session }
-    //                     );
-    //                     const update_setting = await model_setting.updateOne(
-    //                         {
-    //                             user_id,
-    //                             "telegram.bot.bot_token": bot_token_enc,
-    //                         },
-    //                         {
-    //                             $set: {
-    //                                 "telegram.bot.$.process": false
-    //                             }
-    //                         },
-    //                         { session }
-    //                     );
-    //                     if (update_setting.matchedCount === 0 || update_model_bot.matchedCount === 0) {
-    //                         throw new Error("Bot not found or already closed");
-    //                     }
-    //                     const format_data = hashData.encryptData(JSON.stringify(data));
-    //                     await session.commitTransaction();
-    //                     session.endSession();
-    //                     return response_data(res, 200, "Bot closed", format_data);
-    //                 } catch (err: any) {
-    //                     await axios.post(get_url("open_bot"),
-    //                         { bot_token, user_id },
-    //                         { timeout: 10000 }
-    //                     );
-    //                     await session.abortTransaction();
-    //                     session.endSession();
-    //                     return response_data(res, 500, err.message || "Internal server error", null);
-    //                 }
-    //             } else {
-    //                 return response_data(res, code, message, data);
-    //             }
-    //         } else {
-    //             return response_data(res, 400, "Invalid request", null);
-    //         }
-    //     } catch (err) {
-    //         eLog("❌ open_bot error");
-    //         return response_data(res, 500, "Internal server error", null);
-    //     }
-    // }
-
     public async open_close_bot(req: Request, res: Response): Promise<Response | void> {
         try {
             const result = await this.protect_post<OpenCloseBotRequest>(req, res, true);
             if (!result) return;
-
             const { bot_token, user_id, hash_key, token, method } = result;
-
             if (!bot_token || !user_id || !hash_key || !token || !method) {
                 return response_data(res, 400, "Missing required fields", null);
             }
-
             if (!HashKey.decrypt(hash_key)) {
                 return response_data(res, 400, "Invalid hash key", null);
             }
-
             if (!this.validateTelegramToken(bot_token)) {
                 return response_data(res, 400, "Invalid bot token format", null);
             }
-
             if (!['open', 'close'].includes(method)) {
                 return response_data(res, 400, "Invalid method. Use 'open' or 'close'", null);
             }
-
             const check_user = await AppUser.findOne({ user_id, access_token_hash: token });
             if (!check_user) {
                 return response_data(res, 401, "Unauthorized user", null);
@@ -341,7 +180,6 @@ class TelegramController extends ProtectController {
                 model_setting.findOne({ user_id }),
                 model_bot.findOne({ user_id, bot_token: bot_token_enc })
             ]);
-
             if (!settings) {
                 return response_data(res, 404, "User settings not found", null);
             }
@@ -354,9 +192,15 @@ class TelegramController extends ProtectController {
             }
 
             if (method === 'open') {
-                return await this.handleOpenBot(res, bot_token, bot_token_enc, user_id, botSetting);
+                if (botSetting.process) {
+                    return response_data(res, 200, "Bot is already running", null);
+                }
+                return await this.handleOpenBot(res, bot_token, bot_token_enc, user_id);
             } else {
-                return await this.handleCloseBot(res, bot_token, bot_token_enc, user_id, botSetting);
+                if (botSetting.process === false) {
+                    return response_data(res, 200, "Bot is already closed", null);
+                }
+                return await this.handleCloseBot(res, bot_token, bot_token_enc, user_id);
             }
         } catch (err: any) {
             eLog("❌ open_close_bot error:", err);
@@ -364,10 +208,7 @@ class TelegramController extends ProtectController {
         }
     }
 
-    private async handleOpenBot(res: Response, bot_token: string, bot_token_enc: string, user_id: string, botSetting: any): Promise<Response | void> {
-        if (botSetting.process) {
-            return response_data(res, 200, "Bot is already running", null);
-        }
+    private async handleOpenBot(res: Response, bot_token: string, bot_token_enc: string, user_id: string): Promise<Response | void> {
         let session: any = null;
         try {
             const response = await axios.post(
@@ -382,13 +223,12 @@ class TelegramController extends ProtectController {
             if (code !== 200) {
                 return response_data(res, code, message, data);
             }
-            console.log("data==", data);
             session = await mongoose.startSession();
             session.startTransaction();
 
             const [update_model_bot, update_setting, update_platform] = await Promise.all([
                 model_bot.updateOne(
-                    { user_id, bot_token: bot_token_enc },
+                    { user_id, bot_token: bot_token_enc, is_process: false },
                     {
                         $set: {
                             bot_id: data.id,
@@ -408,6 +248,7 @@ class TelegramController extends ProtectController {
                     {
                         user_id,
                         "telegram.bot.bot_token": bot_token_enc,
+                        "telegram.bot.process": false
                     },
                     {
                         $set: {
@@ -432,7 +273,7 @@ class TelegramController extends ProtectController {
                 )
             ]);
             if (update_model_bot.matchedCount === 0) {
-                throw new Error("Bot record not found in model_bot");
+                throw new Error("Bot already running or locked");
             }
             if (update_setting.matchedCount === 0) {
                 throw new Error("Bot record not found in settings");
@@ -441,7 +282,6 @@ class TelegramController extends ProtectController {
                 throw new Error("Bot record not found in platform");
             }
             await session.commitTransaction();
-
             const format_data = hashData.encryptData(JSON.stringify(data));
             return response_data(res, 200, "Bot started successfully", format_data);
 
@@ -469,12 +309,8 @@ class TelegramController extends ProtectController {
         }
     }
 
-    private async handleCloseBot(res: Response, bot_token: string, bot_token_enc: string, user_id: string, botSetting: any): Promise<Response | void> {
-        if (botSetting.process === false) {
-            return response_data(res, 200, "Bot is already closed", null);
-        }
+    private async handleCloseBot(res: Response, bot_token: string, bot_token_enc: string, user_id: string): Promise<Response | void> {
         let session: any = null;
-
         try {
             const response = await axios.post(
                 get_url("close_bot"),
@@ -493,7 +329,7 @@ class TelegramController extends ProtectController {
 
             const [update_model_bot, update_setting] = await Promise.all([
                 model_bot.updateOne(
-                    { user_id, bot_token: bot_token_enc },
+                    { user_id, bot_token: bot_token_enc, is_process: true },
                     {
                         $set: {
                             is_process: false,
@@ -506,6 +342,7 @@ class TelegramController extends ProtectController {
                     {
                         user_id,
                         "telegram.bot.bot_token": bot_token_enc,
+                        "telegram.bot.process": true
                     },
                     {
                         $set: {
@@ -518,7 +355,7 @@ class TelegramController extends ProtectController {
             ]);
 
             if (update_model_bot.matchedCount === 0) {
-                throw new Error("Bot record not found in model_bot");
+                throw new Error("Bot already closed or locked");
             }
             if (update_setting.matchedCount === 0) {
                 throw new Error("Bot record not found in settings");
@@ -550,7 +387,6 @@ class TelegramController extends ProtectController {
             }
         }
     }
-
 
     public async get_file_link(user_id: string, file_id: string) {
         try {
