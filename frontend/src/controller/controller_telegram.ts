@@ -9,12 +9,7 @@ import { ProtectController } from "./controller_protector";
 import { request_get, request_post } from "@/libs/request_server";
 import { REQUEST_TIMEOUT_MS } from "@/constants";
 import { validateDomains } from "@/helper/helper.domain";
-
-const TELEGRAM_SAVE_PATH = "/api/setting/telegram/save";
-const TELEGRAM_SETTING_BOT_PATH = "/api/setting/telegram/setting_bot";
-const TELEGRAM_GROUPS_PATH = "/api/telegram/bot/groups";
-const TELEGRAM_OPEN_BOT = "/api/telegram/bot/open";
-const TELEGRAM_PROTECTS_PATH = "/api/setting/telegram/protects";
+import { get_url } from "@/libs/get_urls";
 
 const TELEGRAM_SETTING_KEYS = [
     "botUsername",
@@ -44,8 +39,6 @@ const telegramPayloadSchema = {
 };
 
 class TelegramController extends ProtectController {
-    private readonly baseUrl = get_env("BACKEND_URL");
-
     private pickTelegramSettings(raw: Record<string, unknown>) {
         return make_schema(raw).pick(TELEGRAM_SETTING_KEYS).get();
     }
@@ -89,7 +82,7 @@ class TelegramController extends ProtectController {
         try {
             const body = HashData.encryptData(JSON.stringify(payload));
             const res = await request_post<{ data: string, code: number, message: string }>({
-                url: `${this.baseUrl}${TELEGRAM_SAVE_PATH}`,
+                url: get_url("save_bot_settings"),
                 data: { payload: body },
                 headers: {
                     "Content-Type": "application/json",
@@ -111,7 +104,7 @@ class TelegramController extends ProtectController {
         if (!token) return defaultTelegramConfig;
 
         const res = await request_get<{ data: string }>({
-            url: `${this.baseUrl}${TELEGRAM_SETTING_BOT_PATH}`,
+            url: get_url("get_bot_settings"),
             headers: { authorization: `Bearer ${token}` },
             timeout: REQUEST_TIMEOUT_MS,
         });
@@ -126,68 +119,74 @@ class TelegramController extends ProtectController {
     }
 
     async get_group_telegram(token?: string) {
-        if (!token) return [];
-        const res = await request_get<{ groups?: unknown[] }>({
-            url: `${this.baseUrl}${TELEGRAM_GROUPS_PATH}`,
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`
-            },
-            timeout: REQUEST_TIMEOUT_MS,
-        });
-        if (!res?.success || !res.data) return [];
-        const data = res.data as { groups?: unknown[] };
-        return Array.isArray(data.groups) ? data.groups : [];
+        try {
+            if (!token) return [];
+            const res = await request_get<{ groups?: unknown[] }>({
+                url: get_url("get_groups"),
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                timeout: REQUEST_TIMEOUT_MS,
+            });
+            if (!res?.success || !res.data) return [];
+            const data = res.data as { groups?: unknown[] };
+            return Array.isArray(data.groups) ? data.groups : [];
+        } catch (error) {
+            return this.handleSaveError(error);
+        }
     }
 
-    async bot_open(req: NextRequest) {
+    async bot_open_close(req: NextRequest) {
         const Schema = {
             hash_key: z.string().min(10, "Invalid data").max(50, "Invalid data"),
             bot_token: z.string().min(10, "Invalid data").max(100, "Invalid data"),
+            method: z.enum(["open", "close"]),
         };
         const result = await this.protect(req, Schema, 10, true);
         if (!result.ok) return result.response!;
         const data = "data" in result ? result.data : undefined;
         if (!data) return response_data(500, 500, "Request error", []);
-        const token = data.token;
-        const payload = {
-            hash_key: data.hash_key,
-            bot_token: data.bot_token,
-        };
+        const { token, hash_key, bot_token, method } = data;
         try {
-            const body = HashData.encryptData(JSON.stringify(payload));
-            const res = await request_post<{ data: string, code: number, message: string }>({
-                url: `${this.baseUrl}${TELEGRAM_OPEN_BOT}`,
-                data: { payload: body },
+            const encrypted = HashData.encryptData(JSON.stringify({ hash_key, bot_token, method }));
+            const res = await request_post<{ code: number; message: string; data: string; }>({
+                url: get_url(method === "close" ? "close_bot" : "open_bot"),
+                data: { payload: encrypted },
                 headers: {
                     "Content-Type": "application/json",
                     authorization: `Bearer ${token}`,
                 },
                 timeout: REQUEST_TIMEOUT_MS,
             });
-            if (!res?.success || !res.data?.data) return response_data(500, 500, "Server error", []);
-            const data = res.data.data;
+            if (!res.success) {
+                throw new Error(res.error);
+            }
+            const { code, message, data } = res.data;
             const parsed = this.parseEncryptedResponse(data);
-            const settings = this.pickTelegramSettings(parsed as Record<string, unknown>);
-            return response_data(res.data.code, 200, res.data.message, settings ?? []);
+            return response_data(code, code, message, parsed ?? []);
         } catch (err) {
             return this.handleSaveError(err);
         }
     }
 
     async protects(token?: string) {
-        if (!token) return [];
-        const res = await request_get<{ data: { protects?: string[] } }>({
-            url: `${this.baseUrl}${TELEGRAM_PROTECTS_PATH}`,
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`
-            },
-            timeout: REQUEST_TIMEOUT_MS,
-        });
-        if (!res?.success || !res.data?.data) return [];
-        const data = res.data.data;
-        return data.protects ?? [];
+        try {
+            if (!token) return [];
+            const res = await request_get<{ data: { protects?: string[] } }>({
+                url: get_url("get_protect_settings"),
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                timeout: REQUEST_TIMEOUT_MS,
+            });
+            if (!res?.success || !res.data?.data) return [];
+            const data = res.data.data;
+            return data.protects ?? [];
+        } catch (error) {
+            return this.handleSaveError(error);
+        }
     }
 }
 

@@ -6,12 +6,24 @@ import { eLog } from "../utils/util";
 import { API_TELEGRAM } from "../constants";
 import { response_data } from "../libs/lib";
 import { BotEntry, BotInfo } from "../types/type";
-import model_bot from "../models/model_bot";
-import hash_data from "../helper/hash_data";
+
+interface OpenBotStart {
+    status: boolean;
+    message: string;
+    data: BotInfo | null;
+}
 
 class BotTelegram {
     private bots = new Map<string, BotEntry>();
-    private tokenIndex = new Map<string, string>();
+
+    private getToken(user_id: string): string {
+        const entry = this.bots.get(user_id);
+        if (!entry) {
+            return "";
+        }
+        return entry.token;
+    }
+
     private getBot(user_id: string): Bot {
         const entry = this.bots.get(user_id);
         if (!entry) {
@@ -20,13 +32,11 @@ class BotTelegram {
         return entry.bot;
     }
 
-    public async start(user_id: string, bot_token: string): Promise<{ status: boolean, message: string }> {
+    public async start(user_id: string, bot_token: string): Promise<OpenBotStart> {
         try {
-            if (this.bots.has(user_id)) {
-                return { status: false, message: "Bot already running for this user" }
-            }
-            if (this.tokenIndex.has(bot_token)) {
-                return { status: false, message: "Bot token already in use" };
+            const token = this.getToken(user_id);
+            if (token && token === bot_token) {
+                return { status: false, message: "Bot already running for this user", data: null }
             }
             const bot = new Bot(bot_token);
             bot.command(["start", "help"], async (ctx) => {
@@ -38,6 +48,7 @@ class BotTelegram {
                     eLog("Message handler error", err);
                 }
             });
+
             await bot.api.getUpdates({ offset: -1 });
             bot.on("message", async (ctx) => {
                 try {
@@ -53,22 +64,22 @@ class BotTelegram {
             });
 
             try {
+                const botInfo = await bot.api.getMe();
                 await bot.init();
                 bot.start({
                     allowed_updates: ["message", "callback_query"],
-                    onStart: async (botInfo: BotInfo) => {
-                        await controller_bot.save_bot(botInfo, user_id);
-                        eLog(`Bot started for user ${user_id} as @${botInfo.username}`);
+                    onStart: async (Info: BotInfo) => {
+                        eLog(`Bot started for user ${user_id} as @${Info.username}`);
                     }
                 });
+                console.log("botInfo=", botInfo);
                 this.bots.set(user_id, { bot, token: bot_token });
-                this.tokenIndex.set(bot_token, user_id);
-                return { status: true, message: "Bot started successfully" }
+                return { status: true, message: "Bot started successfully", data: botInfo }
             } catch (error) {
-                return { status: false, message: "Error starting bot" }
+                return { status: false, message: "Error starting bot", data: null }
             }
         } catch (error) {
-            return { status: false, message: "Error starting bot" }
+            return { status: false, message: "Error starting bot", data: null }
         }
     }
 
@@ -79,7 +90,6 @@ class BotTelegram {
         }
         await entry.bot.stop();
         this.bots.delete(user_id);
-        this.tokenIndex.delete(entry.token);
         return { status: true, message: "Bot stopped successfully" }
     }
 
@@ -183,7 +193,7 @@ class BotTelegram {
         }
     }
 
-    async get_profile_photo(req: Request, res: Response) {
+    public async get_profile_photo(req: Request, res: Response) {
         try {
             const query = req.query || {};
             const user_id = query.user_id as string;
@@ -226,30 +236,44 @@ class BotTelegram {
         }
     }
 
-    async req_start(req: Request, res: Response) {
+    public async req_start(req: Request, res: Response): Promise<Response> {
         try {
             const body = req.body || {};
             const user_id = body.user_id as string;
             const bot_token = body.bot_token as string;
             if (!user_id || !bot_token) {
-                return response_data(res, 400, "Missing user_id or bot_token", "");
+                return response_data(res, 400, "Missing user_id or bot_token", null);
             }
             const result = await this.start(user_id, bot_token);
+            console.log(user_id, bot_token, result);
             if (!result.status) {
-                return response_data(res, 400, result.message, "");
+                return response_data(res, 400, result.message, result.data);
             }
-            const format_token = hash_data.encryptData(bot_token);
-            await model_bot.updateOne({ user_id, bot_token: format_token }, {
-                $set: {
-                    is_process: true,
-                }
-            }, { upsert: true }).exec();
-            return response_data(res, 200, result.message, [
-                bot_token,
-                user_id,
-            ]);
+            return response_data(res, 200, result.message, result.data);
         } catch (err) {
-            return response_data(res, 500, "Internal server error", "");
+            return response_data(res, 500, "Internal server error", null);
+        }
+    }
+
+    public async req_stop(req: Request, res: Response): Promise<Response> {
+        try {
+            const body = req.body || {};
+            const user_id = body.user_id as string;
+            const bot_token = body.bot_token as string;
+            if (!user_id || !bot_token) {
+                return response_data(res, 400, "Missing user_id or bot_token", null);
+            }
+            const token = this.getToken(user_id);
+            if (token && token !== bot_token) {
+                return response_data(res, 400, "Invalid bot_token", null);
+            }
+            const result = await this.stop(user_id);
+            if (!result.status) {
+                return response_data(res, 400, result.message, null);
+            }
+            return response_data(res, 200, result.message, { user_id, bot_token });
+        } catch (err) {
+            return response_data(res, 500, "Internal server error", null);
         }
     }
 }

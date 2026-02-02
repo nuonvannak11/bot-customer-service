@@ -17,7 +17,6 @@ import model_bot from "../models/model_bot";
 import model_telegram_group from "../models/model_telegram_group";
 import { BotSettingDTO } from "../interface";
 import { default_settings_bot } from "../defaultSettings";
-import { BotInfo } from "../types/type";
 import hash_data from "../helper/hash_data";
 
 
@@ -197,25 +196,6 @@ class ControllerTelegramBot extends ProtectController {
         }
         if (command === "help") {
             ctx.reply("Here are the available commands:\n/start - Start the bot\n/help - Show this help message");
-        }
-    }
-
-    public async save_bot(bot_data: BotInfo, user_id: string) {
-        try {
-            await model_bot.updateOne({ user_id }, {
-                $set: {
-                    bot_id: bot_data.id,
-                    is_process: true,
-                    is_bot: bot_data.is_bot,
-                    first_name: bot_data.first_name,
-                    username: bot_data.username,
-                    can_join_groups: bot_data.can_join_groups,
-                    can_read_all_group_messages: bot_data.can_read_all_group_messages,
-                    supports_inline_queries: bot_data.supports_inline_queries,
-                }
-            }, { upsert: true }).exec();
-        } catch (err) {
-            eLog("Save bot error:", err);
         }
     }
 }
