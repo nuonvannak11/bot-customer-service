@@ -29,6 +29,7 @@ export default function TelegramSettingsClient({
   initialSettings: TelegramBotSettingsConfig;
 }) {
   const { t } = useTranslation();
+  const [isLoadingRequest, setIsLoadingRequest] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentLinkInput, setCurrentLinkInput] = useState("");
   const [originalSettings, setOriginalSettings] =
@@ -79,10 +80,13 @@ export default function TelegramSettingsClient({
   };
 
   const handleOpenCloseBot = async (method: string) => {
+    if (isLoadingRequest) return;
+    setIsLoadingRequest(true);
     if (!settings.botToken) {
       toast.error("Bot Token is required", {
         duration: 1500,
       });
+      setIsLoadingRequest(false);
       return;
     }
     const toastId = toast.loading("Saving configuration...");
@@ -95,7 +99,7 @@ export default function TelegramSettingsClient({
           body: JSON.stringify({
             hash_key,
             bot_token: settings.botToken,
-            method
+            method,
           }),
         },
       );
@@ -124,6 +128,7 @@ export default function TelegramSettingsClient({
         id: toastId,
         duration: 1500,
       });
+      setIsLoadingRequest(false);
     }
   };
 
@@ -134,6 +139,7 @@ export default function TelegramSettingsClient({
     const payload = overrideData ?? settings;
     if (!payload.botToken) {
       toast.error("Bot Token is required");
+      setIsLoading(false);
       return;
     }
     if (!key && currentLinkInput.trim()) {
@@ -239,6 +245,7 @@ export default function TelegramSettingsClient({
             </div>
           </div>
           <button
+            disabled={isLoadingRequest}
             onClick={() => handleChange("is_process", !settings.is_process)}
             className={`group cursor-pointer flex items-center gap-2 px-4 py-2 rounded-xl border transition-all
             ${

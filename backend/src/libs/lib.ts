@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { get_env } from "../utils/get_env";
+import http from "http";
 import { empty } from "../utils/util";
 import { getIP } from "../helper/get_ip";
 import check_jwt from "../helper/check_jwt";
@@ -44,3 +44,10 @@ export async function checkJwtToken(token?: string): Promise<{ status: boolean; 
     }
     return { status: true, data: verify.decoded as JWTPayload };
 }
+
+export const httpAgent = new http.Agent({
+    keepAlive: true,
+    maxSockets: 100,
+    maxFreeSockets: 10,
+    timeout: 60000
+});

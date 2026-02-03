@@ -7,7 +7,7 @@ export interface JWTPayload {
   [key: string]: any;
 }
 
-export interface SaveTelegramBotDTO {
+export interface SaveTgBotRequest{
   user_id: string;
   botToken: string;
   is_process: boolean;

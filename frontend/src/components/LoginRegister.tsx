@@ -11,6 +11,8 @@ import gsap from "gsap";
 import { sweet_request, showAlert } from "./alerts/SweetAlertPop";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import SettingsInput from "./SettingsInput";
+import { Phone, ShieldCheck, User } from "lucide-react";
 
 type Props = {
   hash_data: string;
@@ -39,7 +41,7 @@ const LoginRegister = ({ hash_data }: Props) => {
         });
       }
     },
-    { scope: container }
+    { scope: container },
   );
 
   useGSAP(
@@ -75,12 +77,12 @@ const LoginRegister = ({ hash_data }: Props) => {
             duration: 0.3,
             ease: "power3.in",
           },
-          0
+          0,
         );
         tl.to(
           loginForm,
           { autoAlpha: 1, y: 0, scale: 1, duration: 0.3, ease: "power3.out" },
-          ">-0.1"
+          ">-0.1",
         );
       } else {
         tl.to(gliderRef.current, {
@@ -98,16 +100,16 @@ const LoginRegister = ({ hash_data }: Props) => {
             duration: 0.3,
             ease: "power3.in",
           },
-          0
+          0,
         );
         tl.to(
           registerForm,
           { autoAlpha: 1, y: 0, scale: 1, duration: 0.3, ease: "power3.out" },
-          ">-0.1"
+          ">-0.1",
         );
       }
     },
-    { dependencies: [formType], scope: container }
+    { dependencies: [formType], scope: container },
   );
 
   const handleValid = (form: HTMLFormElement) => {
@@ -122,7 +124,7 @@ const LoginRegister = ({ hash_data }: Props) => {
     if (missing.length) {
       const firstField = missing[0];
       const input = form.querySelector(
-        `[name="${firstField}"]`
+        `[name="${firstField}"]`,
       ) as HTMLInputElement | null;
       input?.focus();
       showAlert({
@@ -163,7 +165,7 @@ const LoginRegister = ({ hash_data }: Props) => {
         toast.error(err.response?.data?.message ?? "Something went wrong", {
           position: "top-center",
         });
-      }
+      },
     );
   };
 
@@ -195,7 +197,7 @@ const LoginRegister = ({ hash_data }: Props) => {
         toast.error(err.response?.data?.message ?? "Something went wrong", {
           position: "top-center",
         });
-      }
+      },
     );
   };
 
@@ -259,32 +261,24 @@ const LoginRegister = ({ hash_data }: Props) => {
               className="space-y-5 absolute top-0 left-0 w-full"
               ref={loginFormRef}
               onSubmit={handleLogin}>
-              <div className="space-y-2">
-                <label
-                  htmlFor="login-phone"
-                  className="block text-sm font-medium text-slate-200">
-                  {t("Phone number")}
-                </label>
-                <input
-                  type="text"
-                  id="login-phone"
-                  name="phone"
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
-                />
-              </div>
-              <div className="space-y-2">
-                <label
-                  htmlFor="login-password"
-                  className="block text-sm font-medium text-slate-200">
-                  {t("password")}
-                </label>
-                <input
-                  type="password"
-                  id="login-password"
-                  name="password"
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
-                />
-              </div>
+              <SettingsInput
+                id="login-phone"
+                label={t("Phone number")}
+                type="text"
+                name="phone"
+                icon={Phone}
+                placeholder="0123456789"
+                customStyle="w-full rounded-3xl border border-white/10 bg-white/5 px-2 py-2.5 text-white placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+              />
+              <SettingsInput
+                id="login-password"
+                label={t("Password")}
+                type="password"
+                name="password"
+                icon={ShieldCheck}
+                placeholder="56xbvf@2345678"
+                customStyle="w-full rounded-3xl border border-white/10 bg-white/5 px-2 py-2.5 text-white placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+              />
               <button
                 type="submit"
                 className="w-full rounded-2xl bg-linear-to-r from-indigo-500 via-purple-500 to-cyan-400 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-900/40 transition hover:brightness-110 cursor-pointer">
@@ -298,46 +292,33 @@ const LoginRegister = ({ hash_data }: Props) => {
               id="register-form"
               className="space-y-5 absolute top-0 left-0 w-full"
               ref={registerFormRef}>
-              <div className="space-y-2">
-                <label
-                  htmlFor="register-name"
-                  className="block text-sm font-medium text-slate-200">
-                  {t("Username")}
-                </label>
-                <input
-                  type="text"
-                  id="register-name"
-                  name="username"
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
-                />
-              </div>
-              <div className="space-y-2">
-                <label
-                  htmlFor="register-phone"
-                  className="block text-sm font-medium text-slate-200">
-                  {t("Phone number")}
-                </label>
-                <input
-                  type="text"
-                  id="register-phone"
-                  name="phone"
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
-                />
-              </div>
-              <div className="space-y-2">
-                <label
-                  htmlFor="register-password"
-                  className="block text-sm font-medium text-slate-200">
-                  {t("Password")}
-                </label>
-                <input
-                  type="password"
-                  id="register-password"
-                  name="password"
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
-                />
-              </div>
-
+              <SettingsInput
+                id="register-name"
+                label={t("Username")}
+                type="text"
+                name="username"
+                icon={User}
+                placeholder="Jonh ny"
+                customStyle="w-full rounded-3xl border border-white/10 bg-white/5 px-2 py-2.5 text-white placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+              />
+              <SettingsInput
+                id="register-phone"
+                label={t("Phone number")}
+                type="text"
+                name="phone"
+                icon={Phone}
+                placeholder="0123456789"
+                customStyle="w-full rounded-3xl border border-white/10 bg-white/5 px-2 py-2.5 text-white placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+              />
+              <SettingsInput
+                id="register-password"
+                label={t("Password")}
+                type="password"
+                name="password"
+                icon={ShieldCheck}
+                placeholder="56xbvf@2345678"
+                customStyle="w-full rounded-3xl border border-white/10 bg-white/5 px-2 py-2.5 text-white placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+              />
               <button
                 type="submit"
                 className="w-full rounded-2xl bg-linear-to-r from-emerald-400 via-teal-400 to-cyan-400 px-4 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-emerald-900/30 transition hover:brightness-110 cursor-pointer">

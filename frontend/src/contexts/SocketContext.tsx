@@ -2,28 +2,28 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
-import { SocketPayload } from "@/types/type";
+import { SocketPayload } from "@/@types/type";
 
 type SocketContextType = {
   socket: Socket | null;
   connected: boolean;
 };
 
+interface SocketProviderProps {
+  option: SocketPayload;
+  children: React.ReactNode;
+}
+
 const SocketContext = createContext<SocketContextType>({
   socket: null,
   connected: false,
 });
 
-interface SocketProviderProps {
-  data: SocketPayload;
-  children: React.ReactNode;
-}
-
-export function SocketProvider({ data, children }: SocketProviderProps) {
+export function SocketProvider({ option, children }: SocketProviderProps) {
   const [socketInstance, setSocketInstance] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
 
-  if (!data?.token) {
+  if (!option?.token) {
     return (
       <SocketContext.Provider value={{ socket: null, connected: false }}>
         {children}
@@ -32,13 +32,13 @@ export function SocketProvider({ data, children }: SocketProviderProps) {
   }
 
   useEffect(() => {
-    if (!data.socket_url || !data.token) return;
-    const newSocket = io(data.socket_url, {
+    if (!option.socket_url || !option.token) return;
+    const newSocket = io(option.socket_url, {
       transports: ["websocket"],
       autoConnect: true,
       reconnection: true,
       auth: {
-        token: data.token,
+        token: option.token,
       },
     });
 
@@ -50,7 +50,7 @@ export function SocketProvider({ data, children }: SocketProviderProps) {
     return () => {
       newSocket.disconnect();
     };
-  }, [data.socket_url, data.token]);
+  }, [option.socket_url, option.token]);
 
   return (
     <SocketContext.Provider value={{ socket: socketInstance, connected }}>

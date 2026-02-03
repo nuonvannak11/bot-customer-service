@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { z } from "zod";
 import { get_env, eLog, check_header } from "@/libs/lib";
 import { response_data } from "@/libs/lib";
@@ -15,6 +15,7 @@ import { parse_user_profile } from "@/parser";
 import controller_r2 from "./controller_r2";
 import { ProtectController } from "./controller_protector";
 import { request_get } from "@/libs/request_server";
+import { valid_token } from "@/helper/helper.redirect";
 
 class UserController extends ProtectController {
     private time_ratelimit = {
@@ -47,6 +48,20 @@ class UserController extends ProtectController {
             .regex(/^[A-Za-z0-9+/=]+$/, "Invalid hash format"),
     };
 
+    private handleSaveError(err: unknown): ReturnType<typeof response_data> {
+        if (axios.isAxiosError(err)) {
+            const ax = err as AxiosError<unknown>;
+            if (ax.code === "ECONNABORTED") {
+                return response_data(408, 408, "Request timeout (10s)", []);
+            }
+            if (ax.response) {
+                const status = ax.response.status;
+                return response_data(status, status, ax.response.statusText ?? "Error", []);
+            }
+        }
+        return response_data(500, 500, "Invalid request", []);
+    }
+
     private isEmailValid(email?: string): boolean {
         if (!email) {
             return false;
@@ -54,9 +69,9 @@ class UserController extends ProtectController {
         return EMAIL_REGEX.test(email);
     }
 
-    public async check_auth(token?: string): Promise<AuthResponse> {
+    public async check_auth<T = unknown>(token?: string): Promise<AuthResponse<T>> {
         if (!token) {
-            return { code: 401, message: "Unauthorized", data: [] };
+            return { code: 401, message: "Unauthorized", data: [] as any };
         }
         const ApiUrl = get_env("BACKEND_URL");
         try {
@@ -70,15 +85,7 @@ class UserController extends ProtectController {
             const collections = JSON.parse(format_data);
             return { code: res.data.code, message: res.data.message, data: collections ?? [] };
         } catch (err: any) {
-            if (axios.isAxiosError(err)) {
-                if (err.code === "ECONNABORTED") {
-                    return { code: 408, message: "Request timeout (10s)", data: [] };
-                }
-                if (err.response) {
-                    return { code: err.response.status, message: err.response.statusText || "Request Error", data: [] };
-                }
-            }
-            return { code: 500, message: "Internal Server Error", data: [] };
+            return { code: 500, message: "Internal Server Error", data: [] as any };
         }
     }
 
@@ -448,5 +455,23 @@ class UserController extends ProtectController {
         }
         return res.data ?? [];
     }
+
+    public async get_user_data(): Promise<UserProfileConfig | null> {
+        try {
+            const token = await valid_token();
+            if (!token) return null;
+            const get_user = await this.check_auth<UserProfileConfig>(token);
+            if (get_user.code !== 200) return null;
+            const data = get_user.data as unknown;
+            if (typeof data === 'object' && data !== null && 'avatar' in data && 'fullName' in data) {
+                return data as UserProfileConfig;
+            }
+            return null;
+        } catch (error: any) {
+            return null;
+        }
+    }
+
+
 }
 export default new UserController;

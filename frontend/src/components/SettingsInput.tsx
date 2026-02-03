@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
- const SettingsInput = ({
+const SettingsInput = ({
   label,
   value,
   onChange,
@@ -9,18 +9,28 @@ import { Eye, EyeOff } from "lucide-react";
   placeholder,
   type = "text",
   disabled = false,
+  id,
+  name,
+  customStyle,
+  isShowPw = true,
 }: {
+  id?: string;
   label: string;
-  value: string;
+  value?: string;
   onChange?: (val: string) => void;
   icon?: any;
   placeholder?: string;
   type?: "text" | "password";
   disabled?: boolean;
+  name?: string;
+  customStyle?: string;
+  isShowPw?: boolean;
 }) => {
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(isShowPw);
   const isPassword = type === "password";
-
+  const class_input =
+    customStyle ??
+    "w-full bg-slate-950 border border-slate-800 text-white rounded-xl py-2.5 pr-4 focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 focus:outline-none transition-all placeholder:text-slate-600 ";
   return (
     <div className="group">
       <label className="text-sm font-medium text-slate-300 mb-1.5 block">
@@ -43,12 +53,14 @@ import { Eye, EyeOff } from "lucide-react";
         )}
 
         <input
+          id={id}
           disabled={disabled}
           type={isPassword && !showPassword ? "password" : "text"}
           value={value}
+          name={name}
           onChange={(e) => onChange?.(e.target.value)}
           placeholder={placeholder}
-          className={`w-full bg-slate-950 border border-slate-800 text-white rounded-xl py-2.5 pr-4 focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 focus:outline-none transition-all placeholder:text-slate-600 
+          className={`${class_input}
             ${Icon || label === "Bot Username" ? "pl-10" : "pl-4"} 
             ${disabled ? "cursor-not-allowed opacity-70 text-slate-400" : ""}
             ${isPassword ? "pr-10" : ""}

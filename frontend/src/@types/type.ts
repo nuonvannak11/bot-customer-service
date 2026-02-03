@@ -1,13 +1,14 @@
 import { JWTPayload } from "@/@types/auth";
 
-export interface SocketPayload extends JWTPayload {
+export interface SocketPayload {
+  token: string;
   socket_url: string;
 }
 
-export type AuthResponse = {
+export type AuthResponse<T = unknown> = {
   code: number;
   message: string;
-  data: [];
+  data: T;
 };
 
 export type ResponseData = {
@@ -17,7 +18,7 @@ export type ResponseData = {
 };
 
 export type ApiResponse<T> = {
-    code: number;
-    message: string;
-    data: T;
+  code: number;
+  message: string;
+  data: T;
 };

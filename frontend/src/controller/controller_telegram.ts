@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import axios, { AxiosError } from "axios";
 import { z } from "zod";
-import { get_env, response_data } from "@/libs/lib";
+import { response_data } from "@/libs/lib";
 import HashData from "@/helper/hash_data";
 import { make_schema } from "@/helper/helper";
 import { defaultTelegramConfig } from "@/default/default";
@@ -38,12 +38,20 @@ const telegramPayloadSchema = {
     botUsername: z.string().optional(),
 };
 
+interface ResponseApi {
+    code: number;
+    message: string;
+    data: string[] | string | null;
+}
+
+
 class TelegramController extends ProtectController {
     private pickTelegramSettings(raw: Record<string, unknown>) {
         return make_schema(raw).pick(TELEGRAM_SETTING_KEYS).get();
     }
 
     private parseEncryptedResponse(encrypted: string): Record<string, unknown> {
+        if (!encrypted) return {};
         const decoded = HashData.decryptData(encrypted);
         return JSON.parse(decoded) as Record<string, unknown>;
     }
@@ -90,8 +98,13 @@ class TelegramController extends ProtectController {
                 },
                 timeout: REQUEST_TIMEOUT_MS,
             });
-            if (!res?.success || !res.data?.data) return response_data(500, 500, "Server error", []);
-            const data = res.data.data;
+            if (!res.success) {
+                throw new Error(res.error);
+            }
+            const { data, code, message } = res.data;
+            if (code !== 200) {
+                return response_data(code, code, message, data ?? []);
+            }
             const parsed = this.parseEncryptedResponse(data);
             const settings = this.pickTelegramSettings(parsed as Record<string, unknown>);
             return response_data(res.data.code, 200, res.data.message, settings ?? []);
@@ -111,7 +124,9 @@ class TelegramController extends ProtectController {
 
         if (!res?.success || !res.data?.data) return defaultTelegramConfig;
         try {
-            const parsed = this.parseEncryptedResponse(res.data.data);
+            const data = res.data.data;
+            if (typeof data !== "string") return defaultTelegramConfig;
+            const parsed = this.parseEncryptedResponse(data);
             return this.pickTelegramSettings(parsed as Record<string, unknown>) ?? defaultTelegramConfig;
         } catch {
             return defaultTelegramConfig;
@@ -150,7 +165,7 @@ class TelegramController extends ProtectController {
         const { token, hash_key, bot_token, method } = data;
         try {
             const encrypted = HashData.encryptData(JSON.stringify({ hash_key, bot_token, method }));
-            const res = await request_post<{ code: number; message: string; data: string; }>({
+            const res = await request_post<ResponseApi>({
                 url: get_url(method === "close" ? "close_bot" : "open_bot"),
                 data: { payload: encrypted },
                 headers: {
@@ -163,6 +178,9 @@ class TelegramController extends ProtectController {
                 throw new Error(res.error);
             }
             const { code, message, data } = res.data;
+            if (typeof data !== "string") {
+                return response_data(code, code, message, data ?? []);
+            }
             const parsed = this.parseEncryptedResponse(data);
             return response_data(code, code, message, parsed ?? []);
         } catch (err) {

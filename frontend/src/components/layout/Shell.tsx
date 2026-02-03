@@ -33,10 +33,7 @@ export default function Shell({
       />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Header
-          user={user}
-          setSidebarOpen={setSidebarOpen}
-        />
+        <Header user={user} setSidebarOpen={setSidebarOpen} />
         <main className="flex-1 overflow-y-auto p-2 lg:p-4 scroll-smooth">
           {children}
         </main>
