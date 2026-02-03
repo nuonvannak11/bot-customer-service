@@ -25,7 +25,6 @@ export default function TelegramProtectPage({
   const [group, setGroup] = useState(protects.group);
   const [channel, setChannel] = useState(protects.channel);
   const [active, setActive] = useState(protects.active);
-  const [threatLogs, setThreatLogs] = useState(protects.threatLogs);
   const [newExt, setNewExt] = useState("");
   const [newDomain, setNewDomain] = useState("");
   const [activeId, setActiveId] = useState<number | null>(
@@ -221,8 +220,8 @@ export default function TelegramProtectPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800 text-slate-300">
-              {threatLogs?.length ? (
-                threatLogs.map((log) => (
+              {protects.threatLogs?.length ? (
+                protects.threatLogs.map((log) => (
                   <tr
                     key={log.id}
                     className="hover:bg-slate-800/50 transition-colors">

@@ -12,7 +12,7 @@ router.get("/protects", async (req: Request, res: Response, next: NextFunction) 
 });
 
 router.post(["/open", "/close"], async (req: Request, res: Response, next: NextFunction) => {
-    return await safeWithTimeout(controller_telegram.open_close_bot(req, res), next);
+    return await safeWithTimeout(controller_telegram.open_close_bot(req, res), next, 20000);
 });
 
 router.post("/save", async (req: Request, res: Response, next: NextFunction) => {

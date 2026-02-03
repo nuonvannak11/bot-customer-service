@@ -72,7 +72,6 @@ class BotTelegram {
                         eLog(`Bot started for user ${user_id} as @${Info.username}`);
                     }
                 });
-                console.log("botInfo=", botInfo);
                 this.bots.set(user_id, { bot, token: bot_token });
                 return { status: true, message: "Bot started successfully", data: botInfo }
             } catch (error) {

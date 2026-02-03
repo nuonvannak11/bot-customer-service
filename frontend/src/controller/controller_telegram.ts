@@ -1,13 +1,13 @@
 import { NextRequest } from "next/server";
 import axios, { AxiosError } from "axios";
 import { z } from "zod";
-import { response_data } from "@/libs/lib";
+import { eLog, response_data } from "@/libs/lib";
 import HashData from "@/helper/hash_data";
 import { make_schema } from "@/helper/helper";
 import { defaultTelegramConfig } from "@/default/default";
 import { ProtectController } from "./controller_protector";
 import { request_get, request_post } from "@/libs/request_server";
-import { REQUEST_TIMEOUT_MS } from "@/constants";
+import { REQUEST_TIMEOUT_BOT_CLOSE_OPEN_MS, REQUEST_TIMEOUT_MS } from "@/constants";
 import { validateDomains } from "@/helper/helper.domain";
 import { get_url } from "@/libs/get_urls";
 
@@ -19,16 +19,16 @@ const TELEGRAM_SETTING_KEYS = [
     "webhookEnabled",
     "notifyEnabled",
     "silentMode",
-    "exceptionLinks"
+    "exceptionLinks",
 ] as const;
 
-const telegramPayloadSchema = {
+const telegramPayloadSchema = z.object({
     hash_key: z
         .string()
-        .min(10, "Invalid data")
-        .max(100, "Invalid data")
+        .min(10)
+        .max(100)
         .regex(/^[A-Za-z0-9+/=]+$/, "Invalid hash format"),
-    botToken: z.string().min(10, "Invalid data").max(100, "Invalid data"),
+    botToken: z.string().min(10).max(100),
     is_process: z.boolean().optional(),
     webhookUrl: z.string().optional(),
     webhookEnabled: z.boolean().optional(),
@@ -36,174 +36,205 @@ const telegramPayloadSchema = {
     silentMode: z.boolean().optional(),
     exceptionLinks: z.array(z.string()).optional(),
     botUsername: z.string().optional(),
-};
+});
 
-interface ResponseApi {
+const botActionSchema = z.object({
+    hash_key: z.string().min(10).max(50),
+    bot_token: z.string().min(10).max(100),
+    method: z.enum(["open", "close"]),
+});
+
+type TelegramSettings = z.infer<typeof telegramPayloadSchema>;
+type BotAction = z.infer<typeof botActionSchema>;
+
+interface ApiResponse<T = unknown> {
     code: number;
     message: string;
-    data: string[] | string | null;
+    data: T;
 }
 
-
 class TelegramController extends ProtectController {
-    private pickTelegramSettings(raw: Record<string, unknown>) {
-        return make_schema(raw).pick(TELEGRAM_SETTING_KEYS).get();
-    }
-
-    private parseEncryptedResponse(encrypted: string): Record<string, unknown> {
-        if (!encrypted) return {};
-        const decoded = HashData.decryptData(encrypted);
-        return JSON.parse(decoded) as Record<string, unknown>;
-    }
-
-    private handleSaveError(err: unknown): ReturnType<typeof response_data> {
+    private handleError(err: unknown) {
+        eLog("[TelegramController Error]:", err);
         if (axios.isAxiosError(err)) {
-            const ax = err as AxiosError<unknown>;
+            const ax = err as AxiosError;
             if (ax.code === "ECONNABORTED") {
                 return response_data(408, 408, "Request timeout (10s)", []);
             }
             if (ax.response) {
-                const status = ax.response.status;
-                return response_data(status, status, ax.response.statusText ?? "Error", []);
+                return response_data(
+                    ax.response.status,
+                    ax.response.status,
+                    ax.response.statusText || "External API Error",
+                    []
+                );
             }
         }
-        return response_data(500, 500, "Invalid request", []);
+        const message = err instanceof Error ? err.message : "Internal Server Error";
+        return response_data(500, 500, message, []);
+    }
+
+    private getHeaders(token: string) {
+        return {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        };
+    }
+
+    private decryptPayload<T>(encrypted: string | null | undefined): T | null {
+        if (!encrypted) return null;
+        try {
+            const decoded = HashData.decryptData(encrypted);
+            return JSON.parse(decoded) as T;
+        } catch (error) {
+            console.error("[Decrypt Error]", error);
+            return null;
+        }
+    }
+
+    private encryptPayload(data: unknown): string {
+        return HashData.encryptData(JSON.stringify(data));
+    }
+
+    private pickTelegramSettings(raw: Record<string, unknown>) {
+        return make_schema(raw).pick(TELEGRAM_SETTING_KEYS).get();
     }
 
     async save(req: NextRequest) {
         const result = await this.protect(req, telegramPayloadSchema, 10, true);
         if (!result.ok) return result.response!;
-        const data = "data" in result ? result.data : undefined;
-        if (!data) return response_data(500, 500, "Server error", []);
-        const token = data.token;
-        const check_links = validateDomains(data.exceptionLinks);
+        const { data } = result;
+        if (!data) return response_data(500, 500, "Validation failed", []);
+        const { token, exceptionLinks, ...rest } = data;
+        const check_links = validateDomains(exceptionLinks);
         if (check_links.invalid.length > 0) {
-            return response_data(400, 400, `Invalid domain [${check_links.invalid.join(", ")}]`, check_links.invalid);
+            return response_data(400, 400, `Invalid domain(s): ${check_links.invalid.join(", ")}`, check_links.invalid);
         }
         if (check_links.duplicates.length > 0) {
-            return response_data(400, 400, `Duplicate domain [${check_links.duplicates.join(", ")}]`, check_links.duplicates);
+            return response_data(400, 400, `Duplicate domain(s): ${check_links.duplicates.join(", ")}`, check_links.duplicates);
         }
-        const payload = make_schema(data as Record<string, unknown>)
-            .omit(["token", "botUsername", "exceptionLinks"])
-            .extend({ exceptionLinks: check_links.valid })
-            .get();
+
+        const payloadData = {
+            ...rest,
+            exceptionLinks: check_links.valid
+        };
+        const cleanPayload = make_schema(payloadData).omit(["botUsername"]).get();
+
         try {
-            const body = HashData.encryptData(JSON.stringify(payload));
-            const res = await request_post<{ data: string, code: number, message: string }>({
+            const encryptedBody = this.encryptPayload(cleanPayload);
+
+            const res = await request_post<ApiResponse<string>>({
                 url: get_url("save_bot_settings"),
-                data: { payload: body },
-                headers: {
-                    "Content-Type": "application/json",
-                    authorization: `Bearer ${token}`,
-                },
+                data: { payload: encryptedBody },
+                headers: this.getHeaders(token),
                 timeout: REQUEST_TIMEOUT_MS,
             });
-            if (!res.success) {
-                throw new Error(res.error);
-            }
-            const { data, code, message } = res.data;
+
+            if (!res.success) throw new Error(res.error);
+
+            const { code, message, data: responseData } = res.data;
+
             if (code !== 200) {
-                return response_data(code, code, message, data ?? []);
+                return response_data(code, code, message, responseData ?? []);
             }
-            const parsed = this.parseEncryptedResponse(data);
-            const settings = this.pickTelegramSettings(parsed as Record<string, unknown>);
-            return response_data(res.data.code, 200, res.data.message, settings ?? []);
+
+            const parsed = this.decryptPayload<Record<string, unknown>>(responseData);
+            const settings = parsed ? this.pickTelegramSettings(parsed) : [];
+
+            return response_data(code, 200, message, settings);
+
         } catch (err) {
-            return this.handleSaveError(err);
+            return this.handleError(err);
         }
     }
 
     async get_setting_bot(token?: string) {
         if (!token) return defaultTelegramConfig;
-
-        const res = await request_get<{ data: string }>({
-            url: get_url("get_bot_settings"),
-            headers: { authorization: `Bearer ${token}` },
-            timeout: REQUEST_TIMEOUT_MS,
-        });
-
-        if (!res?.success || !res.data?.data) return defaultTelegramConfig;
         try {
-            const data = res.data.data;
-            if (typeof data !== "string") return defaultTelegramConfig;
-            const parsed = this.parseEncryptedResponse(data);
-            return this.pickTelegramSettings(parsed as Record<string, unknown>) ?? defaultTelegramConfig;
-        } catch {
+            const res = await request_get<ApiResponse<{ data: string }>>({
+                url: get_url("get_bot_settings"),
+                headers: this.getHeaders(token),
+                timeout: REQUEST_TIMEOUT_MS,
+            });
+
+            if (!res.success || !res.data?.data) return defaultTelegramConfig;
+
+            const encryptedData = res.data.data;
+            if (typeof encryptedData !== "string") return defaultTelegramConfig;
+
+            const parsed = this.decryptPayload<Record<string, unknown>>(encryptedData);
+            return parsed ? (this.pickTelegramSettings(parsed) ?? defaultTelegramConfig) : defaultTelegramConfig;
+
+        } catch (error) {
+            console.error("[get_setting_bot] Failed:", error);
             return defaultTelegramConfig;
         }
     }
 
     async get_group_telegram(token?: string) {
+        if (!token) return [];
+
         try {
-            if (!token) return [];
             const res = await request_get<{ groups?: unknown[] }>({
                 url: get_url("get_groups"),
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                },
+                headers: this.getHeaders(token),
                 timeout: REQUEST_TIMEOUT_MS,
             });
-            if (!res?.success || !res.data) return [];
-            const data = res.data as { groups?: unknown[] };
-            return Array.isArray(data.groups) ? data.groups : [];
+
+            if (!res.success || !res.data) return [];
+            return Array.isArray(res.data.groups) ? res.data.groups : [];
         } catch (error) {
-            return this.handleSaveError(error);
+            console.error("[get_group_telegram] Failed:", error);
+            return [];
         }
     }
 
     async bot_open_close(req: NextRequest) {
-        const Schema = {
-            hash_key: z.string().min(10, "Invalid data").max(50, "Invalid data"),
-            bot_token: z.string().min(10, "Invalid data").max(100, "Invalid data"),
-            method: z.enum(["open", "close"]),
-        };
-        const result = await this.protect(req, Schema, 10, true);
+        const result = await this.protect(req, botActionSchema, 10, true);
         if (!result.ok) return result.response!;
-        const data = "data" in result ? result.data : undefined;
-        if (!data) return response_data(500, 500, "Request error", []);
+
+        const { data } = result;
+        if (!data) return response_data(500, 500, "Invalid Request Data", []);
+
         const { token, hash_key, bot_token, method } = data;
+
         try {
-            const encrypted = HashData.encryptData(JSON.stringify({ hash_key, bot_token, method }));
-            const res = await request_post<ResponseApi>({
-                url: get_url(method === "close" ? "close_bot" : "open_bot"),
-                data: { payload: encrypted },
-                headers: {
-                    "Content-Type": "application/json",
-                    authorization: `Bearer ${token}`,
-                },
-                timeout: REQUEST_TIMEOUT_MS,
+            const payload = this.encryptPayload({ hash_key, bot_token, method });
+            const urlKey = method === "close" ? "close_bot" : "open_bot";
+            const res = await request_post<ApiResponse<string>>({
+                url: get_url(urlKey),
+                data: { payload },
+                headers: this.getHeaders(token),
+                timeout: REQUEST_TIMEOUT_BOT_CLOSE_OPEN_MS,
             });
-            if (!res.success) {
-                throw new Error(res.error);
+            if (!res.success) throw new Error(res.error);
+            const { code, message, data: responseData } = res.data;
+
+            if (typeof responseData === "string") {
+                const parsed = this.decryptPayload(responseData);
+                return response_data(code, code, message, parsed ?? []);
             }
-            const { code, message, data } = res.data;
-            if (typeof data !== "string") {
-                return response_data(code, code, message, data ?? []);
-            }
-            const parsed = this.parseEncryptedResponse(data);
-            return response_data(code, code, message, parsed ?? []);
+
+            return response_data(code, code, message, responseData ?? []);
+
         } catch (err) {
-            return this.handleSaveError(err);
+            return this.handleError(err);
         }
     }
 
     async protects(token?: string) {
+        if (!token) return [];
         try {
-            if (!token) return [];
             const res = await request_get<{ data: { protects?: string[] } }>({
                 url: get_url("get_protect_settings"),
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                },
+                headers: this.getHeaders(token),
                 timeout: REQUEST_TIMEOUT_MS,
             });
-            if (!res?.success || !res.data?.data) return [];
-            const data = res.data.data;
-            return data.protects ?? [];
+            if (!res.success || !res.data?.data) return [];
+            return Array.isArray(res.data.data.protects) ? res.data.data.protects : [];
         } catch (error) {
-            return this.handleSaveError(error);
+            console.error("[protects] Failed:", error);
+            return [];
         }
     }
 }

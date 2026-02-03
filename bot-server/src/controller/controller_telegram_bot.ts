@@ -66,25 +66,29 @@ class ControllerTelegramBot extends ProtectController {
             const chat_id = ctx.chat?.id?.toString();
             const chatType = ctx.chat?.type;
             if (!chat_id || !user_id) return;
-            const format_token = hash_data.encryptData(bot_token);
-            const check_bot = await model_bot.findOne({ user_id: user_id, bot_token: format_token }).lean();
+            const bot_token_enc = hash_data.encryptData(bot_token);
+            const check_bot = await model_bot.findOne({ user_id, bot_token: bot_token_enc }).lean();
             const get_username = check_bot?.username || "unknown_bot";
-            console.log("Checking bot username:", get_username);
-            if (!check_bot || str_lower(chat_message) !== `@${str_lower(get_username)}`) {
+            if (!check_bot || str_lower(chat_message) !== `${str_lower(get_username)}`) {
                 return;
             }
-            await model_telegram_group.findOneAndUpdate({ user_id, bot_token: format_token, chatId: chat_id }, {
-                $set: {
-                    user_id: user_id,
-                    bot_token: format_token,
-                    chatId: chat_id,
-                    name: ctx.chat?.title,
-                    type: chatType,
-                }
-            }, { upsert: true, new: true });
+            await model_telegram_group.updateOne(
+                { user_id, bot_token: bot_token_enc, chatId: chat_id },
+                {
+                    $set: {
+                        user_id,
+                        bot_token: bot_token_enc,
+                        chatId: chat_id,
+                        name: ctx.chat?.title,
+                        type: chatType,
+                    }
+                },
+                { upsert: true }
+            );
         }
         eLog("TEXT:", msg);
     }
+
     private async onPhoto(ctx: Context, user_id: string, msg: Message.PhotoMessage) {
         eLog("PHOTO:", msg.photo);
     }

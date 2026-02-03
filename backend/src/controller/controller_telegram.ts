@@ -30,7 +30,7 @@ interface GetBotSettingRequest {
 
 const req_bot = axios.create({
     httpAgent,
-    timeout: 10000,
+    timeout: 20000,
     validateStatus: (status) => status < 500
 });
 
@@ -185,9 +185,8 @@ class TelegramController extends ProtectController {
                 }
                 db_lock_success = true;
             });
-
             if (!db_lock_success) return;
-
+            
             let api_success = false;
             let api_data = null;
 

@@ -9,6 +9,52 @@ import { checkJwtToken } from "@/hooks/use_check_jwt";
 import { fileTypeFromBuffer } from "file-type";
 import { ProtectFileOptions } from "@/interface";
 
+type ProtectSuccess<TData> = {
+    ok: true;
+    data: TData;
+    form: FormData | null;
+};
+
+type ProtectFailure = {
+    ok: false;
+    response: ReturnType<typeof response_data>;
+};
+
+type ProtectResult<TData> = ProtectSuccess<TData> | ProtectFailure;
+
+type ShapeRecord = Record<string, z.ZodType>;
+
+type ShapeOutput<T extends ShapeRecord> = {
+    [K in keyof T]: z.output<T[K]>;
+};
+
+type ProtectData<T extends ShapeRecord> = ShapeOutput<T> & {
+    hash_key: string;
+    token?: string;
+};
+
+type ProtectDataSchema<TSchema extends z.ZodObject<any>> = z.output<TSchema> & {
+    hash_key: string;
+    token?: string;
+};
+
+type ProtectDataFor<T> = T extends z.ZodObject<any>
+    ? ProtectDataSchema<T>
+    : T extends ShapeRecord
+    ? ProtectData<T>
+    : never;
+
+type ProtectDataWithToken<T> = ProtectDataFor<T> & {
+    token: string;
+};
+
+const isZodObject = (value: unknown): value is z.ZodObject<any> => {
+    return typeof value === "object"
+        && value !== null
+        && "shape" in value
+        && typeof (value as z.ZodObject<any>).safeParse === "function";
+};
+
 export class ProtectController {
     protected data: any = {};
     private readonly default_extensions_img = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/bmp", "image/tiff", "image/svg+xml"];
@@ -113,10 +159,15 @@ export class ProtectController {
         return parse_data.data;
     }
 
-    async protect<T extends z.ZodRawShape>(req: NextRequest, json_protector: T, ratlimit = 5, check_token = false, time_limit = 120) {
+    async protect<T extends ShapeRecord | z.ZodObject<any>>(req: NextRequest, json_protector: T, ratlimit?: number, check_token?: false, time_limit?: number): Promise<ProtectResult<ProtectDataFor<T>>>;
+    async protect<T extends ShapeRecord | z.ZodObject<any>>(req: NextRequest, json_protector: T, ratlimit: number, check_token: true, time_limit?: number): Promise<ProtectResult<ProtectDataWithToken<T>>>;
+    async protect<T extends ShapeRecord | z.ZodObject<any>>(req: NextRequest, json_protector: T, ratlimit = 5, check_token = false, time_limit = 120): Promise<ProtectResult<ProtectDataFor<T> | ProtectDataWithToken<T>>> {
         try {
+            const token = req.cookies.get("authToken")?.value;
             if (check_token) {
-                const token = req.cookies.get("authToken")?.value;
+                if (!token) {
+                    return { ok: false, response: response_data(401, 401, "Unauthorized", []) };
+                }
                 const verify = await checkJwtToken(token);
                 if (!verify.status) {
                     return { ok: false, response: response_data(401, 401, "Unauthorized", []) };
@@ -127,13 +178,13 @@ export class ProtectController {
             }
             const { body, form } = await this.get_body(req);
             const BaseSchema = z.object({ hash_key: z.string() });
-            const Schema = BaseSchema.extend(json_protector).strict();
+            const shape = isZodObject(json_protector) ? json_protector.shape : json_protector;
+            const Schema = BaseSchema.extend(shape).strict();
             const validation = Schema.safeParse(body);
             if (!validation.success) {
                 return { ok: false, response: response_data(400, 400, validation.error.issues[0].message, []) };
             }
-            type SafeData = z.infer<z.ZodObject<T>> & { hash_key: string };
-            const safeData = validation.data as SafeData;
+            const safeData = validation.data as unknown as ProtectDataFor<T>;
             if (this.hasDangerousKeys(safeData)) {
                 return { ok: false, response: response_data(400, 400, "Invalid dangerous keys", []) };
             }
@@ -149,7 +200,7 @@ export class ProtectController {
             }
             const data = {
                 ...safeData,
-                ...(check_token ? { token: req.cookies.get("authToken")?.value } : {})
+                ...(check_token ? { token } : {})
             };
             return { ok: true, data, form };
         } catch (err) {

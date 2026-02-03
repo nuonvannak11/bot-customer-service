@@ -19,7 +19,8 @@ const GroupSchema = new Schema({
     type: { type: String, required: true },
     avatar: { type: String, default: null },
     memberCount: { type: Number, default: 0 },
-    createdAt: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 
 GroupSchema.index({ user_id: 1, bot_token: 1, chatId: 1 }, { unique: true });
