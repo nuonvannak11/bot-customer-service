@@ -1,4 +1,5 @@
 import { AssetType } from "@/@types/telegram/type.telegram";
+import { SetStateProps } from "@/interface";
 
 export interface GroupManagementProps {
   managedAssets: GroupChannel[];
@@ -22,8 +23,8 @@ export interface LinkSentryProps {
   onNewDomainChange: (value: string) => void;
   onAdd: () => void;
   onRemove: (domain: string) => void;
-  globalBlacklistCount?: number;
   onBlockAllLinksFromNoneAdmin: (value: boolean) => void;
+  onSave?: () => void;
   blockAllLinksFromNoneAdmin: boolean;
 }
 
@@ -68,6 +69,7 @@ export interface ChannelConfig {
   spam: SpamConfig;
   rulesCount: number;
   blockAllLinksFromNoneAdmin: boolean;
+  blockAllExstationFromNoneAdmin:boolean,
 }
 
 export interface SpamConfig {
@@ -90,4 +92,20 @@ export interface PreparedData {
   channel: GroupChannel[];
   active: GroupChannel[];
   threatLogs: ThreatLog[];
+}
+
+export interface setFileGuardProps {
+  blockUrlNoneAdmin: boolean,
+  blockExtNoneAdmin: boolean,
+}
+
+export interface FileGuardProps extends SetStateProps<setFileGuardProps> {
+  contextLabel?: string;
+  extensions: string[];
+  newExt: string;
+  onNewExtChange: (value: string) => void;
+  onAdd: () => void;
+  onRemove: (ext: string) => void;
+  onSave: () => void;
+  t: (key: string) => string;
 }

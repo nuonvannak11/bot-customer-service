@@ -3,7 +3,7 @@ import { getBotSettings } from "@/libs/data";
 import { get_key } from "@/libs/generate_key";
 import SettingsClient from "@/components/settings/SettingsClient";
 import TelegramSettingsClient from "@/components/settings/TelegramSettingsClient";
-import LoadingPage from "@/components/Loading";
+import BotSettingsSkeleton from "@/components/skeleton/BotSettingsSkeleton";
 
 async function TelegramSettings() {
   const settings = await getBotSettings();
@@ -14,7 +14,7 @@ async function TelegramSettings() {
 export default function SettingsTelegramPage() {
   return (
     <SettingsClient activeTab="telegram">
-      <Suspense fallback={<LoadingPage />}>
+      <Suspense fallback={<BotSettingsSkeleton />}>
         <TelegramSettings />
       </Suspense>
     </SettingsClient>

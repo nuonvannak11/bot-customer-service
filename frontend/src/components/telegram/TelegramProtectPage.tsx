@@ -13,6 +13,7 @@ import {
   TransformedConfig,
 } from "@/interface/telegram/interface.telegram";
 import { useTranslation } from "react-i18next";
+import { isEmpty } from "lodash";
 
 export default function TelegramProtectPage({
   protects,
@@ -21,45 +22,36 @@ export default function TelegramProtectPage({
   protects: PreparedData;
   hash_key: string;
 }) {
+  const { threatLogs, ...cleanProtects } = protects;
+  const [managedAssets, setManagedAssets] =
+    useState<Omit<PreparedData, "threatLogs">>(cleanProtects);
   const { t } = useTranslation();
-  const [group, setGroup] = useState(protects.group);
-  const [channel, setChannel] = useState(protects.channel);
-  const [active, setActive] = useState(protects.active);
+  const [state, setState] = useState({
+    blockUrlNoneAdmin: false,
+    blockExtNoneAdmin: false,
+    activeAsset: managedAssets?.active[0] ?? [],
+  });
+  const [currentUpdate, setCurrentUpdate] = useState<string[]>([]);
   const [newExt, setNewExt] = useState("");
   const [newDomain, setNewDomain] = useState("");
-  const [activeId, setActiveId] = useState<number | null>(
-    active[0]?.id || null,
-  );
-  const [currentUpdate, setCurrentUpdate] = useState<string[]>([]);
-  const activeAsset = active.find((a) => a.id === activeId) || null;
-  const handleUpdateExtensions = async (newExtensions: string[]) => {
-    setCurrentUpdate(newExtensions);
-  };
 
   const handleUpdateDomains = (newDomains: string[]) => {
-    console.log(`Update Asset ${activeId} domains to:`, newDomains);
+    console.log(`Update Asset  domains to:`, newDomains);
   };
 
   const handleSaveSpam = (config: TransformedConfig) => {
-    console.log(`Update Asset ${activeId} spam config:`, config);
+    console.log(`Update Asset  spam config:`, config);
   };
 
   const handleUpdateBlockAllLinksFromNoneAdmin = (value: boolean) => {
     console.log("blockAllLinksFromNoneAdmin:", value);
   };
 
-  const handleAddActive = (asset: GroupChannel) => {
-    if (active.find((a) => a.id === asset.id)) {
-      return;
-    }
-    setActive((prev) => [...prev, asset]);
-  };
+  const handleAddActive = (asset: GroupChannel) => {};
 
-  const hadleRemoveGroupChannel = (id: number) => {
-    setActive((prev) => prev.filter((a) => a.id !== id));
-  };
+  const hadleRemoveGroupChannel = (id: number) => {};
 
-  async function handledSubmit( payload: any) {
+  async function handledSubmit(payload: any) {
     console.log("Logging Change:", { payload });
 
     // await fetch("/api/audit-log", {
@@ -74,6 +66,10 @@ export default function TelegramProtectPage({
     // });
   }
 
+  const handleFileGuard = async () => {
+    console.log(`Saving File Guard settings for Asset`);
+  };
+
   useEffect(() => {
     if (currentUpdate.length > 0) {
       handledSubmit(currentUpdate);
@@ -81,9 +77,6 @@ export default function TelegramProtectPage({
     }
   }, [currentUpdate]);
 
-  if (!activeAsset) {
-    return <div className="p-10 text-white">No assets found.</div>;
-  }
   return (
     <div className="space-y-6 p-2 lg:p-0">
       <div className="relative overflow-hidden rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl p-6 lg:p-8">
@@ -108,11 +101,11 @@ export default function TelegramProtectPage({
               <div className="flex gap-4 mt-3 text-xs font-mono text-slate-500">
                 <span className="flex items-center gap-1">
                   <Activity size={12} />
-                  {activeAsset?.upTime || 0} days
+                  {state.activeAsset?.upTime || 0} days
                 </span>
                 <span className="flex items-center gap-1">
                   <Shield size={12} /> Rules:{" "}
-                  {activeAsset?.config.rulesCount || 0}
+                  {state.activeAsset?.config.rulesCount || 0}
                 </span>
               </div>
             </div>
@@ -123,7 +116,7 @@ export default function TelegramProtectPage({
                 Threats Blocked
               </p>
               <p className="text-2xl font-black text-rose-400 mt-1">
-                {activeAsset.threatsBlocked}
+                {state.activeAsset.threatsBlocked}
               </p>
             </div>
             <div className="px-5 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-center">
@@ -131,7 +124,7 @@ export default function TelegramProtectPage({
                 Safe Files
               </p>
               <p className="text-2xl font-black text-emerald-400 mt-1">
-                {activeAsset.safeFiles}
+                {state.activeAsset.safeFiles}
               </p>
             </div>
           </div>
@@ -140,12 +133,9 @@ export default function TelegramProtectPage({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <GroupManagement
-          managedAssets={[...group, ...channel]}
-          active={active}
-          activeId={activeId}
-          onSelect={setActiveId}
-          onAdd={(asset) => handleAddActive(asset)}
-          onRemove={(id) => hadleRemoveGroupChannel(id)}
+          state={managedAssets}
+          setState={setManagedAssets}
+          handler={handleGroupManagement}
         />
 
         <FileGuard
@@ -164,6 +154,12 @@ export default function TelegramProtectPage({
             );
             handleUpdateExtensions(updated);
           }}
+          onSave={() => {
+            handleFileGuard();
+          }}
+          t={t}
+          state={state}
+          setState={setState}
         />
 
         <LinkSentry

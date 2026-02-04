@@ -22,8 +22,13 @@ export interface UserProfileConfig {
 }
 
 export interface ProtectFileOptions {
-    form?: FormData;
-    field: string;
-    maxSizeMB?: number;
-    allowed?: string[];
+  form?: FormData;
+  field: string;
+  maxSizeMB?: number;
+  allowed?: string[];
+}
+
+export interface SetStateProps<T> {
+  state: T;
+  setState: React.Dispatch<React.SetStateAction<T>>;
 }

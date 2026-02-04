@@ -3,18 +3,24 @@ import { Users, Search, Plus, X, Megaphone, Shield } from "lucide-react";
 import gsap from "gsap";
 import {
   GroupChannel,
-  GroupManagementProps,
+  PreparedData,
 } from "@/interface/telegram/interface.telegram";
 import { AssetType } from "@/@types/telegram/type.telegram";
 import { strlower } from "@/utils/util";
+import { SetStateProps } from "@/interface";
+
+type GroupManagementProps = SetStateProps<Omit<PreparedData, "threatLogs">> & {
+  handlers: {
+    onAdd?: (data: GroupChannel[]) => void;
+    onRemove?: (data: GroupChannel[]) => void;
+    onSave?: (data: GroupChannel[]) => void;
+  };
+};
 
 const GroupManagement: React.FC<GroupManagementProps> = ({
-  managedAssets,
-  activeId,
-  onSelect,
-  active,
-  onAdd,
-  onRemove,
+  state,
+  setState,
+  handlers,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeModal, setActiveModal] = useState<AssetType | null>(null);
@@ -82,12 +88,6 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
   const removeGroup = (id: number) => {
     onRemove(id);
   };
-
-  const filteredAvailable = managedAssets.filter(
-    (asset) =>
-      strlower(asset.name).includes(strlower(modalSearch)) &&
-      asset.type === activeModal,
-  );
 
   const handleSelect = (id: number) => {
     onSelect(id);
@@ -236,8 +236,8 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
             </div>
 
             <div className="max-h-[300px] overflow-y-auto p-2 bg-slate-900 scrollbar-thin scrollbar-thumb-slate-800">
-              {filteredAvailable && filteredAvailable.length > 0 ? (
-                filteredAvailable.map((asset) => (
+              {state.active && state.active.length > 0 ? (
+                state.active.map((asset) => (
                   <button
                     key={asset.id}
                     onClick={() => addToManaged(asset)}
