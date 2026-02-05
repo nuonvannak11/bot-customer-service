@@ -22,7 +22,7 @@ export default function UserProfileModal({
             className="w-full h-full object-cover"
             alt={contact.name}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+          <div className="absolute inset-0 bg-linear-to-t from-black/80 to-transparent"></div>
           <div className="absolute bottom-0 left-0 w-full p-2 sm:p-4">
             <h2 className="text-lg sm:text-xl font-bold text-white">{contact.name}</h2>
             <p className="text-[#a2b5c7] text-xs sm:text-sm font-medium">online</p>

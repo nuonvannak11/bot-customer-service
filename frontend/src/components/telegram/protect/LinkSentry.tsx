@@ -6,7 +6,7 @@ import { Link2Off, Plus, X, Save, ShieldAlert } from "lucide-react";
 import { GroupChannel } from "@/interface/telegram/interface.telegram";
 import { SetStateProps } from "@/interface";
 import { TelegramProtectPageState } from "../TelegramProtectPage";
-import { StatusBadge } from "./StatusBadge";
+import { StatusBadge } from "./entity/StatusBadge";
 
 type LinkSentryProps = SetStateProps<TelegramProtectPageState> & {
   handlers: {

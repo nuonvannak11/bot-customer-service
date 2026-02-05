@@ -13,6 +13,7 @@ import { response_data } from "../libs/lib";
 import { SaveTgBotRequest } from "../interface";
 import { get_url } from "../libs/get_urls";
 import { httpAgent } from "../libs/lib";
+import { IManagedAsset } from "../models/model_managed_asset";
 
 interface OpenCloseBotRequest {
     token: string;
@@ -186,7 +187,7 @@ class TelegramController extends ProtectController {
                 db_lock_success = true;
             });
             if (!db_lock_success) return;
-            
+
             let api_success = false;
             let api_data = null;
 
@@ -304,7 +305,7 @@ class TelegramController extends ProtectController {
         if (!result) return;
 
         const { exceptionLinks, user_id, botToken, webhookUrl, webhookEnabled, notifyEnabled, silentMode } = result;
-        
+
         if (!user_id || !botToken) return response_data(res, 400, "Invalid request", []);
         if (!this.validateTelegramToken(botToken)) return response_data(res, 400, "Invalid bot token", []);
         const bot_token_enc = hash_data.encryptData(botToken);
@@ -449,8 +450,9 @@ class TelegramController extends ProtectController {
 
     public async protects(req: Request, res: Response) {
         try {
-            const result = await this.protect_get<{ user_id: string, session_id: string }>(req, res);
+            const result = await this.protect_post<IManagedAsset>(req, res, true);
             if (!result) return;
+
 
             const { user_id } = result;
 

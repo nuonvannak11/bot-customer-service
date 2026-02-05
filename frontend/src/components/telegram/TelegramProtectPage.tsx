@@ -10,20 +10,15 @@ import clsx from "clsx";
 import {
   GroupChannel,
   PreparedData,
-  TransformedConfig,
 } from "@/interface/telegram/interface.telegram";
 import { useTranslation } from "react-i18next";
-import { isEmpty } from "lodash";
-import { on } from "events";
 
-export type TelegramProtectPageProps = {
+type TelegramProtectPageProps = {
   protects: PreparedData;
   hash_key: string;
 };
 
 export interface TelegramProtectPageState {
-  blockUrlNoneAdmin: boolean;
-  blockExtNoneAdmin: boolean;
   managedAssets: Omit<PreparedData, "threatLogs">;
   activeAsset: GroupChannel;
 }
@@ -35,30 +30,10 @@ export default function TelegramProtectPage({
   const { threatLogs, ...cleanProtects } = protects;
   const { t } = useTranslation();
   const [state, setState] = useState<TelegramProtectPageState>({
-    blockUrlNoneAdmin: false,
-    blockExtNoneAdmin: false,
     managedAssets: cleanProtects,
     activeAsset: cleanProtects?.active[0] ?? [],
   });
   const [currentUpdate, setCurrentUpdate] = useState<string[]>([]);
-  const [newExt, setNewExt] = useState("");
-  const [newDomain, setNewDomain] = useState("");
-
-  const handleUpdateDomains = (newDomains: string[]) => {
-    console.log(`Update Asset  domains to:`, newDomains);
-  };
-
-  const handleSaveSpam = (config: TransformedConfig) => {
-    console.log(`Update Asset  spam config:`, config);
-  };
-
-  const handleUpdateBlockAllLinksFromNoneAdmin = (value: boolean) => {
-    console.log("blockAllLinksFromNoneAdmin:", value);
-  };
-
-  const handleAddActive = (asset: GroupChannel) => {};
-
-  const hadleRemoveGroupChannel = (id: number) => {};
 
   async function handledSubmit(payload: any) {
     console.log("Logging Change:", { payload });
@@ -74,10 +49,6 @@ export default function TelegramProtectPage({
     //   }),
     // });
   }
-
-  const handleFileGuard = async () => {
-    console.log(`Saving File Guard settings for Asset`);
-  };
 
   useEffect(() => {
     if (currentUpdate.length > 0) {
@@ -157,7 +128,6 @@ export default function TelegramProtectPage({
           }}
           t={t}
         />
-
         <FileGuard
           state={state}
           setState={setState}
@@ -168,36 +138,22 @@ export default function TelegramProtectPage({
           }}
           t={t}
         />
-
         <LinkSentry
           state={state}
           setState={setState}
           handlers={{
             onSave: (asset) => {
-              console.log(
-                "Saving Group Management settings for Asset:",
-                asset,
-              );
+              console.log("Saving Group Management settings for Asset:", asset);
             },
           }}
           t={t}
         />
-
         <SpamAegis
           state={state}
           setState={setState}
           handlers={{
-            onAdd: (asset) => {
-              console.log("Adding Asset to Group Management:", asset);
-            },
-            onRemove: (asset) => {
-              console.log("Removing Asset from Group Management:", asset);
-            },
             onSave: (asset) => {
-              console.log(
-                "Saving Group Management settings for Asset:",
-                asset,
-              );
+              console.log("Saving Group Management settings for Asset:", asset);
             },
           }}
           t={t}
@@ -228,7 +184,8 @@ export default function TelegramProtectPage({
                 protects.threatLogs.map((log) => (
                   <tr
                     key={log.id}
-                    className="hover:bg-slate-800/50 transition-colors">
+                    className="hover:bg-slate-800/50 transition-colors"
+                  >
                     <td className="px-6 py-4 font-mono text-xs text-slate-500">
                       {log.time}
                     </td>
@@ -249,7 +206,8 @@ export default function TelegramProtectPage({
                             "bg-indigo-500/10 border-indigo-500/20 text-indigo-400",
                           log.type === "Injection" &&
                             "bg-red-600/10 border-red-600/20 text-red-500",
-                        )}>
+                        )}
+                      >
                         {log.type}
                       </span>
                     </td>
@@ -269,7 +227,8 @@ export default function TelegramProtectPage({
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-6 py-10 text-center text-slate-500 italic">
+                    className="px-6 py-10 text-center text-slate-500 italic"
+                  >
                     {t("No records found")}
                   </td>
                 </tr>

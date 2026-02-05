@@ -6,7 +6,8 @@ import { FileWarning, Plus, X, Save, ShieldCheck } from "lucide-react";
 import { GroupChannel } from "@/interface/telegram/interface.telegram";
 import { SetStateProps } from "@/interface";
 import { TelegramProtectPageState } from "../TelegramProtectPage";
-import { StatusBadge } from "./StatusBadge";
+import { StatusBadge } from "./entity/StatusBadge";
+import { strlower } from "@/utils/util";
 
 type FileGuardProps = SetStateProps<TelegramProtectPageState> & {
   handlers: {
@@ -45,15 +46,25 @@ export default function FileGuard({
   };
 
   const handleAddExtension = () => {
-    const ext = newExt.trim().toLowerCase();
-
+    const ext = strlower(newExt.trim());
     if (!ext) return toast.error("Extension cannot be empty");
-    if (!ext.startsWith("."))
+    if (!ext.startsWith(".")) {
       return toast.error("Extension must start with a dot (.)");
-    if (config.blockedExtensions.includes(ext))
-      return toast.error("Extension already blocked");
+    }
+    const cleanedExt = (ext || "").replace(/\s+/g, "").replace(/\.+$/, "");
+    const multipleExt = cleanedExt.match(/\.[^.]+/g) || [];
+    if (!multipleExt) {
+      return toast.error("Extension cannot be empty");
+    }
+    const blocked = config.blockedExtensions.map((e) => strlower(e));
+    const errBlock = multipleExt.filter((ext) =>
+      blocked.includes(strlower(ext)),
+    );
+    if (errBlock.length) {
+      return toast.error(`Extensions already blocked: ${errBlock.join(", ")}`);
+    }
     updateAssetConfig({
-      blockedExtensions: [...config.blockedExtensions, ext],
+      blockedExtensions: [...config.blockedExtensions, ...multipleExt],
     });
     setNewExt("");
   };
@@ -99,7 +110,7 @@ export default function FileGuard({
           </div>
 
           <div className="flex flex-col items-end gap-1.5">
-            {config.blockedExtensions.length > 0 ? (
+            {config.blockedExtensions && config.blockedExtensions.length > 0 ? (
               <StatusBadge status="active" t={t} />
             ) : (
               <StatusBadge status="inactive" t={t} />
@@ -123,22 +134,25 @@ export default function FileGuard({
             />
             <button
               onClick={handleAddExtension}
-              className="px-4 bg-slate-900 dark:bg-slate-800 hover:bg-rose-600 dark:hover:bg-rose-600 text-white rounded-xl flex items-center justify-center transition-colors shadow-md active:scale-95">
+              className="px-4 bg-slate-900 cursor-pointer dark:bg-slate-800 hover:bg-rose-600 dark:hover:bg-rose-600 text-white rounded-xl flex items-center justify-center transition-colors shadow-md active:scale-95"
+            >
               <Plus size={20} />
             </button>
           </div>
 
           <div className="h-[120px] p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800/50 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
-            {config.blockedExtensions.length > 0 ? (
+            {config.blockedExtensions && config.blockedExtensions.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {config.blockedExtensions.map((ext) => (
                   <span
                     key={ext}
-                    className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 rounded-lg bg-white dark:bg-rose-500/10 border border-slate-200 dark:border-rose-500/20 text-slate-700 dark:text-rose-200 text-xs font-semibold shadow-sm hover:border-rose-300 dark:hover:border-rose-500/50 transition-colors">
+                    className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 rounded-lg bg-white dark:bg-rose-500/10 border border-slate-200 dark:border-rose-500/20 text-slate-700 dark:text-rose-200 text-xs font-semibold shadow-sm hover:border-rose-300 dark:hover:border-rose-500/50 transition-colors"
+                  >
                     {ext}
                     <button
                       onClick={() => handleRemoveExtension(ext)}
-                      className="p-0.5 rounded-md text-slate-400 hover:bg-rose-100 dark:hover:bg-rose-500/30 hover:text-rose-600 dark:hover:text-rose-200 transition-colors">
+                      className="p-0.5 rounded-md text-slate-400 hover:bg-rose-100 dark:hover:bg-rose-500/30 hover:text-rose-600 dark:hover:text-rose-200 transition-colors"
+                    >
                       <X size={14} />
                     </button>
                   </span>
@@ -151,14 +165,15 @@ export default function FileGuard({
                   strokeWidth={1.5}
                   className="opacity-50"
                 />
-                <span className="text-xs">No extensions blocked</span>
+                <span className="text-xs">{t("No extensions blocked")}</span>
               </div>
             )}
           </div>
 
           <div
             onClick={handleToggleBlockFiles}
-            className="group cursor-pointer flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-[0.99]">
+            className="group cursor-pointer flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-[0.99]"
+          >
             <div className="flex flex-col">
               <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                 Block Non-Admin Files
@@ -173,7 +188,8 @@ export default function FileGuard({
                 config.blockAllExstationFromNoneAdmin
                   ? "bg-rose-500"
                   : "bg-slate-300 dark:bg-slate-700"
-              }`}>
+              }`}
+            >
               <span
                 className={`absolute top-1 left-1 bg-white rounded-full w-4 h-4 shadow-sm transform transition-transform duration-200 ease-in-out ${
                   config.blockAllExstationFromNoneAdmin
@@ -191,7 +207,8 @@ export default function FileGuard({
           </p>
           <button
             onClick={() => onSave(activeAsset)}
-            className="flex items-center cursor-pointer gap-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-2.5 px-5 rounded-lg transition-colors shadow-sm active:scale-95">
+            className="flex items-center cursor-pointer gap-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-2.5 px-5 rounded-lg transition-colors shadow-sm active:scale-95"
+          >
             <Save size={16} />
             <span>Save Changes</span>
           </button>
@@ -200,4 +217,3 @@ export default function FileGuard({
     </div>
   );
 }
-

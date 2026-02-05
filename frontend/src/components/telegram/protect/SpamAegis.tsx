@@ -1,60 +1,100 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { MessageSquareOff, Save, CheckCircle2 } from "lucide-react";
-import { SpamAegisProps, SpamConfigState, TransformedConfig } from "@/interface/telegram/interface.telegram";
+import React, { useCallback, useMemo, useRef, useLayoutEffect } from "react";
+import toast from "react-hot-toast";
+import { MessageSquareOff, Save, Info } from "lucide-react";
 import gsap from "gsap";
-import { RangeInput } from "@/components/ui/RangeInput"; 
 
-export default function SpamAegis({ contextLabel, initialData, onSave }: SpamAegisProps) {
-  const [isSaved, setIsSaved] = useState(false);
+import {
+  GroupChannel,
+  SpamConfigState,
+} from "@/interface/telegram/interface.telegram";
+import { SetStateProps } from "@/interface";
+import { TelegramProtectPageState } from "../TelegramProtectPage";
 
-  const [config, setConfig] = useState<SpamConfigState>({
-    rateLimit: 5,
-    duplicateSensitivity: 3,
-    newUserRestriction: 3,
-  });
+import { RangeInput } from "@/components/ui/RangeInput";
+import { SpamSettingCard } from "./entity/SpamSettingCard";
 
-  useEffect(() => {
-    if (initialData) {
-      const ctx = gsap.context(() => {
-        const animateProp = (targetVal: number, key: keyof SpamConfigState) => {
-          const proxy = { val: 0 };
-          gsap.to(proxy, {
-            val: targetVal,
-            duration: 1.5,
-            ease: "power2.out",
-            onUpdate: () => setConfig((prev) => ({ ...prev, [key]: proxy.val })),
-          });
-        };
-
-        animateProp(initialData.rateLimit, "rateLimit");
-        animateProp(initialData.duplicateSensitivity, "duplicateSensitivity");
-        animateProp(initialData.newUserRestriction, "newUserRestriction");
-      });
-      return () => ctx.revert();
-    }
-  }, [initialData]);
-
-  const duplicateLabels = ["Off", "Lenient", "Standard", "Strict"];
-  const restrictionLabels = ["None", "10 Min", "1 Hour", "24 Hours", "1 Week"];
-
-  const handleSave = () => {
-    const payload: TransformedConfig = {
-      rateLimit: Math.round(config.rateLimit),
-      duplicateSensitivity: duplicateLabels[Math.round(config.duplicateSensitivity)],
-      newUserRestriction: restrictionLabels[Math.round(config.newUserRestriction)],
-    };
-
-    if (onSave) onSave(payload);
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 2000);
+type SpamAegisProps = SetStateProps<TelegramProtectPageState> & {
+  handlers: {
+    onSave: (asset: GroupChannel) => void;
   };
+  t: (key: string) => string;
+};
+
+export default function SpamAegis({
+  state,
+  setState,
+  handlers,
+  t,
+}: SpamAegisProps) {
+  const { onSave } = handlers;
+  const { activeAsset } = state;
+  const spamConfig = activeAsset?.config?.spam;
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!containerRef.current) return;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        containerRef.current,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" },
+      );
+      gsap.fromTo(
+        ".spam-card",
+        { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.4, stagger: 0.1, delay: 0.2 },
+      );
+    }, containerRef);
+    return () => ctx.revert();
+  }, []);
+
+  const handleConfigChange = useCallback(
+    (key: keyof SpamConfigState, value: number) => {
+      setState((prev) => {
+        if (!prev.activeAsset || !prev.activeAsset.config) return prev;
+        const updatedSpam = { ...prev.activeAsset.config.spam, [key]: value };
+        const updatedConfig = { ...prev.activeAsset.config, spam: updatedSpam };
+        const updatedAsset = { ...prev.activeAsset, config: updatedConfig };
+        return {
+          ...prev,
+          activeAsset: updatedAsset,
+          managedAssets: {
+            ...prev.managedAssets,
+            active: prev.managedAssets.active.map((asset) =>
+              asset.id === activeAsset.id ? updatedAsset : asset,
+            ),
+          },
+        };
+      });
+    },
+    [setState, activeAsset.id],
+  );
+
+  const duplicateLabels = useMemo(
+    () => ["Off", "Lenient", "Standard", "Strict"],
+    [],
+  );
+
+  const restrictionLabels = useMemo(
+    () => ["None", "10 Min", "1 Hour", "24 Hours", "1 Week"],
+    [],
+  );
+
+  if (!spamConfig) {
+    return (
+      <div className="p-8 text-slate-500 text-center">
+        No configuration available
+      </div>
+    );
+  }
 
   return (
-    <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl shadow-lg overflow-hidden flex flex-col h-full">
-      
-      {/* Header */}
+    <div
+      ref={containerRef}
+      className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl shadow-lg overflow-hidden flex flex-col h-full"
+    >
       <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-indigo-500/10 rounded-lg border border-indigo-500/20 shadow-[0_0_15px_-3px_rgba(99,102,241,0.2)]">
@@ -62,94 +102,92 @@ export default function SpamAegis({ contextLabel, initialData, onSave }: SpamAeg
           </div>
           <div>
             <h3 className="font-bold text-white text-sm">Spam Aegis</h3>
-            <p className="text-xs text-slate-500">Rate limiting & flood control</p>
-            {contextLabel && (
+            <p className="text-xs text-slate-500">
+              Rate limiting & flood control
+            </p>
+            {activeAsset.name && (
               <p className="text-[10px] text-slate-400 mt-1">
-                Active: <span className="text-slate-200 font-semibold animate-pulse">{contextLabel}</span>
+                Active:{" "}
+                <span className="text-slate-200 font-semibold">
+                  {activeAsset.name}
+                </span>
               </p>
             )}
           </div>
         </div>
 
         <button
-          onClick={handleSave}
-          className={`flex items-center gap-2 text-white text-xs font-bold px-4 py-2 rounded-lg transition-all duration-300 ease-out shadow-lg ${
-            isSaved
-              ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/40 translate-y-0.5"
-              : "bg-indigo-600 hover:bg-indigo-500 hover:shadow-indigo-500/40 hover:-translate-y-0.5"
-          }`}
+          onClick={() => onSave(activeAsset)}
+          className="flex cursor-pointer items-center gap-2 text-white text-xs font-bold px-4 py-2 rounded-lg transition-all duration-300 ease-out shadow-lg bg-indigo-600 hover:bg-indigo-500 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:scale-95"
         >
-          {isSaved ? <CheckCircle2 size={14} /> : <Save size={14} />}
-          {isSaved ? "Saved!" : "Save Config"}
+          <Save size={14} />
+          {t("Save Config")}
         </button>
       </div>
-
       <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="space-y-4 group">
-          <div className="flex justify-between items-center">
-            <label className="text-sm font-medium text-slate-300 transition-colors group-hover:text-white">
-              Message Rate
-            </label>
-            <span className="text-xs font-bold text-indigo-300 bg-indigo-500/20 border border-indigo-500/20 px-2 py-0.5 rounded shadow-[0_0_10px_-4px_rgba(99,102,241,0.5)] transition-all">
-              {Math.round(config.rateLimit)} / 3s
-            </span>
-          </div>
-          <div className="relative h-6 flex items-center">
-            <RangeInput
-              min={1}
-              max={20}
-              step={0.01}
-              value={config.rateLimit}
-              onChange={(e) => setConfig({ ...config, rateLimit: Number(e.target.value) })}
-            />
-          </div>
-        </div>
-        <div className="space-y-4 group">
-          <div className="flex justify-between items-center">
-            <label className="text-sm font-medium text-slate-300 transition-colors group-hover:text-white">
-              Duplicate Check
-            </label>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded border transition-all duration-300 ${
-                Math.round(config.duplicateSensitivity) === 0 
-                ? "text-slate-400 bg-slate-800 border-slate-700" 
-                : "text-indigo-300 bg-indigo-500/20 border-indigo-500/20 shadow-[0_0_10px_-4px_rgba(99,102,241,0.5)]"
-            }`}>
-              {duplicateLabels[Math.round(config.duplicateSensitivity)] || "..."}
-            </span>
-          </div>
-          <div className="relative h-6 flex items-center">
-            <RangeInput
-              min={0}
-              max={3}
-              step={0.01}
-              value={config.duplicateSensitivity}
-              onChange={(e) => setConfig({ ...config, duplicateSensitivity: Number(e.target.value) })}
-            />
-          </div>
-        </div>
-        <div className="space-y-4 group">
-          <div className="flex justify-between items-center">
-            <label className="text-sm font-medium text-slate-300 transition-colors group-hover:text-white">
-              New User Mute
-            </label>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded border transition-all duration-300 ${
-                Math.round(config.newUserRestriction) === 0 
-                ? "text-slate-400 bg-slate-800 border-slate-700" 
-                : "text-indigo-300 bg-indigo-500/20 border-indigo-500/20 shadow-[0_0_10px_-4px_rgba(99,102,241,0.5)]"
-            }`}>
-              {restrictionLabels[Math.round(config.newUserRestriction)] || "..."}
-            </span>
-          </div>
-          <div className="relative h-6 flex items-center">
-            <RangeInput
-              min={0}
-              max={4}
-              step={0.01}
-              value={config.newUserRestriction}
-              onChange={(e) => setConfig({ ...config, newUserRestriction: Number(e.target.value) })}
-            />
-          </div>
-        </div>
+        <SpamSettingCard
+          label="Message Rate"
+          valueDisplay={
+            spamConfig.rateLimit === 0
+              ? "Off"
+              : `${Math.round(spamConfig.rateLimit)} / 3s`
+          }
+          isActive={spamConfig.rateLimit > 0}
+        >
+          <RangeInput
+            min={0}
+            max={20}
+            step={1}
+            value={spamConfig.rateLimit}
+            onChange={(e) =>
+              handleConfigChange("rateLimit", parseFloat(e.target.value))
+            }
+          />
+        </SpamSettingCard>
+
+        <SpamSettingCard
+          label="Duplicate Sensitivity"
+          valueDisplay={
+            duplicateLabels[Math.round(spamConfig.duplicateSensitivity)] ||
+            "Custom"
+          }
+          isActive={Math.round(spamConfig.duplicateSensitivity) > 0}
+        >
+          <RangeInput
+            min={0}
+            max={3}
+            step={1}
+            value={spamConfig.duplicateSensitivity}
+            onChange={(e) =>
+              handleConfigChange(
+                "duplicateSensitivity",
+                parseFloat(e.target.value),
+              )
+            }
+          />
+        </SpamSettingCard>
+
+        <SpamSettingCard
+          label="New User Mute"
+          valueDisplay={
+            restrictionLabels[Math.round(spamConfig.newUserRestriction)] ||
+            "Custom"
+          }
+          isActive={Math.round(spamConfig.newUserRestriction) > 0}
+        >
+          <RangeInput
+            min={0}
+            max={4}
+            step={1}
+            value={spamConfig.newUserRestriction}
+            onChange={(e) =>
+              handleConfigChange(
+                "newUserRestriction",
+                parseFloat(e.target.value),
+              )
+            }
+          />
+        </SpamSettingCard>
       </div>
     </div>
   );
