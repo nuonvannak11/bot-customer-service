@@ -1,22 +1,82 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import toast from "react-hot-toast";
 import { FileWarning, Plus, X, Save, ShieldCheck } from "lucide-react";
-import { FileGuardProps } from "@/interface/telegram/interface.telegram";
+import { GroupChannel } from "@/interface/telegram/interface.telegram";
+import { SetStateProps } from "@/interface";
+import { TelegramProtectPageState } from "../TelegramProtectPage";
+import { StatusBadge } from "./StatusBadge";
+
+type FileGuardProps = SetStateProps<TelegramProtectPageState> & {
+  handlers: {
+    onSave: (asset: GroupChannel) => void;
+  };
+  t: (key: string) => string;
+};
 
 export default function FileGuard({
-  contextLabel,
-  extensions,
-  newExt,
-  onNewExtChange,
-  onAdd,
-  onRemove,
-  onSave,
-  t,
   state,
   setState,
+  handlers,
+  t,
 }: FileGuardProps) {
-  const hasData = extensions.length > 0;
+  const { onSave } = handlers;
+  const { activeAsset } = state;
+  const config = activeAsset.config;
+
+  const [newExt, setNewExt] = useState("");
+
+  const updateAssetConfig = (updates: Partial<typeof config>) => {
+    setState((prev) => {
+      const updatedConfig = { ...prev.activeAsset.config, ...updates };
+      const updatedAsset = { ...prev.activeAsset, config: updatedConfig };
+      return {
+        ...prev,
+        activeAsset: updatedAsset,
+        managedAssets: {
+          ...prev.managedAssets,
+          active: prev.managedAssets.active.map((asset) =>
+            asset.id === activeAsset.id ? updatedAsset : asset,
+          ),
+        },
+      };
+    });
+  };
+
+  const handleAddExtension = () => {
+    const ext = newExt.trim().toLowerCase();
+
+    if (!ext) return toast.error("Extension cannot be empty");
+    if (!ext.startsWith("."))
+      return toast.error("Extension must start with a dot (.)");
+    if (config.blockedExtensions.includes(ext))
+      return toast.error("Extension already blocked");
+    updateAssetConfig({
+      blockedExtensions: [...config.blockedExtensions, ext],
+    });
+    setNewExt("");
+  };
+
+  const handleRemoveExtension = (extToRemove: string) => {
+    updateAssetConfig({
+      blockedExtensions: config.blockedExtensions.filter(
+        (e) => e !== extToRemove,
+      ),
+    });
+  };
+
+  const handleToggleBlockFiles = () => {
+    const currentValue = config.blockAllExstationFromNoneAdmin;
+    updateAssetConfig({
+      blockAllExstationFromNoneAdmin: !currentValue,
+    } as any);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") handleAddExtension();
+  };
+
   return (
     <div className="w-full">
       <div className="relative flex flex-col h-[480px] w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden transition-colors duration-300">
@@ -39,31 +99,14 @@ export default function FileGuard({
           </div>
 
           <div className="flex flex-col items-end gap-1.5">
-            {hasData ? (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100/80 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                <span className="text-[11px] uppercase font-bold text-emerald-700 dark:text-emerald-400 tracking-wider">
-                  {t("Active")}
-                </span>
-              </div>
+            {config.blockedExtensions.length > 0 ? (
+              <StatusBadge status="active" t={t} />
             ) : (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-100/80 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                </span>
-                <span className="text-[11px] uppercase font-bold text-red-700 dark:text-red-400 tracking-wider">
-                  {t("Inactive")}
-                </span>
-              </div>
+              <StatusBadge status="inactive" t={t} />
             )}
-
-            {contextLabel && (
+            {activeAsset.name && (
               <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
-                {contextLabel}
+                {activeAsset.name}
               </span>
             )}
           </div>
@@ -73,26 +116,28 @@ export default function FileGuard({
             <input
               type="text"
               value={newExt}
-              onChange={(e) => onNewExtChange(e.target.value)}
+              onChange={(e) => setNewExt(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder="e.g. .exe"
               className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all shadow-sm"
             />
             <button
-              onClick={onAdd}
-              className="px-4 bg-slate-900 dark:bg-slate-800 hover:bg-rose-600 dark:hover:bg-rose-600 text-white rounded-xl flex items-center justify-center transition-colors shadow-md">
+              onClick={handleAddExtension}
+              className="px-4 bg-slate-900 dark:bg-slate-800 hover:bg-rose-600 dark:hover:bg-rose-600 text-white rounded-xl flex items-center justify-center transition-colors shadow-md active:scale-95">
               <Plus size={20} />
             </button>
           </div>
+
           <div className="h-[120px] p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800/50 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
-            {hasData ? (
+            {config.blockedExtensions.length > 0 ? (
               <div className="flex flex-wrap gap-2">
-                {extensions.map((ext) => (
+                {config.blockedExtensions.map((ext) => (
                   <span
                     key={ext}
                     className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 rounded-lg bg-white dark:bg-rose-500/10 border border-slate-200 dark:border-rose-500/20 text-slate-700 dark:text-rose-200 text-xs font-semibold shadow-sm hover:border-rose-300 dark:hover:border-rose-500/50 transition-colors">
                     {ext}
                     <button
-                      onClick={() => onRemove(ext)}
+                      onClick={() => handleRemoveExtension(ext)}
                       className="p-0.5 rounded-md text-slate-400 hover:bg-rose-100 dark:hover:bg-rose-500/30 hover:text-rose-600 dark:hover:text-rose-200 transition-colors">
                       <X size={14} />
                     </button>
@@ -110,23 +155,31 @@ export default function FileGuard({
               </div>
             )}
           </div>
+
           <div
-            onClick={() =>setState(prev => ({...prev, blockExtNoneAdmin: !prev.blockExtNoneAdmin}))
-            }
+            onClick={handleToggleBlockFiles}
             className="group cursor-pointer flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-[0.99]">
             <div className="flex flex-col">
               <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                Block Non-Admin Links
+                Block Non-Admin Files
               </span>
               <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                Strict mode: Delete all links from users
+                Strict mode: Delete all files from users
               </span>
             </div>
 
             <div
-              className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${state.blockExtNoneAdmin ? "bg-orange-500" : "bg-slate-300 dark:bg-slate-700"}`}>
+              className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${
+                config.blockAllExstationFromNoneAdmin
+                  ? "bg-rose-500"
+                  : "bg-slate-300 dark:bg-slate-700"
+              }`}>
               <span
-                className={`absolute top-1 left-1 bg-white rounded-full w-4 h-4 shadow-sm transform transition-transform duration-200 ease-in-out ${state.blockExtNoneAdmin ? "translate-x-5" : "translate-x-0"}`}
+                className={`absolute top-1 left-1 bg-white rounded-full w-4 h-4 shadow-sm transform transition-transform duration-200 ease-in-out ${
+                  config.blockAllExstationFromNoneAdmin
+                    ? "translate-x-5"
+                    : "translate-x-0"
+                }`}
               />
             </div>
           </div>
@@ -137,8 +190,8 @@ export default function FileGuard({
             * Updates apply immediately
           </p>
           <button
-            onClick={onSave}
-            className="flex items-center cursor-pointer gap-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-2.5 px-5 rounded-lg transition-colors shadow-sm">
+            onClick={() => onSave(activeAsset)}
+            className="flex items-center cursor-pointer gap-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-2.5 px-5 rounded-lg transition-colors shadow-sm active:scale-95">
             <Save size={16} />
             <span>Save Changes</span>
           </button>
@@ -147,3 +200,4 @@ export default function FileGuard({
     </div>
   );
 }
+

@@ -8,20 +8,30 @@ import {
 import { AssetType } from "@/@types/telegram/type.telegram";
 import { strlower } from "@/utils/util";
 import { SetStateProps } from "@/interface";
+import { TelegramProtectPageState } from "../TelegramProtectPage";
+import { isEmpty, set } from "lodash";
 
-type GroupManagementProps = SetStateProps<Omit<PreparedData, "threatLogs">> & {
+type GroupManagementProps = SetStateProps<TelegramProtectPageState> & {
   handlers: {
-    onAdd?: (data: GroupChannel[]) => void;
-    onRemove?: (data: GroupChannel[]) => void;
-    onSave?: (data: GroupChannel[]) => void;
+    onAdd: (asset: GroupChannel) => void;
+    onRemove: (asset: GroupChannel) => void;
+    onSave: (asset: GroupChannel) => void;
   };
+  t: (key: string) => string;
 };
 
 const GroupManagement: React.FC<GroupManagementProps> = ({
   state,
   setState,
   handlers,
+  t,
 }) => {
+  const { onAdd, onRemove, onSave } = handlers;
+  const groupChanelActive = state.managedAssets.active;
+  const groupChanelInactive = {
+    ...state.managedAssets.group,
+    ...state.managedAssets.channel,
+  };
   const [searchQuery, setSearchQuery] = useState("");
   const [activeModal, setActiveModal] = useState<AssetType | null>(null);
   const [modalSearch, setModalSearch] = useState("");
@@ -85,14 +95,6 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
     closeModal();
   };
 
-  const removeGroup = (id: number) => {
-    onRemove(id);
-  };
-
-  const handleSelect = (id: number) => {
-    onSelect(id);
-  };
-
   return (
     <React.Fragment>
       <div className="lg:col-span-2 flex flex-col bg-slate-900 border border-slate-800 rounded-xl shadow-lg h-[350px] overflow-hidden font-sans relative z-10">
@@ -103,7 +105,7 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
               Protected Assets
             </h3>
             <span className="bg-slate-800 text-slate-500 text-[10px] px-1.5 py-0.5 rounded-full font-mono">
-              {active.length || 0}
+              {groupChanelActive.length || 0}
             </span>
           </div>
           <div className="relative">
@@ -119,16 +121,18 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
         </div>
 
         <div className="flex-1 overflow-y-auto p-2 space-y-0.5 scrollbar-thin scrollbar-thumb-slate-700">
-          {active && active.length > 0 ? (
-            active.map((group) => {
-              const isActive = activeId === group.id;
+          {groupChanelActive && groupChanelActive.length > 0 ? (
+            groupChanelActive.map((group) => {
+              const isActive = state.activeAsset?.id === group.id;
               return (
                 <div
                   key={group.id}
                   ref={(el) => {
                     itemRefs.current[group.id] = el;
                   }}
-                  onClick={() => handleSelect(group.id)}
+                  onClick={() =>
+                    setState((prev) => ({ ...prev, activeAsset: group }))
+                  }
                   className={`group flex items-center justify-between px-3 py-2 rounded-lg transition-all cursor-pointer ${
                     isActive
                       ? "bg-slate-800/80 border-slate-600 shadow-[0_0_0_1px_rgba(148,163,184,0.4)]"
@@ -159,7 +163,7 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      removeGroup(group.id);
+                      handlers.onRemove(group);
                     }}
                     className="p-1 cursor-pointer text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-all opacity-0 group-hover:opacity-100">
                     <X size={14} />
@@ -236,8 +240,8 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
             </div>
 
             <div className="max-h-[300px] overflow-y-auto p-2 bg-slate-900 scrollbar-thin scrollbar-thumb-slate-800">
-              {state.active && state.active.length > 0 ? (
-                state.active.map((asset) => (
+              {groupChanelInactive && groupChanelInactive.length > 0 ? (
+                groupChanelInactive.map((asset) => (
                   <button
                     key={asset.id}
                     onClick={() => addToManaged(asset)}

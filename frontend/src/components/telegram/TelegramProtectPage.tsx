@@ -14,22 +14,31 @@ import {
 } from "@/interface/telegram/interface.telegram";
 import { useTranslation } from "react-i18next";
 import { isEmpty } from "lodash";
+import { on } from "events";
+
+export type TelegramProtectPageProps = {
+  protects: PreparedData;
+  hash_key: string;
+};
+
+export interface TelegramProtectPageState {
+  blockUrlNoneAdmin: boolean;
+  blockExtNoneAdmin: boolean;
+  managedAssets: Omit<PreparedData, "threatLogs">;
+  activeAsset: GroupChannel;
+}
 
 export default function TelegramProtectPage({
   protects,
   hash_key,
-}: {
-  protects: PreparedData;
-  hash_key: string;
-}) {
+}: TelegramProtectPageProps) {
   const { threatLogs, ...cleanProtects } = protects;
-  const [managedAssets, setManagedAssets] =
-    useState<Omit<PreparedData, "threatLogs">>(cleanProtects);
   const { t } = useTranslation();
-  const [state, setState] = useState({
+  const [state, setState] = useState<TelegramProtectPageState>({
     blockUrlNoneAdmin: false,
     blockExtNoneAdmin: false,
-    activeAsset: managedAssets?.active[0] ?? [],
+    managedAssets: cleanProtects,
+    activeAsset: cleanProtects?.active[0] ?? [],
   });
   const [currentUpdate, setCurrentUpdate] = useState<string[]>([]);
   const [newExt, setNewExt] = useState("");
@@ -133,66 +142,65 @@ export default function TelegramProtectPage({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <GroupManagement
-          state={managedAssets}
-          setState={setManagedAssets}
-          handler={handleGroupManagement}
+          state={state}
+          setState={setState}
+          handlers={{
+            onAdd: (asset) => {
+              console.log("Adding Asset to Group Management:", asset);
+            },
+            onRemove: (asset) => {
+              console.log("Removing Asset from Group Management:", asset);
+            },
+            onSave: (asset) => {
+              console.log("Saving Group Management settings for Asset:", asset);
+            },
+          }}
+          t={t}
         />
 
         <FileGuard
-          contextLabel={activeAsset.name}
-          extensions={activeAsset.config.blockedExtensions}
-          newExt={newExt}
-          onNewExtChange={setNewExt}
-          onAdd={() => {
-            const updated = [...activeAsset.config.blockedExtensions, newExt];
-            handleUpdateExtensions(updated);
-            setNewExt("");
-          }}
-          onRemove={(ext) => {
-            const updated = activeAsset.config.blockedExtensions.filter(
-              (e) => e !== ext,
-            );
-            handleUpdateExtensions(updated);
-          }}
-          onSave={() => {
-            handleFileGuard();
-          }}
-          t={t}
           state={state}
           setState={setState}
+          handlers={{
+            onSave: (asset) => {
+              console.log("Saving Group Management settings for Asset:", asset);
+            },
+          }}
+          t={t}
         />
 
         <LinkSentry
-          contextLabel={activeAsset.name}
-          domains={activeAsset.config.blacklistedDomains}
-          newDomain={newDomain}
-          onNewDomainChange={setNewDomain}
-          onAdd={() => {
-            const updated = [
-              ...activeAsset.config.blacklistedDomains,
-              newDomain,
-            ];
-            handleUpdateDomains(updated);
-            setNewDomain("");
+          state={state}
+          setState={setState}
+          handlers={{
+            onSave: (asset) => {
+              console.log(
+                "Saving Group Management settings for Asset:",
+                asset,
+              );
+            },
           }}
-          onRemove={(domain) => {
-            const updated = activeAsset.config.blacklistedDomains.filter(
-              (d) => d !== domain,
-            );
-            handleUpdateDomains(updated);
-          }}
-          onBlockAllLinksFromNoneAdmin={(blockAllLinksFromNoneAdmin) => {
-            handleUpdateBlockAllLinksFromNoneAdmin(blockAllLinksFromNoneAdmin);
-          }}
-          blockAllLinksFromNoneAdmin={
-            activeAsset.config.blockAllLinksFromNoneAdmin
-          }
+          t={t}
         />
 
         <SpamAegis
-          contextLabel={activeAsset.name}
-          initialData={activeAsset.config.spam}
-          onSave={handleSaveSpam}
+          state={state}
+          setState={setState}
+          handlers={{
+            onAdd: (asset) => {
+              console.log("Adding Asset to Group Management:", asset);
+            },
+            onRemove: (asset) => {
+              console.log("Removing Asset from Group Management:", asset);
+            },
+            onSave: (asset) => {
+              console.log(
+                "Saving Group Management settings for Asset:",
+                asset,
+              );
+            },
+          }}
+          t={t}
         />
       </div>
       <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-lg overflow-hidden">
