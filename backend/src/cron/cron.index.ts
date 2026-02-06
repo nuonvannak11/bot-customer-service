@@ -1,11 +1,19 @@
-import cron from 'node-cron';
+import { globalQueue } from "../queue/globalQueue";
+import { eLog } from "../utils/util";
 
-export default function cronJob() {
+export default async function cronJob() {
     try {
-        cron.schedule('* * * * *', () => {
-            // console.log('Running every 1 minute');
-        });
+        await globalQueue.add(
+            "global-heartbeat",
+            {},
+            {
+                repeat: { pattern: "* * * * *" },
+                removeOnComplete: true,
+                removeOnFail: true,
+            }
+        );
+        eLog("🌍 Global cron scheduled (every minute)");
     } catch (err) {
-        console.log(err);
+        eLog("❌ Global cron error:", err);
     }
 }

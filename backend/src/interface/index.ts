@@ -1,3 +1,5 @@
+import { IManagedAsset } from "../models/model_managed_asset";
+
 export interface JWTPayload {
   user_id: string;
   session_id: string;
@@ -7,7 +9,7 @@ export interface JWTPayload {
   [key: string]: any;
 }
 
-export interface SaveTgBotRequest{
+export interface SaveTgBotRequest {
   user_id: string;
   botToken: string;
   is_process: boolean;
@@ -50,13 +52,22 @@ export interface VirusAlert {
 }
 
 export interface AuthData {
-    user_id: string;
-    session_id: string;
-    token: string;
+  user_id: string;
+  session_id: string;
+  token: string;
 }
 
 export interface ValidationResult<T> {
-    success: boolean;
-    data?: T;
-    error?: { code: number; message: string };
+  success: boolean;
+  data?: T;
+  error?: { code: number; message: string };
+}
+
+export interface IManagedAssetRequest {
+  user_id: string;
+  session_id: string;
+  token: string;
+  hash_key: string;
+  asset_key: string;
+  asset: IManagedAsset;
 }

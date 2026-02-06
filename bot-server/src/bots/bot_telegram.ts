@@ -48,7 +48,6 @@ class BotTelegram {
                     eLog("Message handler error", err);
                 }
             });
-
             await bot.api.getUpdates({ offset: -1 });
             bot.on("message", async (ctx) => {
                 try {
@@ -56,6 +55,14 @@ class BotTelegram {
                     await controller_bot.message(ctx, user_id, bot_token, msg);
                 } catch (err) {
                     eLog("Message handler error", err);
+                }
+            });
+            bot.on("channel_post", async (ctx) => {
+                try {
+                    const post = ctx.channelPost;   // grammY uses channelPost
+                    await controller_bot.channel_post(ctx, user_id, bot_token, post);
+                } catch (err) {
+                    eLog("Channel handler error", err);
                 }
             });
 
@@ -67,7 +74,7 @@ class BotTelegram {
                 const botInfo = await bot.api.getMe();
                 await bot.init();
                 bot.start({
-                    allowed_updates: ["message", "callback_query"],
+                    allowed_updates: ["message", "callback_query", "channel_post", "edited_channel_post"],
                     onStart: async (Info: BotInfo) => {
                         eLog(`Bot started for user ${user_id} as @${Info.username}`);
                     }

@@ -52,7 +52,7 @@ export interface ProtectData {
 }
 
 export interface GroupChannel {
-  id: number;
+  chatId: string;
   name: string;
   avartar: string;
   type: "Group" | "Channel";

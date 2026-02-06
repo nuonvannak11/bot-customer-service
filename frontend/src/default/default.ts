@@ -22,3 +22,26 @@ export const defaultUserProfileConfig: UserProfileConfig = {
     emailNotifications: false,
     twoFactor: false,
 }
+
+export const DEFAULT_ASSET = {
+  chatId: 0,
+  name: "",
+  avatar: "tes",
+  type: "Group",
+  allowScan: false,
+  upTime: 0,
+  threatsBlocked: 0,
+  safeFiles: 0,
+  config: {
+    blockedExtensions: [],
+    blacklistedDomains: [],
+    spam: {
+      rateLimit: 0,
+      duplicateSensitivity: 0,
+      newUserRestriction: 0,
+    },
+    rulesCount: 0,
+    blockAllLinksFromNoneAdmin: false,
+    blockAllExstationFromNoneAdmin: false,
+  },
+};

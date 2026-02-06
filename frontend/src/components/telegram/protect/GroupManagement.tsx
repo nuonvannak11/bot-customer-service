@@ -119,7 +119,8 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
     const groups = state.managedAssets?.group ?? [];
     const channels = state.managedAssets?.channel ?? [];
     return [...groups, ...channels].filter((item) => {
-      const typeMatch = strlower(item.type) === strlower(activeModal);
+      const typeMatch =
+        item.type && strlower(item.type).includes(strlower(activeModal));
       if (!typeMatch) return false;
       if (!modalSearch) return true;
       return strlower(item.name).includes(strlower(modalSearch));
@@ -157,11 +158,11 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
         <div className="flex-1 overflow-y-auto p-2 space-y-0.5 scrollbar-thin scrollbar-thumb-slate-700">
           {filteredManagedAssets.length > 0 ? (
             filteredManagedAssets.map((group) => {
-              const isActive = state.activeAsset?.id === group.id;
+              const isActive = state.activeAsset?.chatId === group.chatId;
               const isGroup = group.type === "Group";
               return (
                 <div
-                  key={group.id}
+                  key={Number(group.chatId)}
                   onClick={() =>
                     setState((prev) => ({ ...prev, activeAsset: group }))
                   }
@@ -171,16 +172,14 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
                       : "hover:bg-slate-800/60 border border-transparent hover:border-slate-700/50"
                   }`}
                   role="button"
-                  tabIndex={0}
-                >
+                  tabIndex={0}>
                   <div className="flex items-center gap-3">
                     <div
                       className={`w-6 h-6 rounded flex items-center justify-center border ${
                         isGroup
                           ? "bg-blue-500/10 border-blue-500/10 text-blue-400"
                           : "bg-purple-500/10 border-purple-500/10 text-purple-400"
-                      }`}
-                    >
+                      }`}>
                       {renderIcon(group.type)}
                     </div>
                     <div className="flex flex-col leading-none">
@@ -195,8 +194,7 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
                   <button
                     onClick={(e) => handleRemove(e, group)}
                     className="p-1 cursor-pointer text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
-                    aria-label="Remove asset"
-                  >
+                    aria-label="Remove asset">
                     <X size={14} />
                   </button>
                 </div>
@@ -229,12 +227,10 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-md p-4"
           onClick={(e) => {
             if (e.target === modalOverlayRef.current) closeModal();
-          }}
-        >
+          }}>
           <div
             ref={modalContentRef}
-            className="w-full max-w-sm bg-slate-900 border border-slate-700/50 rounded-xl shadow-2xl shadow-black/50 flex flex-col overflow-hidden"
-          >
+            className="w-full max-w-sm bg-slate-900 border border-slate-700/50 rounded-xl shadow-2xl shadow-black/50 flex flex-col overflow-hidden">
             <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900">
               <div>
                 <h3 className="text-sm font-bold text-white">
@@ -246,8 +242,7 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
               </div>
               <button
                 onClick={closeModal}
-                className="p-1.5 cursor-pointer text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-              >
+                className="p-1.5 cursor-pointer text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
                 <X size={16} />
               </button>
             </div>
@@ -269,18 +264,16 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
               {filteredAvailableAssets.length > 0 ? (
                 filteredAvailableAssets.map((asset) => (
                   <button
-                    key={asset.id}
+                    key={asset.chatId.replace(/-/g, "")}
                     onClick={() => handleAdd(asset)}
-                    className="w-full cursor-pointer flex items-center justify-between p-3 rounded-lg hover:bg-slate-800 group transition-all text-left border border-transparent hover:border-slate-700"
-                  >
+                    className="w-full cursor-pointer flex items-center justify-between p-3 rounded-lg hover:bg-slate-800 group transition-all text-left border border-transparent hover:border-slate-700">
                     <div className="flex items-center gap-3">
                       <div
                         className={`w-8 h-8 rounded-full flex items-center justify-center ${
                           asset.type === "Group"
                             ? "bg-indigo-500/10 text-indigo-400"
                             : "bg-purple-500/10 text-purple-400"
-                        }`}
-                      >
+                        }`}>
                         {asset.avartar ? (
                           <img
                             src={asset.avartar}
@@ -298,7 +291,7 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
                           {asset.name}
                         </p>
                         <p className="text-[10px] text-slate-500">
-                          ID: {asset.id}
+                          ID: {asset.chatId}
                         </p>
                       </div>
                     </div>

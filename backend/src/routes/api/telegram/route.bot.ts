@@ -7,8 +7,20 @@ router.get("/groups", async (req: Request, res: Response, next: NextFunction) =>
     return await safeWithTimeout(controller_telegram.get_group_telegram(req, res), next);
 });
 
-router.get("/protects", async (req: Request, res: Response, next: NextFunction) => {
-    return await safeWithTimeout(controller_telegram.protects(req, res), next);
+router.get("/get-protects-settings", async (req: Request, res: Response, next: NextFunction) => {
+    return await safeWithTimeout(controller_telegram.get_protects_settings(req, res), next);
+});
+
+router.post("/save-protects-settings", async (req: Request, res: Response, next: NextFunction) => {
+    return await safeWithTimeout(controller_telegram.add_protects_settings(req, res), next);
+});
+
+router.delete("/remove-protects-settings", async (req: Request, res: Response, next: NextFunction) => {
+    return await safeWithTimeout(controller_telegram.remove_protects_settings(req, res), next);
+});
+
+router.patch("/update-protects-settings", async (req: Request, res: Response, next: NextFunction) => {
+    return await safeWithTimeout(controller_telegram.update_protects_settings(req, res), next);
 });
 
 router.post(["/open", "/close"], async (req: Request, res: Response, next: NextFunction) => {

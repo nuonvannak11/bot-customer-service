@@ -6,14 +6,15 @@ import AppUser from "../models/model_user";
 import Platform from "../models/model_platform";
 import model_bot from "../models/model_bot";
 import model_setting from "../models/model_settings";
+import GroupModel from '../models/model_telegram_group_chanel';
+import ManagedAssetModel, { IManagedAsset } from '../models/model_managed_asset';
 import hash_data from "../helper/hash_data";
 import HashKey from "../helper/hash_key";
 import { ProtectController } from "./controller_protect";
 import { response_data } from "../libs/lib";
-import { SaveTgBotRequest } from "../interface";
+import { IManagedAssetRequest, SaveTgBotRequest } from "../interface";
 import { get_url } from "../libs/get_urls";
 import { httpAgent } from "../libs/lib";
-import { IManagedAsset } from "../models/model_managed_asset";
 
 interface OpenCloseBotRequest {
     token: string;
@@ -34,6 +35,25 @@ const req_bot = axios.create({
     timeout: 20000,
     validateStatus: (status) => status < 500
 });
+
+const DEFAULT_ASSET_CONFIG = {
+    allowScan: false,
+    upTime: 0,
+    config: {
+        blockedExtensions: [],
+        blacklistedDomains: [],
+        spam: {
+            rateLimit: 0,
+            duplicateSensitivity: 0,
+            newUserRestriction: 0,
+        },
+        rulesCount: 0,
+        blockAllLinksFromNoneAdmin: false,
+        blockAllExstationFromNoneAdmin: false,
+    },
+    threatsBlocked: 0,
+    safeFiles: 0,
+};
 
 class TelegramController extends ProtectController {
     private validateTelegramToken(token: string): boolean {
@@ -448,19 +468,125 @@ class TelegramController extends ProtectController {
         }
     }
 
-    public async protects(req: Request, res: Response) {
+    public async get_protects_settings(req: Request, res: Response) {
         try {
-            const result = await this.protect_post<IManagedAsset>(req, res, true);
+            const result = await this.protect_get<GetBotSettingRequest>(req, res);
             if (!result) return;
+            const { user_id, token } = result;
+            if (!user_id || !token) {
+                return response_data(res, 400, "Invalid request parameters", []);
+            }
+            const check_user = await AppUser.findOne({ user_id, access_token_hash: token }).lean();
+            if (!check_user) {
+                return response_data(res, 401, "Unauthorized user", []);
+            }
+            const botResult = await model_bot.findOne({ user_id }, { bot_token: 1 }).lean();
+            if (!botResult?.bot_token) {
+                return response_data(res, 404, "Bot token not found", []);
+            }
+            const { bot_token } = botResult;
+            const [existingAssets, allGroups] = await Promise.all([
+                ManagedAssetModel.find({ user_id, bot_token }).lean(),
+                GroupModel.find({ user_id, bot_token }).lean()
+            ]);
 
-
-            const { user_id } = result;
-
-            if (!user_id) return response_data(res, 400, "Invalid request", []);
+            const managedChatIds = new Set(existingAssets.map(asset => asset.chatId));
+            const unmanagedAssets = allGroups
+                .filter(group => !managedChatIds.has(group.chatId))
+                .map(group => ({
+                    chatId: group.chatId,
+                    name: group.name,
+                    avatar: group.avatar ?? "",
+                    type: group.type,
+                    ...DEFAULT_ASSET_CONFIG
+                }));
+            const finalCollection = [...existingAssets, ...unmanagedAssets];
+            return response_data(res, 200, "Success", {
+                groupChannel: finalCollection, threatLogs: [
+                    {
+                        id: 1,
+                        user: "BadGuy_99",
+                        type: "File",
+                        content: "free_nitro.exe",
+                        action: "Blocked",
+                        time: "10:42 AM",
+                    },
+                    {
+                        id: 2,
+                        user: "SpamBot_X",
+                        type: "Link",
+                        content: "http://click-me.sus",
+                        action: "Blocked",
+                        time: "10:35 AM",
+                    },
+                    {
+                        id: 3,
+                        user: "Unknown",
+                        type: "Spam",
+                        content: "Buy Crypto!!! Buy Crypto!!!",
+                        action: "Muted (1h)",
+                        time: "09:12 AM",
+                    },
+                    {
+                        id: 4,
+                        user: "ScriptKiddie",
+                        type: "Injection",
+                        content: "<script>alert('hack')</script>",
+                        action: "Ban",
+                        time: "Yesterday",
+                    },
+                ]
+            });
         } catch (err) {
             eLog("❌ protects error:", err);
             return response_data(res, 500, "Internal server error", []);
         }
+    }
+
+    public async add_protects_settings(req: Request, res: Response): Promise<Response | void> {
+        try {
+            const result = await this.protect_post<IManagedAssetRequest>(req, res, true);
+            if (!result) return;
+            const { user_id, token, asset_key, asset } = result;
+            if (!user_id || !token || !asset_key || !asset) {
+                return response_data(res, 400, "Invalid request", []);
+            }
+            const check_user = await AppUser.findOne({ user_id, access_token_hash: token }).lean();
+            if (!check_user) {
+                return response_data(res, 401, "Unauthorized access", []);
+            }
+            const botResult = await model_bot.findOne({ user_id }, { bot_token: 1 }).lean();
+            if (!botResult?.bot_token) {
+                return response_data(res, 404, "Bot token not found", []);
+            }
+            const { bot_token } = botResult;
+
+            if (asset_key === 'add-protect') {
+                const updated = { ...asset, allowScan: true };
+                const update_result = await ManagedAssetModel.updateOne(
+                    { user_id, chatId: updated.chatId, bot_token },
+                    { $set: { ...updated } },
+                    { upsert: true }
+                );
+                if (update_result.modifiedCount === 0) {
+                    return response_data(res, 400, "Failed to add protect", [])
+                }
+                return response_data(res, 200, "Success", updated)
+            }
+
+
+        } catch (err) {
+            eLog("❌ protects error:", err);
+            return response_data(res, 500, "Internal server error", []);
+        }
+    }
+
+    public async remove_protects_settings(req: Request, res: Response): Promise<Response | void> {
+
+    }
+
+    public async update_protects_settings(req: Request, res: Response): Promise<Response | void> {
+
     }
 }
 

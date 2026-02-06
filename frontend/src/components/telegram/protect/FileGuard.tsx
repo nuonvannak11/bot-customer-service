@@ -38,7 +38,7 @@ export default function FileGuard({
         managedAssets: {
           ...prev.managedAssets,
           active: prev.managedAssets.active.map((asset) =>
-            asset.id === activeAsset.id ? updatedAsset : asset,
+            asset.chatId === activeAsset.chatId ? updatedAsset : asset,
           ),
         },
       };

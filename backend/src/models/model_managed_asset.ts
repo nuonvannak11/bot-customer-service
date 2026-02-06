@@ -91,4 +91,4 @@ const managedAssetSchema = new mongoose.Schema(
     }
 );
 managedAssetSchema.index({ user_id: 1, bot_token: 1, chatId: 1 }, { unique: true });
-export default mongoose.model<IManagedAsset>("ManagedAsset", managedAssetSchema);
+export default mongoose.model<IManagedAsset>("managed_asset", managedAssetSchema);

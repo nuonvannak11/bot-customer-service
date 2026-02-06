@@ -10,6 +10,8 @@ import { request_get, request_post } from "@/libs/request_server";
 import { REQUEST_TIMEOUT_BOT_CLOSE_OPEN_MS, REQUEST_TIMEOUT_MS } from "@/constants";
 import { validateDomains } from "@/helper/helper.domain";
 import { get_url } from "@/libs/get_urls";
+import { GroupChannel, ProtectData } from "@/interface/telegram/interface.telegram";
+import { ProtectRequestSchema } from "@/zod/zod.telegram";
 
 const TELEGRAM_SETTING_KEYS = [
     "botUsername",
@@ -222,21 +224,45 @@ class TelegramController extends ProtectController {
         }
     }
 
-    async protects(token?: string) {
-        if (!token) return [];
+    async get_protects(token?: string): Promise<ProtectData | null> {
+        if (!token) return null;
         try {
-            const res = await request_get<{ data: { protects?: string[] } }>({
+            const res = await request_get<{ data: ProtectData }>({
                 url: get_url("get_protect_settings"),
                 headers: this.getHeaders(token),
                 timeout: REQUEST_TIMEOUT_MS,
             });
-            if (!res.success || !res.data?.data) return [];
-            return Array.isArray(res.data.data.protects) ? res.data.data.protects : [];
+            if (!res.success || !res.data?.data) return null;
+            return res.data.data;
         } catch (error) {
             console.error("[protects] Failed:", error);
-            return [];
+            return null;
         }
     }
+
+    async save_protect_settings(req: NextRequest): Promise<Response> {
+        const result = await this.protect(req, ProtectRequestSchema, 50, true, 120);
+        if (!result.ok) return result.response!;
+        const { data } = result;
+        if (!data) return response_data(500, 500, "Validation failed", []);
+        const { token, ...rest } = data;
+        try {
+            const res = await request_post<ApiResponse<GroupChannel>>({
+                url: get_url("save_protect_settings"),
+                headers: this.getHeaders(token),
+                data: { payload: HashData.encryptData(JSON.stringify(rest)) },
+                timeout: REQUEST_TIMEOUT_MS,
+            });
+            if (!res.success) {
+                return response_data(500, 500, res.error, []);
+            }
+            const { code, message, data } = res.data;
+            return response_data(code, code, message, data);
+        } catch (error) {
+            return response_data(500, 500, "Iternal Server Error", []);
+        }
+    }
+
 }
 
 export default new TelegramController();

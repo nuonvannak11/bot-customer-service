@@ -96,6 +96,6 @@ function filterChannels(
     type: "Group" | "Channel"
 ): GroupChannel[] {
     return channels.filter(
-        (item) => strlower(item.type) === strlower(type) && item.allowScan === false
+        (item) => item.type && strlower(item.type).includes(strlower(type)) && item.allowScan === false
     );
 }

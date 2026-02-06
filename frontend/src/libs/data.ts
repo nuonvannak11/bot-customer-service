@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import controller_telegram from "@/controller/controller_telegram";
 import { parse_telegram_bot_settings, parse_user_profile } from "@/parser/index";
 import controller_user from "@/controller/controller_user";
+import { ProtectData } from "@/interface/telegram/interface.telegram";
 
 export async function getDashboardStats(user: JWTPayload) {
   await new Promise((resolve) => setTimeout(resolve, 300));
@@ -126,13 +127,14 @@ export async function getSettings() {
   };
 }
 
-export async function getProtects() {
+export async function getProtects(): Promise<ProtectData> {
   const token = await getServerToken();
   if (!token) redirect("/login");
   try {
-    return await controller_telegram.protects(token);
+    const data = await controller_telegram.get_protects(token);
+    return data ?? { groupChannel: [], threatLogs: [] };
   } catch (error) {
     eLog("Failed to fetch protects:", error);
-    return [];
+    return { groupChannel: [], threatLogs: [] };
   }
 }

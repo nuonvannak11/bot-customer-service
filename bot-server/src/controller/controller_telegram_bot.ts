@@ -14,7 +14,7 @@ import controller_user from "./controller_user";
 import controller_executor_img from "../controller/controller_executor_img";
 import model_settings_bot_telegram from "../models/model_setting_bot_telegram";
 import model_bot from "../models/model_bot";
-import model_telegram_group from "../models/model_telegram_group";
+import model_telegram_group from "../models/model_telegram_group_chanel";
 import { BotSettingDTO } from "../interface";
 import { default_settings_bot } from "../defaultSettings";
 import hash_data from "../helper/hash_data";
@@ -42,7 +42,13 @@ class ControllerTelegramBot extends ProtectController {
         return settings;
     }
 
+    public async channel_post(ctx: Context, user_id: string, bot_token: string, post: Message) {
+        return this.message(ctx, user_id, bot_token, post as unknown as Message);
+    }
+
     public async message(ctx: Context, user_id: string, bot_token: string, msg: Message) {
+        console.log("Received message:", msg);
+
         if ("text" in msg) return this.onText(ctx, user_id, bot_token, msg as Message.TextMessage);
         if ("photo" in msg) return this.onPhoto(ctx, user_id, msg as Message.PhotoMessage);
         if ("document" in msg) return this.onDocument(ctx, user_id, msg as Message.DocumentMessage);

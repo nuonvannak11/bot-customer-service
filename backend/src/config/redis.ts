@@ -29,10 +29,10 @@ const redisPublisher = new Redis(redisConfig);
 export function connectRedis() {
   redis.on('connect', () => eLog('✅ Connected to Redis (subscriber)!'));
   redis.on('error', (err) => eLog('❌ Redis Error (subscriber):', err));
-  
+
   redisPublisher.on('connect', () => eLog('✅ Connected to Redis (publisher)!'));
   redisPublisher.on('error', (err) => eLog('❌ Redis Error (publisher):', err));
 }
 
-export { redisPublisher };
+export { redisPublisher, redisConfig };
 export default redis;

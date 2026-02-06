@@ -12,6 +12,7 @@ import {
   PreparedData,
 } from "@/interface/telegram/interface.telegram";
 import { useTranslation } from "react-i18next";
+import { DEFAULT_ASSET } from "@/default/default";
 
 type TelegramProtectPageProps = {
   protects: PreparedData;
@@ -31,31 +32,23 @@ export default function TelegramProtectPage({
   const { t } = useTranslation();
   const [state, setState] = useState<TelegramProtectPageState>({
     managedAssets: cleanProtects,
-    activeAsset: cleanProtects?.active[0] ?? [],
+    activeAsset: cleanProtects?.active[0] ?? DEFAULT_ASSET,
   });
-  const [currentUpdate, setCurrentUpdate] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  async function handledSubmit(payload: any) {
-    console.log("Logging Change:", { payload });
-
-    // await fetch("/api/audit-log", {
-    //   method: "POST",
-    //   body: JSON.stringify({
-    //     userId,
-    //     assetId: activeId,
-    //     action,
-    //     changes: payload,
-    //     time: new Date().toISOString(),
-    //   }),
-    // });
+  async function handledSubmit(asset_key: string, payload: GroupChannel) {
+    const body = JSON.stringify({
+      asset_key,
+      hash_key,
+      asset: payload,
+    });
+    const res = await fetch("/api/telegram/save-protect-settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+    });
+    console.log("Response from save-protect-settings:", res);
   }
-
-  useEffect(() => {
-    if (currentUpdate.length > 0) {
-      handledSubmit(currentUpdate);
-      setCurrentUpdate([]);
-    }
-  }, [currentUpdate]);
 
   return (
     <div className="space-y-6 p-2 lg:p-0">
@@ -85,7 +78,7 @@ export default function TelegramProtectPage({
                 </span>
                 <span className="flex items-center gap-1">
                   <Shield size={12} /> Rules:{" "}
-                  {state.activeAsset?.config.rulesCount || 0}
+                  {state.activeAsset?.config?.rulesCount || 0}
                 </span>
               </div>
             </div>
@@ -96,7 +89,7 @@ export default function TelegramProtectPage({
                 Threats Blocked
               </p>
               <p className="text-2xl font-black text-rose-400 mt-1">
-                {state.activeAsset.threatsBlocked}
+                {state.activeAsset?.threatsBlocked}
               </p>
             </div>
             <div className="px-5 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-center">
@@ -104,7 +97,7 @@ export default function TelegramProtectPage({
                 Safe Files
               </p>
               <p className="text-2xl font-black text-emerald-400 mt-1">
-                {state.activeAsset.safeFiles}
+                {state.activeAsset?.safeFiles}
               </p>
             </div>
           </div>
@@ -117,7 +110,7 @@ export default function TelegramProtectPage({
           setState={setState}
           handlers={{
             onAdd: (asset) => {
-              console.log("Adding Asset to Group Management:", asset);
+              handledSubmit("add-protect", asset);
             },
             onRemove: (asset) => {
               console.log("Removing Asset from Group Management:", asset);
@@ -165,7 +158,7 @@ export default function TelegramProtectPage({
             <ShieldAlert size={18} className="text-rose-500" /> Security Logs
           </h3>
           <button className="text-xs text-slate-500 hover:text-white transition">
-            View All
+            {t("View All")}
           </button>
         </div>
         <div className="overflow-x-auto">
@@ -184,8 +177,7 @@ export default function TelegramProtectPage({
                 protects.threatLogs.map((log) => (
                   <tr
                     key={log.id}
-                    className="hover:bg-slate-800/50 transition-colors"
-                  >
+                    className="hover:bg-slate-800/50 transition-colors">
                     <td className="px-6 py-4 font-mono text-xs text-slate-500">
                       {log.time}
                     </td>
@@ -206,8 +198,7 @@ export default function TelegramProtectPage({
                             "bg-indigo-500/10 border-indigo-500/20 text-indigo-400",
                           log.type === "Injection" &&
                             "bg-red-600/10 border-red-600/20 text-red-500",
-                        )}
-                      >
+                        )}>
                         {log.type}
                       </span>
                     </td>
@@ -227,8 +218,7 @@ export default function TelegramProtectPage({
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-6 py-10 text-center text-slate-500 italic"
-                  >
+                    className="px-6 py-10 text-center text-slate-500 italic">
                     {t("No records found")}
                   </td>
                 </tr>

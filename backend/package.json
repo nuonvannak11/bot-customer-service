@@ -6,7 +6,10 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "start:worker": "node dist/cron_worker.js",
+    "dev:api": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "dev:worker": "ts-node-dev --respawn --transpile-only src/cron_worker.ts",
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:worker\"",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write ."
   },
@@ -18,6 +21,7 @@
     "@google/genai": "^1.34.0",
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
+    "bullmq": "^5.67.3",
     "cors": "^2.8.5",
     "crypto-js": "^4.2.0",
     "dayjs": "^1.11.19",
