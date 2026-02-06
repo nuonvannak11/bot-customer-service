@@ -41,3 +41,19 @@ export function capitalize(word: string) {
 export function get_milli_second() {
     return Date.now();
 }
+
+
+export function normalizeText(text: string | null | undefined): string {
+    if (!text || typeof text !== "string") {
+        return "";
+    }
+    const MAX_LENGTH = 2000;
+    const safeText = text.length > MAX_LENGTH ? text.substring(0, MAX_LENGTH) : text;
+    return safeText
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^\x20-\x7E]/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
+}

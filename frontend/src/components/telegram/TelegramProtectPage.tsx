@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { cache, useEffect, useState } from "react";
 import { ShieldCheck, Activity, Shield, ShieldAlert, Lock } from "lucide-react";
 import GroupManagement from "./protect/GroupManagement";
 import FileGuard from "./protect/FileGuard";
@@ -13,6 +13,7 @@ import {
 } from "@/interface/telegram/interface.telegram";
 import { useTranslation } from "react-i18next";
 import { DEFAULT_ASSET } from "@/default/default";
+import Swal from "sweetalert2";
 
 type TelegramProtectPageProps = {
   protects: PreparedData;
@@ -36,19 +37,58 @@ export default function TelegramProtectPage({
   });
   const [loading, setLoading] = useState(false);
 
-  async function handledSubmit(asset_key: string, payload: GroupChannel) {
-    const body = JSON.stringify({
-      asset_key,
-      hash_key,
-      asset: payload,
-    });
-    const res = await fetch("/api/telegram/save-protect-settings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body,
-    });
-    console.log("Response from save-protect-settings:", res);
-  }
+  const handledSubmit = async (asset_key: string, payload: GroupChannel) => {
+    if (asset_key === "delete") {
+      try {
+        const result = await Swal.fire({
+          title: "Are you sure?",
+          text: `This ${payload.name} will be permanently deleted!`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#d33",
+          cancelButtonColor: "#3085d6",
+          confirmButtonText: "Yes, delete it!",
+          cancelButtonText: "Cancel",
+        });
+        if (result.isConfirmed) {
+          const body = JSON.stringify({
+            asset_key,
+            hash_key,
+            asset: payload,
+          });
+          const res = await fetch("/api/telegram/protect", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body,
+          });
+          console.log("Response from protect:", res);
+        }
+      } catch (err) {
+        console.log(err);
+        Swal.fire({
+          title: "Error",
+          text: "Failed to delete user",
+          icon: "error",
+        });
+      }
+    } else {
+      try {
+        const body = JSON.stringify({
+          asset_key,
+          hash_key,
+          asset: payload,
+        });
+        const res = await fetch("/api/telegram/protect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body,
+        });
+        console.log("Response from protect:", res);
+      } catch (err) {
+        console.log(err);
+      }
+    }
+  };
 
   return (
     <div className="space-y-6 p-2 lg:p-0">
@@ -110,13 +150,13 @@ export default function TelegramProtectPage({
           setState={setState}
           handlers={{
             onAdd: (asset) => {
-              handledSubmit("add-protect", asset);
+              handledSubmit("add", asset);
             },
             onRemove: (asset) => {
-              console.log("Removing Asset from Group Management:", asset);
+              handledSubmit("delete", asset);
             },
             onSave: (asset) => {
-              console.log("Saving Group Management settings for Asset:", asset);
+              handledSubmit("update", asset);
             },
           }}
           t={t}
@@ -126,7 +166,7 @@ export default function TelegramProtectPage({
           setState={setState}
           handlers={{
             onSave: (asset) => {
-              console.log("Saving Group Management settings for Asset:", asset);
+              handledSubmit("update", asset);
             },
           }}
           t={t}
@@ -136,7 +176,7 @@ export default function TelegramProtectPage({
           setState={setState}
           handlers={{
             onSave: (asset) => {
-              console.log("Saving Group Management settings for Asset:", asset);
+              handledSubmit("update", asset);
             },
           }}
           t={t}
@@ -146,7 +186,7 @@ export default function TelegramProtectPage({
           setState={setState}
           handlers={{
             onSave: (asset) => {
-              console.log("Saving Group Management settings for Asset:", asset);
+              handledSubmit("update", asset);
             },
           }}
           t={t}
@@ -177,7 +217,8 @@ export default function TelegramProtectPage({
                 protects.threatLogs.map((log) => (
                   <tr
                     key={log.id}
-                    className="hover:bg-slate-800/50 transition-colors">
+                    className="hover:bg-slate-800/50 transition-colors"
+                  >
                     <td className="px-6 py-4 font-mono text-xs text-slate-500">
                       {log.time}
                     </td>
@@ -198,7 +239,8 @@ export default function TelegramProtectPage({
                             "bg-indigo-500/10 border-indigo-500/20 text-indigo-400",
                           log.type === "Injection" &&
                             "bg-red-600/10 border-red-600/20 text-red-500",
-                        )}>
+                        )}
+                      >
                         {log.type}
                       </span>
                     </td>
@@ -218,7 +260,8 @@ export default function TelegramProtectPage({
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-6 py-10 text-center text-slate-500 italic">
+                    className="px-6 py-10 text-center text-slate-500 italic"
+                  >
                     {t("No records found")}
                   </td>
                 </tr>

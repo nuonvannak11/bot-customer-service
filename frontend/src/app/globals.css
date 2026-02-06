@@ -106,3 +106,54 @@ html::-webkit-scrollbar {
   border-radius: 50%;
   background: #6366f1;
 }
+
+/* Custom sweet alert */
+html.dark .swal2-popup {
+    background: #19191a !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px !important; 
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.6) !important;
+    padding: 30px;
+}
+
+html.dark .swal2-title {
+    color: #ececf1 !important;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+html.dark .swal2-html-container {
+    color: #a0a0b0 !important;
+    font-size: 1.1em;
+}
+
+html.dark .swal2-icon.swal2-warning {
+    border-color: #f8bb86 !important;
+    color: #f8bb86 !important;
+    box-shadow: 0 0 15px rgba(248, 187, 134, 0.4);
+}
+
+html.dark .swal2-styled.swal2-confirm {
+    background-color: #d33 !important;
+    box-shadow: 0 4px 15px rgba(221, 51, 51, 0.4) !important;
+    border-radius: 50px !important;
+    font-weight: bold;
+    transition: transform 0.2s ease;
+}
+
+html.dark .swal2-styled.swal2-cancel {
+    background-color: #2b2b2e !important;
+    color: #aaa !important;
+    border-radius: 50px !important;
+    transition: all 0.2s ease;
+}
+
+html.dark .swal2-styled.swal2-confirm:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(221, 51, 51, 0.6) !important;
+}
+
+html.dark .swal2-styled.swal2-cancel:hover {
+    background-color: #3e3e42 !important;
+    color: #fff !important;
+}

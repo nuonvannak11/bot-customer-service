@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import axios, { AxiosError } from "axios";
+import axios, { Method, AxiosError } from "axios";
 import { z } from "zod";
 import { eLog, response_data } from "@/libs/lib";
 import HashData from "@/helper/hash_data";
@@ -10,8 +10,16 @@ import { request_get, request_post } from "@/libs/request_server";
 import { REQUEST_TIMEOUT_BOT_CLOSE_OPEN_MS, REQUEST_TIMEOUT_MS } from "@/constants";
 import { validateDomains } from "@/helper/helper.domain";
 import { get_url } from "@/libs/get_urls";
-import { GroupChannel, ProtectData } from "@/interface/telegram/interface.telegram";
-import { ProtectRequestSchema } from "@/zod/zod.telegram";
+import { ProtectData } from "@/interface/telegram/interface.telegram";
+import { ProtectRequestSchema, telegramPayloadSchema } from "@/zod/zod.telegram";
+import { error } from "console";
+import hash_data from "@/helper/hash_data";
+
+interface ApiResponse<T = unknown> {
+    code: number;
+    message: string;
+    data: T;
+}
 
 const TELEGRAM_SETTING_KEYS = [
     "botUsername",
@@ -24,35 +32,16 @@ const TELEGRAM_SETTING_KEYS = [
     "exceptionLinks",
 ] as const;
 
-const telegramPayloadSchema = z.object({
-    hash_key: z
-        .string()
-        .min(10)
-        .max(100)
-        .regex(/^[A-Za-z0-9+/=]+$/, "Invalid hash format"),
-    botToken: z.string().min(10).max(100),
-    is_process: z.boolean().optional(),
-    webhookUrl: z.string().optional(),
-    webhookEnabled: z.boolean().optional(),
-    notifyEnabled: z.boolean().optional(),
-    silentMode: z.boolean().optional(),
-    exceptionLinks: z.array(z.string()).optional(),
-    botUsername: z.string().optional(),
-});
-
 const botActionSchema = z.object({
     hash_key: z.string().min(10).max(50),
     bot_token: z.string().min(10).max(100),
     method: z.enum(["open", "close"]),
 });
 
-type TelegramSettings = z.infer<typeof telegramPayloadSchema>;
-type BotAction = z.infer<typeof botActionSchema>;
-
-interface ApiResponse<T = unknown> {
-    code: number;
-    message: string;
-    data: T;
+const ACTION_CONFIG: Record<string, { method: Method; endpoint: string }> = {
+    add: { method: "POST", endpoint: "save_protect_settings" },
+    update: { method: "PUT", endpoint: "update_protect_settings" },
+    delete: { method: "DELETE", endpoint: "delete_protect_settings" },
 }
 
 class TelegramController extends ProtectController {
@@ -240,26 +229,48 @@ class TelegramController extends ProtectController {
         }
     }
 
-    async save_protect_settings(req: NextRequest): Promise<Response> {
+    async handleProtect(req: NextRequest): Promise<Response> {
         const result = await this.protect(req, ProtectRequestSchema, 50, true, 120);
         if (!result.ok) return result.response!;
         const { data } = result;
-        if (!data) return response_data(500, 500, "Validation failed", []);
+        if (!data) return response_data(500, 500, "Validation failed: No data received", []);
+
         const { token, ...rest } = data;
-        try {
-            const res = await request_post<ApiResponse<GroupChannel>>({
-                url: get_url("save_protect_settings"),
-                headers: this.getHeaders(token),
-                data: { payload: HashData.encryptData(JSON.stringify(rest)) },
-                timeout: REQUEST_TIMEOUT_MS,
-            });
-            if (!res.success) {
-                return response_data(500, 500, res.error, []);
+        const asset_key = rest.asset_key;
+        const action = ACTION_CONFIG[asset_key];
+
+        if (!action) {
+            return response_data(400, 400, `Invalid action: ${asset_key}`, []);
+        }
+        type RequestPayload = typeof rest | { chatId: string };
+        let payload: RequestPayload = rest;
+        if (asset_key === 'delete') {
+            if (!rest.asset?.chatId) {
+                return response_data(400, 400, "Missing chatId for deletion", []);
             }
-            const { code, message, data } = res.data;
+            payload = { chatId: rest.asset.chatId };
+        }
+        const encryptedBody = hash_data.encryptData(JSON.stringify(payload));
+        try {
+            const url = get_url(action.endpoint);
+            const axiosResponse = await axios.request({
+                url,
+                method: action.method,
+                data: { payload: encryptedBody },
+                headers: this.getHeaders(token),
+                timeout: REQUEST_TIMEOUT_MS,
+                validateStatus: () => true,
+            });
+            if (axiosResponse.status >= 400) {
+                throw new Error(axiosResponse.data?.message || "Request failed");
+            }
+            const responseData = axiosResponse.data;
+            console.log("Response Data:", responseData);
+            const { code, message, data } = responseData;
             return response_data(code, code, message, data);
-        } catch (error) {
-            return response_data(500, 500, "Iternal Server Error", []);
+        } catch (error: any) {
+            eLog("❌ Handle Protect Error:", error);
+            return this.handleError(error);
         }
     }
 

@@ -8,19 +8,19 @@ router.get("/groups", async (req: Request, res: Response, next: NextFunction) =>
 });
 
 router.get("/get-protects-settings", async (req: Request, res: Response, next: NextFunction) => {
-    return await safeWithTimeout(controller_telegram.get_protects_settings(req, res), next);
+    return await safeWithTimeout(controller_telegram.get_protects(req, res), next);
 });
 
 router.post("/save-protects-settings", async (req: Request, res: Response, next: NextFunction) => {
-    return await safeWithTimeout(controller_telegram.add_protects_settings(req, res), next);
+    return await safeWithTimeout(controller_telegram.add_protects(req, res), next);
 });
 
-router.delete("/remove-protects-settings", async (req: Request, res: Response, next: NextFunction) => {
-    return await safeWithTimeout(controller_telegram.remove_protects_settings(req, res), next);
+router.delete("/delete-protects-settings", async (req: Request, res: Response, next: NextFunction) => {
+    return await safeWithTimeout(controller_telegram.delete_protects(req, res), next);
 });
 
-router.patch("/update-protects-settings", async (req: Request, res: Response, next: NextFunction) => {
-    return await safeWithTimeout(controller_telegram.update_protects_settings(req, res), next);
+router.put("/update-protects-settings", async (req: Request, res: Response, next: NextFunction) => {
+    return await safeWithTimeout(controller_telegram.update_protects(req, res), next);
 });
 
 router.post(["/open", "/close"], async (req: Request, res: Response, next: NextFunction) => {

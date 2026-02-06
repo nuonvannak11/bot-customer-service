@@ -71,3 +71,12 @@ export interface IManagedAssetRequest {
   asset_key: string;
   asset: IManagedAsset;
 }
+
+export interface IManagedAssetRemoveRequest {
+  user_id: string;
+  session_id: string;
+  token: string;
+  hash_key: string;
+  asset_key: string;
+  chatId: string;
+}

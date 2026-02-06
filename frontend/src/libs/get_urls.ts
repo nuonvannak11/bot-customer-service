@@ -16,6 +16,10 @@ export function get_url(name: string) {
             return get_env("BACKEND_URL") + "/api/telegram/bot/get-protects-settings";
         case "save_protect_settings":
             return get_env("BACKEND_URL") + "/api/telegram/bot/save-protects-settings";
+        case "delete_protect_settings":
+            return get_env("BACKEND_URL") + "/api/telegram/bot/delete-protects-settings";
+        case "update_protect_settings":
+            return get_env("BACKEND_URL") + "/api/telegram/bot/update-protects-settings";
         default:
             return "index";
     }

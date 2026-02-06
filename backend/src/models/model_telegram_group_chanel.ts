@@ -17,7 +17,7 @@ const GroupSchema = new Schema({
     chatId: { type: String, required: true },
     name: { type: String, required: true },
     type: { type: String, required: true },
-    avatar: { type: String, default: null },
+    avatar: { type: String, default: "" },
     memberCount: { type: Number, default: 0 },
     createdAt: { type: Date, default: Date.now }
 }, { timestamps: true });

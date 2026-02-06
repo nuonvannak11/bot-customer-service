@@ -39,3 +39,15 @@ export const ProtectRequestSchema = z.object({
     hash_key: z.string(),
     asset: GroupChannelSchema,
 });
+
+export const telegramPayloadSchema = z.object({
+    hash_key: z.string().min(10).max(100).regex(/^[A-Za-z0-9+/=]+$/, "Invalid hash format"),
+    botToken: z.string().min(10).max(100),
+    is_process: z.boolean().optional(),
+    webhookUrl: z.string().optional(),
+    webhookEnabled: z.boolean().optional(),
+    notifyEnabled: z.boolean().optional(),
+    silentMode: z.boolean().optional(),
+    exceptionLinks: z.array(z.string()).optional(),
+    botUsername: z.string().optional(),
+});
