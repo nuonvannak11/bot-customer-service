@@ -15,7 +15,7 @@ export function make_schema<T extends object>(base: T) {
             const result = {} as Omit<T, K>;
             for (const key of Object.keys(value)) {
                 if (!keySet.has(key as K)) {
-                    // @ts-ignore - We know this key exists and isn't omitted
+                    // @ts-expect-error - index access is safe here due to keyof filtering
                     result[key] = value[key];
                 }
             }

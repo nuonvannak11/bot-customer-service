@@ -1,10 +1,10 @@
 "use client";
 
+import { SettingsProps } from "./GeneralSettingsClient";
+
 export default function SecuritySettingsClient({
   initialSettings,
-}: {
-  initialSettings: any;
-}) {
+}: SettingsProps) {
   return (
     <div className="max-w-xl space-y-4 animate-in fade-in duration-300">
       <div className="flex items-center justify-between">

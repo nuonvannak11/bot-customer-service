@@ -22,7 +22,7 @@ const redisConfig = {
 if (!global.redis) {
   global.redis = new Redis(redisConfig);
   global.redis.on("connect", () => eLog("✅ Redis Connected!"));
-  global.redis.on("error", (err: any) => eLog("❌ Redis Error:", err));
+  global.redis.on("error", (err: unknown) => eLog("❌ Redis Error:", err));
 }
 
 const redis = global.redis;

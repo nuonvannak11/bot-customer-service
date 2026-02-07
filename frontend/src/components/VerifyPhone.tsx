@@ -33,7 +33,7 @@ export default function VerifyPhone({ hash_key, phone, phone_mask }: Props) {
       gsap.fromTo(
         ".verify-card",
         { y: 30, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" }
+        { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" },
       );
 
       gsap.fromTo(
@@ -46,7 +46,7 @@ export default function VerifyPhone({ hash_key, phone, phone_mask }: Props) {
           duration: 0.6,
           delay: 0.2,
           ease: "back.out(1.7)",
-        }
+        },
       );
 
       gsap.fromTo(
@@ -59,7 +59,7 @@ export default function VerifyPhone({ hash_key, phone, phone_mask }: Props) {
           stagger: 0.05,
           delay: 0.4,
           ease: "power2.out",
-        }
+        },
       );
 
       gsap.to(".bg-glow", {
@@ -76,19 +76,21 @@ export default function VerifyPhone({ hash_key, phone, phone_mask }: Props) {
   }, []);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    if (isTimerActive && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-    } else if (timeLeft === 0) {
-      setIsTimerActive(false);
-      if (interval) clearInterval(interval);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isTimerActive, timeLeft]);
+    if (!isTimerActive) return;
+
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setIsTimerActive(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isTimerActive]);
 
   const handleResend = () => {
     if (empty(phone)) {
@@ -109,7 +111,7 @@ export default function VerifyPhone({ hash_key, phone, phone_mask }: Props) {
           {
             timeout: 10_000,
             headers: { "Content-Type": "application/json" },
-          }
+          },
         );
         const data = response.data;
         if (data.code === 200) {
@@ -121,7 +123,7 @@ export default function VerifyPhone({ hash_key, phone, phone_mask }: Props) {
           gsap.fromTo(
             "#timer-text",
             { x: -5 },
-            { x: 0, duration: 0.1, repeat: 3, yoyo: true }
+            { x: 0, duration: 0.1, repeat: 3, yoyo: true },
           );
         } else {
           toast.error(data.message, {
@@ -133,7 +135,7 @@ export default function VerifyPhone({ hash_key, phone, phone_mask }: Props) {
         toast.error(err.response.data.message, {
           position: "top-center",
         });
-      }
+      },
     );
   };
 
@@ -147,7 +149,7 @@ export default function VerifyPhone({ hash_key, phone, phone_mask }: Props) {
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    index: number
+    index: number,
   ) => {
     const value = e.target.value;
     if (isNaN(Number(value))) return;
@@ -163,7 +165,7 @@ export default function VerifyPhone({ hash_key, phone, phone_mask }: Props) {
 
   const handleKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement>,
-    index: number
+    index: number,
   ) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
@@ -212,7 +214,7 @@ export default function VerifyPhone({ hash_key, phone, phone_mask }: Props) {
             {
               timeout: 10_000,
               headers: { "Content-Type": "application/json" },
-            }
+            },
           );
           const data = response.data;
           if (data.code === 200) {
@@ -230,7 +232,7 @@ export default function VerifyPhone({ hash_key, phone, phone_mask }: Props) {
           toast.error(err.response.data.message, {
             position: "top-center",
           });
-        }
+        },
       );
     } else {
       gsap.to(".otp-container", {
@@ -262,7 +264,7 @@ export default function VerifyPhone({ hash_key, phone, phone_mask }: Props) {
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold mb-2">{t("Verify your phone")}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            We've sent a 6-digit code to <br />
+            We&apos;ve sent a 6-digit code to <br />
             <span className="font-semibold text-gray-800 dark:text-gray-200">
               {phone_mask}
             </span>
@@ -290,7 +292,7 @@ export default function VerifyPhone({ hash_key, phone, phone_mask }: Props) {
 
           <div className="flex items-center justify-between text-sm mb-8">
             <span className="text-gray-500 dark:text-gray-400">
-              Don't receive code?
+              Don&apos;t receive code?
             </span>
             <button
               type="button"

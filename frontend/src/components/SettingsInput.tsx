@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { LucideIcon } from "lucide-react";
 import { Eye, EyeOff } from "lucide-react";
 
 const SettingsInput = ({
@@ -18,7 +19,7 @@ const SettingsInput = ({
   label: string;
   value?: string;
   onChange?: (val: string) => void;
-  icon?: any;
+  icon?: LucideIcon;
   placeholder?: string;
   type?: "text" | "password";
   disabled?: boolean;

@@ -1,5 +1,5 @@
 import check_jwt from "@/helper/check_jwt";
-import { JWTPayload } from "@/types/auth";
+import { JWTPayload } from "@/@types/auth";
 
 export async function checkJwtToken(token?: string): Promise<{ status: boolean; data: JWTPayload | null }> {
   if (!token) {

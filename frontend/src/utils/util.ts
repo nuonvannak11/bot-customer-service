@@ -1,7 +1,6 @@
-export function empty(data: any): boolean {
-    if (data == null) return true;
-    const type = typeof data;
-    switch (type) {
+export function empty(data: unknown): boolean {
+    if (data === undefined || data === null || data === "") return true;
+    switch (typeof data) {
         case "string":
             return data.trim().length === 0;
         case "boolean":
@@ -23,13 +22,15 @@ export function empty(data: any): boolean {
     }
 }
 
-export function strval(data: any): string {
-    if (empty(data)) return "";
+
+export function strval(data: unknown): string {
+    if (!data) return "";
     if (typeof data === "string") return data;
     return data.toString();
 }
 
-export function strlower(data: any): string {
+export function strlower(data: unknown): string {
+    if (!data) return "";
     return strval(data).toLowerCase();
 }
 

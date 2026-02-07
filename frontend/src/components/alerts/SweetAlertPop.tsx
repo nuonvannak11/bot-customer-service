@@ -20,11 +20,11 @@ export const showAlert = (option: ShowAlertProps) => {
   });
 };
 
-export const sweet_request = async (
+export async function sweet_request<T>(
   option: { title: string; text: string },
-  tryFn: () => Promise<any>,
-  catchFn?: (err: any) => void
-) => {
+  tryFn: () => Promise<T>,
+  catchFn?: (err: unknown) => void,
+) {
   Swal.fire({
     title: option.title,
     text: option.text,
@@ -39,6 +39,8 @@ export const sweet_request = async (
     return result;
   } catch (err) {
     Swal.close();
-    catchFn?.(err);
+    if (catchFn) {
+      catchFn(err);
+    }
   }
-};
+}

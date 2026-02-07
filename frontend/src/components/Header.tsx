@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTheme } from "next-themes";
 import { Menu, Search, Sun, Moon } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -18,11 +18,7 @@ export default function Header({
 }) {
   const { t } = useTranslation();
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const [mounted, setMounted] = useState(true);
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");

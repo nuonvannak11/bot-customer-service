@@ -20,7 +20,7 @@ import { TelegramBotSettingsConfig } from "@/interface/index";
 import Toggle from "@/components/ToggleCheckBox";
 import SettingsInput from "@/components/SettingsInput";
 
-interface ApiResponse<T = any> {
+interface ApiResponse<T> {
   code: number;
   message: string;
   data: T;
@@ -72,8 +72,15 @@ export default function TelegramSettingsClient({
         } else {
           throw new Error(result?.message || "Server Error");
         }
-      } catch (error: any) {
-        toast.error(error.message || t("Failed to save"), { id: toastId });
+      } catch (error: unknown) {
+        let message = "Failed to save";
+        if (error instanceof Error) {
+          message = error.message;
+        }
+        if (typeof error === "object" && error !== null && "message" in error) {
+          message = String((error as { message: unknown }).message);
+        }
+        toast.error(message, { id: toastId });
       } finally {
         setLoading((prev) => ({ ...prev, [loadingKey]: false }));
       }
@@ -96,7 +103,7 @@ export default function TelegramSettingsClient({
     });
   };
 
-  const handleChange = (field: keyof TelegramBotSettingsConfig, value: any) => {
+  const handleChange = (field: keyof TelegramBotSettingsConfig, value: unknown) => {
     if (field === "is_process") {
       handleToggleBot(!!value);
     } else {
@@ -221,8 +228,7 @@ export default function TelegramSettingsClient({
                 ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
                 : "bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-300"
             }
-          `}
-          >
+          `}>
             {settings.is_process ? (
               <React.Fragment>
                 <Zap
@@ -292,8 +298,7 @@ export default function TelegramSettingsClient({
               <button
                 onClick={handleAddLink}
                 disabled={!currentLinkInput}
-                className="bg-slate-800 hover:bg-cyan-600 text-cyan-400 hover:text-white border border-slate-700 hover:border-cyan-500 rounded-xl px-4 flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
-              >
+                className="bg-slate-800 hover:bg-cyan-600 text-cyan-400 hover:text-white border border-slate-700 hover:border-cyan-500 rounded-xl px-4 flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed group">
                 <Plus
                   size={20}
                   className="group-active:scale-90 transition-transform"
@@ -306,16 +311,14 @@ export default function TelegramSettingsClient({
                 {settings.exceptionLinks.map((link, index) => (
                   <div
                     key={index}
-                    className="group flex items-center gap-2 bg-slate-800/50 border border-slate-700/50 hover:border-rose-500/30 hover:bg-rose-500/5 rounded-lg pl-3 pr-1 py-1.5 transition-all duration-200"
-                  >
+                    className="group flex items-center gap-2 bg-slate-800/50 border border-slate-700/50 hover:border-rose-500/30 hover:bg-rose-500/5 rounded-lg pl-3 pr-1 py-1.5 transition-all duration-200">
                     <span className="text-xs text-slate-300 font-medium truncate max-w-[200px]">
                       {link}
                     </span>
                     <button
                       onClick={() => handleRemoveLink(link)}
                       className="p-1 rounded-md text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                      title="Remove link"
-                    >
+                      title="Remove link">
                       <X size={14} />
                     </button>
                   </div>
@@ -358,8 +361,7 @@ export default function TelegramSettingsClient({
             <button
               onClick={() => handleSaveSettings()}
               disabled={loading.page}
-              className="w-full cursor-pointer bg-linear-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold py-3 px-6 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+              className="w-full cursor-pointer bg-linear-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold py-3 px-6 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
               {loading.page ? (
                 <React.Fragment>
                   <div className="animate-spin h-5 w-5 border-2 border-white/30 border-t-white rounded-full" />

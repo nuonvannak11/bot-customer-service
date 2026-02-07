@@ -4,7 +4,7 @@ import { empty, strlower } from "@/utils/util";
 import { cookies } from "next/headers";
 import { GroupChannel, PreparedData, ProtectData } from "@/interface/telegram/interface.telegram";
 
-export const response_data = (code: number, status: number, message: string, data: any) => {
+export const response_data = (code: number, status: number, message: string, data: unknown) => {
     return NextResponse.json(
         { code: code, message: message, data: data },
         { status: status }
@@ -19,7 +19,18 @@ export function check_header(request: NextRequest) {
     if (empty(cookie)) return false;
     if (empty(origin)) return false;
     if (empty(ua)) return false;
-    // if (origin !== get_env("NEXT_ORIGIN")) return false;
+    const expectedOrigin = get_env("NEXT_ORIGIN");
+    if (!empty(expectedOrigin)) {
+        try {
+            const requestOrigin = new URL(origin as string).origin;
+            const allowOrigin = new URL(expectedOrigin).origin;
+            if (requestOrigin !== allowOrigin) {
+                return false;
+            }
+        } catch {
+            return false;
+        }
+    }
     const badUA = ["python-requests", "curl", "wget", "axios", "fetch", "httpclient", "scrapy", "postman", "insomnia", "http.rb", "java", "go-http-client", "node-fetch", "okhttp"];
     if (ua) {
         const lowerUA = ua.toLowerCase();
@@ -46,7 +57,7 @@ export function random_number(digits: number): string {
     return result;
 }
 
-export function eLog(data: any, ...args: any[]): void {
+export function eLog(data: unknown, ...args: unknown[]): void {
     if (get_env('NODE_ENV', 'development') === 'development') {
         console.log(data, ...args);
     }

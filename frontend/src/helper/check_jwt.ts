@@ -5,7 +5,7 @@ import { empty } from '@/utils/util';
 class CheckJWT {
     private readonly secretKey = get_env("JWT_SECRET");
 
-    public verifyToken(token: string, options?: VerifyOptions): any | null {
+    public verifyToken(token: string, options?: VerifyOptions): unknown {
         if (empty(token)) return { status: false, decoded: null };
         try {
             const decoded = jwt.verify(token, this.secretKey, options);
@@ -19,7 +19,7 @@ class CheckJWT {
         }
     }
 
-    public decodeToken(token: string): any | null {
+    public decodeToken(token: string): unknown {
         if (empty(token)) return { status: false, decoded: null };
         try {
             const decoded = jwt.decode(token);

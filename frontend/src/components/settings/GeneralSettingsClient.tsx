@@ -1,10 +1,31 @@
 "use client";
 
+interface SettingsPropsChild {
+  general: {
+    workspaceName: string;
+    timezone: string;
+  };
+  security: {
+    twoFactor: boolean;
+    blockUnknownIPs: boolean;
+  };
+  telegram: {
+    botToken: string;
+    botName: string;
+    botUsername: string;
+    botId: string;
+    contacts: number;
+    avatar: string;
+  };
+}
+
+export interface SettingsProps {
+  initialSettings: SettingsPropsChild;
+}
+
 export default function GeneralSettingsClient({
   initialSettings,
-}: {
-  initialSettings: any;
-}) {
+}: SettingsProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in duration-300">
       <div>

@@ -6,13 +6,15 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ChevronDown, User, Settings, LogOut } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { UserProfileConfig } from "@/interface";
 import { STATIC_IMG_PROFILE } from "@/constants/default";
 
 export default function ProfileDropdown({ user }: { user: UserProfileConfig }) {
   const [isOpen, setIsOpen] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
-  const { contextSafe } = useGSAP(
+
+  useGSAP(
     () => {
       if (!isOpen || !contentRef.current) return;
       const q = gsap.utils.selector(contentRef);
@@ -27,11 +29,12 @@ export default function ProfileDropdown({ user }: { user: UserProfileConfig }) {
         { opacity: 1, x: 0, duration: 0.2, stagger: 0.05, delay: 0.05 },
       );
     },
-    { dependencies: [isOpen] },
+    { dependencies: [isOpen], scope: contentRef },
   );
 
-  const animateOut = contextSafe(() => {
+  const animateOut = React.useCallback(() => {
     if (!contentRef.current) return;
+
     gsap.to(contentRef.current, {
       opacity: 0,
       y: -10,
@@ -40,7 +43,7 @@ export default function ProfileDropdown({ user }: { user: UserProfileConfig }) {
       ease: "power2.in",
       onComplete: () => setIsOpen(false),
     });
-  });
+  }, []);
 
   const handleOpenChange = (open: boolean) => {
     if (open) {
@@ -56,7 +59,7 @@ export default function ProfileDropdown({ user }: { user: UserProfileConfig }) {
         <button
           suppressHydrationWarning={true}
           className="flex items-center cursor-pointer gap-2 p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors">
-          <img
+          <Image
             className="h-8 w-8 rounded-full object-cover border border-slate-200 dark:border-slate-700"
             src={user.avatar ?? STATIC_IMG_PROFILE}
             alt="Avatar"

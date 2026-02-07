@@ -1,8 +1,8 @@
 "use client";
-
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Head from "next/head";
+import Image from "next/image";
 import LanguageDropdown from "./LanguageDropdown";
 import {
   Menu,
@@ -43,7 +43,6 @@ interface OneControlLandingProps {
 }
 export default function OneControlLanding({ data }: OneControlLandingProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(!empty(data));
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const heroRef = useRef(null);
@@ -52,6 +51,7 @@ export default function OneControlLanding({ data }: OneControlLandingProps) {
   const codeBlockRef = useRef(null);
   const sectionsRef = useRef<HTMLElement[]>([]);
 
+  const isLoggedIn = !empty(data);
   const addToRefs = (el: HTMLElement | null) => {
     if (el && !sectionsRef.current.includes(el)) {
       sectionsRef.current.push(el);
@@ -205,7 +205,9 @@ export default function OneControlLanding({ data }: OneControlLandingProps) {
                 </button>
               </div>
             ) : (
-              <Link href="/dashboard" className="flex items-center gap-3 group cursor-pointer">
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-3 group cursor-pointer">
                 <div className="hidden sm:flex flex-col items-end text-right transition-opacity opacity-90 group-hover:opacity-100">
                   <p className="text-sm font-semibold text-white leading-tight">
                     {data?.fullName || "Guest User"}
@@ -222,10 +224,10 @@ export default function OneControlLanding({ data }: OneControlLandingProps) {
                 <button
                   type="button"
                   className="cursor-pointer relative shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900 rounded-full transition-transform active:scale-95">
-                  <img
-                    className="w-10 h-10 rounded-full object-cover border-2 border-slate-700 group-hover:border-slate-500 transition-colors bg-slate-800"
+                  <Image
                     src={data?.avatar || "/img/default_avatar.png"}
-                    alt={data?.fullName}
+                    className="w-10 h-10 rounded-full object-cover border-2 border-slate-700 group-hover:border-slate-500 transition-colors bg-slate-800"
+                    alt={data?.fullName || "User Avatar"}
                   />
                   <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-slate-900 rounded-full"></span>
                 </button>
@@ -392,7 +394,7 @@ export default function OneControlLanding({ data }: OneControlLandingProps) {
               Why Industry Leaders Choose Us
             </h2>
             <p className="text-slate-400 max-w-2xl mx-auto">
-              We don't just write code; we architect solutions designed for
+              We don&apos;t just write code; we architect solutions designed for
               stability, speed, and massive scale.
             </p>
           </div>
@@ -424,7 +426,7 @@ export default function OneControlLanding({ data }: OneControlLandingProps) {
                 color: "text-green-500",
                 bg: "bg-green-900/50",
                 title: "24/7 Support",
-                desc: "We don't disappear after launch. We offer ongoing maintenance and dedicated support.",
+                desc: "We don&apos;t disappear after launch. We offer ongoing maintenance and dedicated support.",
               },
             ].map((item, idx) => (
               <div
@@ -584,7 +586,6 @@ export default function OneControlLanding({ data }: OneControlLandingProps) {
         </div>
       </section>
 
-      {/* --- Tools & Use Cases --- */}
       <section
         id="tools"
         ref={addToRefs}
@@ -614,7 +615,10 @@ export default function OneControlLanding({ data }: OneControlLandingProps) {
                   <p className="text-purple-400">
                     const <span className="text-white">OneControl</span> =
                     require(
-                    <span className="text-green-400">'@onecontrol/sdk'</span>);
+                    <span className="text-green-400">
+                      &apos;@onecontrol/sdk&apos;
+                    </span>
+                    );
                   </p>
                   <p className="text-slate-500">// Initialize Telegram Bot</p>
                   <p className="text-blue-400">
@@ -622,13 +626,16 @@ export default function OneControlLanding({ data }: OneControlLandingProps) {
                     <span className="text-yellow-300">startBot</span>() {"{"}
                   </p>
                   <p className="pl-4 text-white">
-                    await OneControl.connect({"{"}
+                    await OneControl.connect({"{"})
+                  </p>
+
+                  <p className="pl-8 text-sky-300">
+                    mode:{" "}
+                    <span className="text-green-400">&apos;turbo&apos;</span>,
                   </p>
                   <p className="pl-8 text-sky-300">
-                    mode: <span className="text-green-400">'turbo'</span>,
-                  </p>
-                  <p className="pl-8 text-sky-300">
-                    security: <span className="text-green-400">'high'</span>,
+                    security:{" "}
+                    <span className="text-green-400">&apos;high&apos;</span>,
                   </p>
                   <p className="pl-8 text-sky-300">
                     sync: <span className="text-purple-400">true</span>

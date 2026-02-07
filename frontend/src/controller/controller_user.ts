@@ -8,14 +8,14 @@ import HashKey from "@/helper/hash_key";
 import { empty } from "@/utils/util";
 import { rate_limit } from "@/helper/ratelimit";
 import { PHONE_REGEX, SAFE_TEXT, EMAIL_REGEX } from "@/constants";
-import { AuthResponse } from "@/@types/type";
-import { defaultUserProfileConfig } from "@/default/default";
-import { UserProfileConfig } from "@/interface";
-import { parse_user_profile } from "@/parser";
+import { AuthResponse, LoginResponse } from "@/@types/type";
+import { CheckAuthResponse, UserProfileConfig } from "@/interface";
 import controller_r2 from "./controller_r2";
 import { ProtectController } from "./controller_protector";
-import { request_get } from "@/libs/request_server";
+import { request_get, request_post } from "@/libs/request_server";
 import { valid_token } from "@/helper/helper.redirect";
+import { th } from "zod/v4/locales";
+import { get_url } from "@/libs/get_urls";
 
 class UserController extends ProtectController {
     private time_ratelimit = {
@@ -48,6 +48,24 @@ class UserController extends ProtectController {
             .regex(/^[A-Za-z0-9+/=]+$/, "Invalid hash format"),
     };
 
+    private getHeaders(token: string) {
+        return {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        };
+    }
+
+    private decryptPayload<T>(encrypted: string | null | undefined): T | null {
+        if (!encrypted) return null;
+        try {
+            const decoded = HashData.decryptData(encrypted);
+            return JSON.parse(decoded) as T;
+        } catch (error) {
+            eLog("[Decrypt Error]", error);
+            return null;
+        }
+    }
+
     private handleSaveError(err: unknown): ReturnType<typeof response_data> {
         if (axios.isAxiosError(err)) {
             const ax = err as AxiosError<unknown>;
@@ -69,23 +87,24 @@ class UserController extends ProtectController {
         return EMAIL_REGEX.test(email);
     }
 
-    public async check_auth<T = unknown>(token?: string): Promise<AuthResponse<T>> {
-        if (!token) {
-            return { code: 401, message: "Unauthorized", data: [] as any };
-        }
-        const ApiUrl = get_env("BACKEND_URL");
+    public async check_auth(token: string): Promise<CheckAuthResponse | null> {
+        if (!token) return null;
         try {
-            const res = await axios.get(`${ApiUrl}/auth/check_auth`, {
-                timeout: 10_000,
-                headers: {
-                    authorization: `Bearer ${token}`,
-                },
+            const res = await request_get<AuthResponse<string>>({
+                url: get_url("check_auth"),
+                headers: this.getHeaders(token),
+                timeout: 10_000
             });
-            const format_data = HashData.decryptData(res.data.data);
-            const collections = JSON.parse(format_data);
-            return { code: res.data.code, message: res.data.message, data: collections ?? [] };
-        } catch (err: any) {
-            return { code: 500, message: "Internal Server Error", data: [] as any };
+            if (!res.success) throw new Error(res.error);
+            const { code, message, data } = res.data;
+            if (code !== 200) {
+                eLog("[check_auth] Error:", message);
+                return null;
+            }
+            return this.decryptPayload<CheckAuthResponse>(data);
+        } catch (err: unknown) {
+            eLog("[check_auth] Failed:", err);
+            return null;
         }
     }
 
@@ -113,19 +132,19 @@ class UserController extends ProtectController {
             if (!rl.allowed) {
                 return response_data(429, 429, "Too many requests", []);
             }
-            const apiUrl = get_env("BACKEND_URL");
             const payload = HashData.encryptData(JSON.stringify({ phone, password, hash_key }));
-            const response = await axios.post(
-                `${apiUrl}/auth/login`,
-                { payload },
-                {
-                    timeout: 5_000,
-                    headers: { "Content-Type": "application/json" },
-                }
-            );
-            const data = response.data;
-            const res = response_data(data.code, 200, data.message, []);
-            res.cookies.set("authToken", data.token, {
+            const response = await request_post<LoginResponse>({
+                url: get_url("login"),
+                data: { payload },
+                timeout: 10_000,
+                headers: { "Content-Type": "application/json" },
+            });
+            if (!response.success) {
+                return response_data(400, 400, response.error, []);
+            }
+            const { code, message, data, token } = response.data;
+            const res = response_data(code, code, message, data);
+            res.cookies.set("authToken", token, {
                 httpOnly: true,
                 secure: get_env("NODE_ENV") === "production",
                 path: "/",
@@ -133,18 +152,9 @@ class UserController extends ProtectController {
                 maxAge: 60 * 60 * 24 * 7,
             });
             return res;
-        } catch (err: any) {
+        } catch (err: unknown) {
             eLog("Login Proxy Error:", err);
-            if (axios.isAxiosError(err)) {
-                if (err.code === "ECONNABORTED") {
-                    return response_data(408, 408, "Request timeout (10s)", []);
-                }
-                if (err.response) {
-                    const backendMessage = err.response.data?.message || err.response.statusText;
-                    return response_data(err.response.status, err.response.status, backendMessage, []);
-                }
-            }
-            return response_data(500, 500, "Internal Server Error", []);
+            return this.handleSaveError(err);
         }
     }
 
@@ -338,26 +348,23 @@ class UserController extends ProtectController {
         }
     }
 
-    public async get_user_profile(token?: string): Promise<UserProfileConfig> {
-        if (!token) {
-            return defaultUserProfileConfig;
-        }
+    public async get_user_profile(token?: string): Promise<UserProfileConfig | null> {
+        if (!token) return null;
         const ApiUrl = get_env("BACKEND_URL");
         try {
             const res = await axios.get(`${ApiUrl}/auth/get_user_profile`, {
                 timeout: 10_000,
-                headers: {
-                    authorization: `Bearer ${token}`,
-                },
+                headers: this.getHeaders(token),
             });
-            if (res.data.code !== 200) {
-                return defaultUserProfileConfig;
+            if (res.status !== 200) return null;
+            const { code, message, data } = res.data;
+            if (code !== 200) {
+                eLog("[get_user_profile] Error:", message);
+                return null;
             }
-            const formatData = HashData.decryptData(res.data.data);
-            const collections = JSON.parse(formatData);
-            return parse_user_profile(collections);
-        } catch (err: any) {
-            return defaultUserProfileConfig;
+            return this.decryptPayload<UserProfileConfig>(data);
+        } catch (err: unknown) {
+            return null;
         }
     }
 
@@ -460,18 +467,12 @@ class UserController extends ProtectController {
         try {
             const token = await valid_token();
             if (!token) return null;
-            const get_user = await this.check_auth<UserProfileConfig>(token);
-            if (get_user.code !== 200) return null;
-            const data = get_user.data as unknown;
-            if (typeof data === 'object' && data !== null && 'avatar' in data && 'fullName' in data) {
-                return data as UserProfileConfig;
-            }
-            return null;
-        } catch (error: any) {
+            const get_user = await this.check_auth(token);
+            if (!get_user) return null;
+            return get_user;
+        } catch (error: unknown) {
             return null;
         }
     }
-
-
 }
 export default new UserController;

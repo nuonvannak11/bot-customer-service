@@ -12,7 +12,6 @@ import {
   Bell,
   BarChart2,
   Settings,
-  MessageSquare,
   LayoutTemplate,
   Contact,
   Users,
@@ -25,6 +24,7 @@ import SidebarDropdown from "./SidebarDropdown";
 import TiktokIcon from "./icons/TiktokIcon";
 import { UserProfileConfig } from "@/interface";
 import { STATIC_IMG_PROFILE } from "@/constants/default";
+import Image from "next/image";
 
 export default function Sidebar({
   user,
@@ -161,7 +161,7 @@ export default function Sidebar({
           href="/profile"
           className="flex items-center w-full group"
           onClick={handleLinkClick}>
-          <img
+          <Image
             className="h-9 w-9 rounded-full object-cover border border-slate-300 dark:border-slate-600"
             src={user.avatar ?? STATIC_IMG_PROFILE}
             alt="User avatar"

@@ -18,6 +18,21 @@ type Props = {
   hash_data: string;
 };
 
+type LoginFormData = {
+  phone: string;
+  password: string;
+  hash_key: string;
+};
+
+type RegisterFormData = {
+  username: string;
+  phone: string;
+  password: string;
+  hash_key: string;
+};
+
+type AuthFormData = LoginFormData | RegisterFormData;
+
 const LoginRegister = ({ hash_data }: Props) => {
   const { t } = useTranslation();
   const [formType, setFormType] = useState<"login" | "register">("login");
@@ -112,13 +127,15 @@ const LoginRegister = ({ hash_data }: Props) => {
     { dependencies: [formType], scope: container },
   );
 
-  const handleValid = (form: HTMLFormElement) => {
+  const handleValid = (form: HTMLFormElement): AuthFormData | null => {
     const formData = new FormData(form);
-    const data = Object.fromEntries(formData) as Record<string, any>;
+    const data = Object.fromEntries(formData) as Record<string, string>;
+
     const isRegister = form.id === "register-form";
     const requiredFields = isRegister
       ? ["username", "phone", "password"]
       : ["phone", "password"];
+
     const missing = requiredFields.filter((name) => empty(data[name]));
 
     if (missing.length) {
@@ -126,7 +143,9 @@ const LoginRegister = ({ hash_data }: Props) => {
       const input = form.querySelector(
         `[name="${firstField}"]`,
       ) as HTMLInputElement | null;
+
       input?.focus();
+
       showAlert({
         title: t("Error"),
         text: `${t(capitalize(firstField))} ${t("is required")}`,
@@ -134,7 +153,7 @@ const LoginRegister = ({ hash_data }: Props) => {
       });
       return null;
     }
-    return data;
+    return data as AuthFormData;
   };
 
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
@@ -146,12 +165,15 @@ const LoginRegister = ({ hash_data }: Props) => {
     sweet_request(
       { title: t("Sending..."), text: t("Please wait") },
       async () => {
-        const result = await axios.post("/api/auth/login", formData, {
-          timeout: 10000,
-          headers: { "Content-Type": "application/json" },
-        });
+        const result = await axios.post(
+          "/api/auth/login",
+          formData as LoginFormData,
+          {
+            timeout: 10000,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
         const apiData = result.data;
-        console.log(apiData);
         if (apiData.code === 200) {
           router.push("/dashboard");
         } else {
@@ -160,7 +182,6 @@ const LoginRegister = ({ hash_data }: Props) => {
           });
         }
       },
-
       (err) => {
         toast.error(err.response?.data?.message ?? "Something went wrong", {
           position: "top-center",
@@ -185,7 +206,9 @@ const LoginRegister = ({ hash_data }: Props) => {
         });
         const apiData = result.data;
         if (apiData.code === 200) {
-          router.push(`/login/verify?phone=${formData.phone}`);
+          router.push(
+            `/login/verify?phone=${(formData as RegisterFormData).phone}`,
+          );
         } else {
           toast.error(apiData.message ?? "Something went wrong", {
             position: "top-center",

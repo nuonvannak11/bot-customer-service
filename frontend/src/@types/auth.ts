@@ -1,4 +1,5 @@
 export interface JWTPayload {
-  token:string;
-  [key: string]: any;
+  token: string;
+  user_id?: string;
+  [key: string]: unknown;
 }

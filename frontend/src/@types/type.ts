@@ -1,4 +1,8 @@
-import { JWTPayload } from "@/@types/auth";
+declare module "next-auth" {
+  interface Session {
+    googleIdToken?: string;
+  }
+}
 
 export interface SocketPayload {
   token: string;
@@ -11,10 +15,15 @@ export type AuthResponse<T = unknown> = {
   data: T;
 };
 
+export type LoginResponse = AuthResponse & {
+  token: string;
+}
+
+// 2. Change 'any' to 'unknown' to fix the explicit-any error
 export type ResponseData = {
   code: number;
   message: string;
-  data: any;
+  data: unknown;
 };
 
 export type ApiResponse<T> = {

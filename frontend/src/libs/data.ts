@@ -1,17 +1,11 @@
-import axios from "axios";
-import { get_env, eLog } from "@/libs/lib";
-import { empty } from "@/utils/util";
-import { JWTPayload } from "@/@types/auth";
+import { eLog } from "@/libs/lib";
 import { getServerToken } from "@/libs/lib";
-import { cache } from "react";
-import { error } from "console";
 import { redirect } from "next/navigation";
 import controller_telegram from "@/controller/controller_telegram";
-import { parse_telegram_bot_settings, parse_user_profile } from "@/parser/index";
 import controller_user from "@/controller/controller_user";
 import { ProtectData } from "@/interface/telegram/interface.telegram";
 
-export async function getDashboardStats(user: JWTPayload) {
+export async function getDashboardStats() {
   await new Promise((resolve) => setTimeout(resolve, 300));
   return {
     users: "12,345",
@@ -70,42 +64,6 @@ export async function getReportStats() {
   };
 }
 
-export async function getBotSettings() {
-  const token = await getServerToken();
-  if (!token) redirect("/login");
-  try {
-    const data = await controller_telegram.get_setting_bot(token);
-    return parse_telegram_bot_settings(data);
-  } catch (error) {
-    eLog("Failed to fetch bot settings:", error);
-    return parse_telegram_bot_settings(null);
-  }
-}
-
-export async function getUserProfile() {
-  const token = await getServerToken();
-  if (!token) redirect("/login");
-  try {
-    const data = await controller_user.get_user_profile(token);
-    return data;
-  } catch (error) {
-    eLog("Failed to fetch bot settings:", error);
-    return parse_user_profile(null);
-  }
-}
-
-export async function getProtectData() {
-  const token = await getServerToken();
-  if (!token) redirect("/login");
-  try {
-    const data = await controller_user.protect_data(token);
-    return data;
-  } catch (error) {
-    eLog("Failed to fetch bot settings:", error);
-    return [];
-  }
-}
-
 export async function getSettings() {
   return {
     general: {
@@ -125,6 +83,18 @@ export async function getSettings() {
       avatar: "https://example.com/avatar.png"
     }
   };
+}
+
+export async function getProtectData() {
+  const token = await getServerToken();
+  if (!token) redirect("/login");
+  try {
+    const data = await controller_user.protect_data(token);
+    return data;
+  } catch (error) {
+    eLog("Failed to fetch bot settings:", error);
+    return [];
+  }
 }
 
 export async function getProtects(): Promise<ProtectData> {

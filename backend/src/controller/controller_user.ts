@@ -41,17 +41,15 @@ class UserController extends ProtectController {
             return;
         }
         const { token, user_id } = check_token;
-        const user = await AppUser.findOne({ user_id }).select("+access_token_hash").lean();
-        if (!user || token !== user.access_token_hash) {
+        const user = await AppUser.findOne({ user_id, access_token_hash: token }).lean();
+        if (!user) {
             response_data(res, 401, "Unauthorized", []);
             return;
         }
         const settings = await model_settings.findOne({ user_id }).lean<ISetting | null>();
         const { emailNotifications, twoFactor } = settings?.user || { emailNotifications: false, twoFactor: false };
-        const format_email_notifications = emailNotifications ? "1" : "0";
-        const format_two_factor = twoFactor ? "1" : "0";
         const { email, phone, name, avatar, bio, point } = user;
-        const collection = { avatar, fullName: name, username: name, email, phone, bio, points: point, emailNotifications: format_email_notifications, twoFactor: format_two_factor };
+        const collection = { avatar, fullName: name, username: name, email, phone, bio, points: point, emailNotifications, twoFactor };
         const encrypted = hashData.encryptData(JSON.stringify(collection));
         return response_data(res, 200, "Success", encrypted);
     }

@@ -9,6 +9,18 @@ export interface TelegramBotSettingsConfig {
   exceptionLinks: string[];
 }
 
+export interface CheckAuthResponse {
+  avatar: string;
+  fullName: string;
+  username: string;
+  email: string;
+  phone: string;
+  bio: string;
+  points: number;
+  emailNotifications: boolean;
+  twoFactor: boolean;
+}
+
 export interface UserProfileConfig {
   avatar: string;
   fullName: string;

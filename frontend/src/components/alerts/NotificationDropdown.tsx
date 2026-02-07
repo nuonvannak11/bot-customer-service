@@ -11,10 +11,8 @@ export default function NotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // 1. Removed 'scope'
-  const { contextSafe } = useGSAP(
+  useGSAP(
     () => {
-      // 2. Safety Check
       if (!isOpen || !contentRef.current) return;
 
       gsap.fromTo(
@@ -26,14 +24,15 @@ export default function NotificationDropdown() {
           scale: 1,
           duration: 0.2,
           ease: "power2.out",
-        }
+        },
       );
     },
-    { dependencies: [isOpen] }
+    { dependencies: [isOpen], scope: contentRef },
   );
 
-  const animateOut = contextSafe(() => {
-    if (!contentRef.current) return; // Safety check
+  const animateOut = React.useCallback(() => {
+    if (!contentRef.current) return;
+
     gsap.to(contentRef.current, {
       opacity: 0,
       y: -8,
@@ -42,7 +41,7 @@ export default function NotificationDropdown() {
       ease: "power2.in",
       onComplete: () => setIsOpen(false),
     });
-  });
+  }, []);
 
   const handleOpenChange = (open: boolean) => {
     if (open) {
@@ -74,8 +73,7 @@ export default function NotificationDropdown() {
       <DropdownMenu.Trigger asChild>
         <button
           suppressHydrationWarning={true}
-          className="relative cursor-pointer p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors outline-none focus:ring-2 focus:ring-indigo-500/20"
-        >
+          className="relative cursor-pointer p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors outline-none focus:ring-2 focus:ring-indigo-500/20">
           <Bell size={20} />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
         </button>
@@ -90,8 +88,7 @@ export default function NotificationDropdown() {
           }}
           className="notif-content z-50 w-72 bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 shadow-xl p-2 origin-top-right will-change-transform"
           sideOffset={8}
-          align="end"
-        >
+          align="end">
           <div className="px-3 py-2 border-b border-gray-100 dark:border-slate-800 mb-1">
             <h3 className="font-semibold text-sm text-slate-900 dark:text-white">
               Notifications
@@ -102,13 +99,11 @@ export default function NotificationDropdown() {
             {notifications.map((item) => (
               <DropdownMenu.Item
                 key={item.id}
-                className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer outline-none transition-colors"
-              >
+                className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer outline-none transition-colors">
                 <div
                   className={clsx(
-                    "mt-0.5 p-1.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
-                  )}
-                >
+                    "mt-0.5 p-1.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700",
+                  )}>
                   {getIcon(item.type)}
                 </div>
                 <div className="flex-1">

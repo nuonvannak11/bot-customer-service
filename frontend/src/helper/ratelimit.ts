@@ -35,13 +35,20 @@ export async function rate_limit(key: string, limit: number, windowSeconds: numb
     try {
         try {
             result = await redis.evalsha(SCRIPT_SHA, 1, redisKey, limit, windowSeconds) as [number, number];
-        } catch (err: any) {
-            if (err.message && err.message.includes("NOSCRIPT")) {
-                result = await redis.eval(RATE_LIMIT_LUA_SCRIPT, 1, redisKey, limit, windowSeconds) as [number, number];
+        } catch (err: unknown) {
+            if (err instanceof Error && err.message.includes("NOSCRIPT")) {
+                result = await redis.eval(
+                    RATE_LIMIT_LUA_SCRIPT,
+                    1,
+                    redisKey,
+                    limit,
+                    windowSeconds
+                ) as [number, number];
             } else {
                 throw err;
             }
         }
+
         const [current, ttl] = result;
         return {
             allowed: current <= limit,

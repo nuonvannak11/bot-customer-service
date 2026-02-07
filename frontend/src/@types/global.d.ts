@@ -1,13 +1,14 @@
 export {};
 
-declare module '*.css' {
-  const content: {};
-  export default content;
+declare module "*.css" {
+  const classes: Record<string, string>;
+  export default classes;
 }
 
 declare global {
   interface Window {
-    google: any;
+    google: unknown;
   }
+
   var redis: Redis | undefined;
 }

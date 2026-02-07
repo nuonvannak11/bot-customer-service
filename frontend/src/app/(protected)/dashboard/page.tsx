@@ -1,8 +1,7 @@
 import { getDashboardStats } from "@/libs/data";
 import DashboardClient from "@/components/dashboard/DashboardClient";
-import { JWTPayload } from "@/types/auth";
 
-export default async function DashboardPage(user: JWTPayload) {
-  const data = await getDashboardStats(user);
+export default async function DashboardPage() {
+  const data = await getDashboardStats();
   return <DashboardClient data={data} />;
 }

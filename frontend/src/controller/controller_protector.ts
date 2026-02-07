@@ -33,12 +33,12 @@ type ProtectData<T extends ShapeRecord> = ShapeOutput<T> & {
     token?: string;
 };
 
-type ProtectDataSchema<TSchema extends z.ZodObject<any>> = z.output<TSchema> & {
+type ProtectDataSchema<TSchema extends z.ZodObject<z.ZodRawShape>> = z.output<TSchema> & {
     hash_key: string;
     token?: string;
 };
 
-type ProtectDataFor<T> = T extends z.ZodObject<any>
+type ProtectDataFor<T> = T extends z.ZodObject<z.ZodRawShape>
     ? ProtectDataSchema<T>
     : T extends ShapeRecord
     ? ProtectData<T>
@@ -48,15 +48,15 @@ type ProtectDataWithToken<T> = ProtectDataFor<T> & {
     token: string;
 };
 
-const isZodObject = (value: unknown): value is z.ZodObject<any> => {
+const isZodObject = (value: unknown): value is z.ZodObject<z.ZodRawShape> => {
     return typeof value === "object"
         && value !== null
         && "shape" in value
-        && typeof (value as z.ZodObject<any>).safeParse === "function";
+        && typeof (value as z.ZodObject<z.ZodRawShape>).safeParse === "function";
 };
 
 export class ProtectController {
-    protected data: any = {};
+    protected data: Record<string, unknown> = {};
     private readonly default_extensions_img = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/bmp", "image/tiff", "image/svg+xml"];
     private readonly dangerousKeys = new Set([
         "__proto__",
@@ -76,7 +76,7 @@ export class ProtectController {
             }
             if (contentType.includes("multipart/form-data")) {
                 const form = await req.formData();
-                const output: Record<string, any> = {};
+                const output: Record<string, unknown> = {};
                 for (const [key, value] of form.entries()) {
                     if (value instanceof File) continue;
                     output[key] = value?.toString() ?? "";
@@ -125,13 +125,13 @@ export class ProtectController {
         return { ok: true, file, buffer, ext: detected.ext, mime: detected.mime };
     }
 
-    public hasDangerousKeys(obj: any): boolean {
+    public hasDangerousKeys(obj: unknown): boolean {
         if (obj === null || typeof obj !== "object") return false;
         if (Array.isArray(obj)) {
             return obj.some((item) => this.hasDangerousKeys(item));
         }
         for (const key in obj) {
-            const value = obj[key];
+            const value = (obj as Record<string, unknown>)[key];
             if (this.dangerousKeys.has(key)) return true;
             if (key.startsWith("$")) return true;
             if (key.includes(".")) return true;
@@ -159,9 +159,9 @@ export class ProtectController {
         return parse_data.data;
     }
 
-    async protect<T extends ShapeRecord | z.ZodObject<any>>(req: NextRequest, json_protector: T, ratlimit?: number, check_token?: false, time_limit?: number): Promise<ProtectResult<ProtectDataFor<T>>>;
-    async protect<T extends ShapeRecord | z.ZodObject<any>>(req: NextRequest, json_protector: T, ratlimit: number, check_token: true, time_limit?: number): Promise<ProtectResult<ProtectDataWithToken<T>>>;
-    async protect<T extends ShapeRecord | z.ZodObject<any>>(req: NextRequest, json_protector: T, ratlimit = 5, check_token = false, time_limit = 120): Promise<ProtectResult<ProtectDataFor<T> | ProtectDataWithToken<T>>> {
+    async protect<T extends ShapeRecord | z.ZodObject<z.ZodRawShape>>(req: NextRequest, json_protector: T, ratlimit?: number, check_token?: false, time_limit?: number): Promise<ProtectResult<ProtectDataFor<T>>>;
+    async protect<T extends ShapeRecord | z.ZodObject<z.ZodRawShape>>(req: NextRequest, json_protector: T, ratlimit: number, check_token: true, time_limit?: number): Promise<ProtectResult<ProtectDataWithToken<T>>>;
+    async protect<T extends ShapeRecord | z.ZodObject<z.ZodRawShape>>(req: NextRequest, json_protector: T, ratlimit = 5, check_token = false, time_limit = 120): Promise<ProtectResult<ProtectDataFor<T> | ProtectDataWithToken<T>>> {
         try {
             const token = req.cookies.get("authToken")?.value;
             if (check_token) {
@@ -177,9 +177,11 @@ export class ProtectController {
                 return { ok: false, response: response_data(403, 403, "Forbidden", []) };
             }
             const { body, form } = await this.get_body(req);
-            const BaseSchema = z.object({ hash_key: z.string() });
-            const shape = isZodObject(json_protector) ? json_protector.shape : json_protector;
-            const Schema = BaseSchema.extend(shape).strict();
+            const Schema = isZodObject(json_protector)
+                ? ("hash_key" in json_protector.shape
+                    ? json_protector.strict()
+                    : json_protector.extend({ hash_key: z.string() }).strict())
+                : z.object({ hash_key: z.string(), ...json_protector }).strict();
             const validation = Schema.safeParse(body);
             if (!validation.success) {
                 return { ok: false, response: response_data(400, 400, validation.error.issues[0].message, []) };

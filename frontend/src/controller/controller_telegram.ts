@@ -12,8 +12,7 @@ import { validateDomains } from "@/helper/helper.domain";
 import { get_url } from "@/libs/get_urls";
 import { ProtectData } from "@/interface/telegram/interface.telegram";
 import { ProtectRequestSchema, telegramPayloadSchema } from "@/zod/zod.telegram";
-import { error } from "console";
-import hash_data from "@/helper/hash_data";
+import { TelegramBotSettingsConfig } from "@/interface";
 
 interface ApiResponse<T = unknown> {
     code: number;
@@ -33,16 +32,19 @@ const TELEGRAM_SETTING_KEYS = [
 ] as const;
 
 const botActionSchema = z.object({
-    hash_key: z.string().min(10).max(50),
+    hash_key: z.string().min(10).max(100).regex(/^[A-Za-z0-9+/=]+$/, "Invalid hash format"),
     bot_token: z.string().min(10).max(100),
-    method: z.enum(["open", "close"]),
+    method: z.enum(["open", "close"]).optional(),
 });
 
-const ACTION_CONFIG: Record<string, { method: Method; endpoint: string }> = {
+type BotAction = "open" | "close";
+type ProtectAction = "add" | "update" | "delete";
+
+const ACTION_CONFIG: Record<ProtectAction, { method: Method; endpoint: string }> = {
     add: { method: "POST", endpoint: "save_protect_settings" },
     update: { method: "PUT", endpoint: "update_protect_settings" },
     delete: { method: "DELETE", endpoint: "delete_protect_settings" },
-}
+};
 
 class TelegramController extends ProtectController {
     private handleError(err: unknown) {
@@ -78,7 +80,7 @@ class TelegramController extends ProtectController {
             const decoded = HashData.decryptData(encrypted);
             return JSON.parse(decoded) as T;
         } catch (error) {
-            console.error("[Decrypt Error]", error);
+            eLog("[Decrypt Error]", error);
             return null;
         }
     }
@@ -123,13 +125,13 @@ class TelegramController extends ProtectController {
 
             if (!res.success) throw new Error(res.error);
 
-            const { code, message, data: responseData } = res.data;
+            const { code, message, data } = res.data;
 
             if (code !== 200) {
-                return response_data(code, code, message, responseData ?? []);
+                return response_data(code, code, message, data ?? []);
             }
 
-            const parsed = this.decryptPayload<Record<string, unknown>>(responseData);
+            const parsed = this.decryptPayload<Record<string, unknown>>(data);
             const settings = parsed ? this.pickTelegramSettings(parsed) : [];
 
             return response_data(code, 200, message, settings);
@@ -139,26 +141,24 @@ class TelegramController extends ProtectController {
         }
     }
 
-    async get_setting_bot(token?: string) {
-        if (!token) return defaultTelegramConfig;
+    async get_setting_bot(token: string): Promise<TelegramBotSettingsConfig | null> {
+        if (!token) return null;
         try {
-            const res = await request_get<ApiResponse<{ data: string }>>({
+            const res = await request_get<ApiResponse<string>>({
                 url: get_url("get_bot_settings"),
                 headers: this.getHeaders(token),
                 timeout: REQUEST_TIMEOUT_MS,
             });
-
-            if (!res.success || !res.data?.data) return defaultTelegramConfig;
-
-            const encryptedData = res.data.data;
-            if (typeof encryptedData !== "string") return defaultTelegramConfig;
-
-            const parsed = this.decryptPayload<Record<string, unknown>>(encryptedData);
-            return parsed ? (this.pickTelegramSettings(parsed) ?? defaultTelegramConfig) : defaultTelegramConfig;
-
+            if (!res.success) throw new Error(res.error);
+            const { code, message, data } = res.data;
+            if (code !== 200) {
+                eLog("[get_setting_bot] Error:", message);
+                return null;
+            }
+            return this.decryptPayload<TelegramBotSettingsConfig>(data);
         } catch (error) {
-            console.error("[get_setting_bot] Failed:", error);
-            return defaultTelegramConfig;
+            eLog("[get_setting_bot] Failed:", error);
+            return null;
         }
     }
 
@@ -180,7 +180,7 @@ class TelegramController extends ProtectController {
         }
     }
 
-    async bot_open_close(req: NextRequest) {
+    async bot_open_close(req: NextRequest, forcedMethod?: BotAction) {
         const result = await this.protect(req, botActionSchema, 10, true);
         if (!result.ok) return result.response!;
 
@@ -188,10 +188,19 @@ class TelegramController extends ProtectController {
         if (!data) return response_data(500, 500, "Invalid Request Data", []);
 
         const { token, hash_key, bot_token, method } = data;
+        const resolvedMethod = forcedMethod ?? method;
+
+        if (!resolvedMethod) {
+            return response_data(400, 400, "Method is required", []);
+        }
+
+        if (forcedMethod && method && method !== forcedMethod) {
+            return response_data(400, 400, `Invalid method for endpoint: ${forcedMethod}`, []);
+        }
 
         try {
-            const payload = this.encryptPayload({ hash_key, bot_token, method });
-            const urlKey = method === "close" ? "close_bot" : "open_bot";
+            const payload = this.encryptPayload({ hash_key, bot_token, method: resolvedMethod });
+            const urlKey = resolvedMethod === "close" ? "close_bot" : "open_bot";
             const res = await request_post<ApiResponse<string>>({
                 url: get_url(urlKey),
                 data: { payload },
@@ -236,44 +245,46 @@ class TelegramController extends ProtectController {
         if (!data) return response_data(500, 500, "Validation failed: No data received", []);
 
         const { token, ...rest } = data;
-        const asset_key = rest.asset_key;
+        const asset_key = rest.asset_key as ProtectAction;
         const action = ACTION_CONFIG[asset_key];
-
         if (!action) {
             return response_data(400, 400, `Invalid action: ${asset_key}`, []);
         }
         type RequestPayload = typeof rest | { chatId: string };
         let payload: RequestPayload = rest;
-        if (asset_key === 'delete') {
+        if (asset_key === "delete") {
             if (!rest.asset?.chatId) {
                 return response_data(400, 400, "Missing chatId for deletion", []);
             }
-            payload = { chatId: rest.asset.chatId };
+            payload = { chatId: String(rest.asset.chatId) };
         }
-        const encryptedBody = hash_data.encryptData(JSON.stringify(payload));
+        const encryptedBody = this.encryptPayload(payload);
         try {
-            const url = get_url(action.endpoint);
             const axiosResponse = await axios.request({
-                url,
+                url: get_url(action.endpoint),
                 method: action.method,
                 data: { payload: encryptedBody },
                 headers: this.getHeaders(token),
                 timeout: REQUEST_TIMEOUT_MS,
                 validateStatus: () => true,
             });
-            if (axiosResponse.status >= 400) {
-                throw new Error(axiosResponse.data?.message || "Request failed");
-            }
-            const responseData = axiosResponse.data;
-            console.log("Response Data:", responseData);
-            const { code, message, data } = responseData;
-            return response_data(code, code, message, data);
-        } catch (error: any) {
-            eLog("❌ Handle Protect Error:", error);
+            const responseData = axiosResponse.data ?? {};
+            const backendCode =
+                typeof responseData.code === "number" ? responseData.code : axiosResponse.status;
+            const backendMessage =
+                typeof responseData.message === "string"
+                    ? responseData.message
+                    : axiosResponse.statusText || "Request failed";
+            const backendData = responseData.data ?? [];
+
+            return response_data(backendCode, axiosResponse.status, backendMessage, backendData);
+        } catch (error: unknown) {
+            eLog("Handle Protect Error:", error);
             return this.handleError(error);
         }
     }
 
 }
+const telegramController = new TelegramController();
 
-export default new TelegramController();
+export default telegramController;
