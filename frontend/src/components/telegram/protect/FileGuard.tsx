@@ -81,7 +81,7 @@ export default function FileGuard({
     const currentValue = config.blockAllExstationFromNoneAdmin;
     updateAssetConfig({
       blockAllExstationFromNoneAdmin: !currentValue,
-    } as any);
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

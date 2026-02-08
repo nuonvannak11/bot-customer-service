@@ -20,8 +20,8 @@ export function get_url(name: string) {
             return get_env("BACKEND_URL") + "/api/telegram/bot/delete-protects-settings";
         case "update_protect_settings":
             return get_env("BACKEND_URL") + "/api/telegram/bot/update-protects-settings";
-        case "get_user_profile":
-            return get_env("BACKEND_URL") + "/api/user/profile";
+        case "user_profile":
+            return get_env("BACKEND_URL") + "/auth/get_user_profile";
         case "check_auth":
             return get_env("BACKEND_URL") + "/auth/check_auth";
         case "resend_code":
@@ -34,6 +34,8 @@ export function get_url(name: string) {
             return get_env("BACKEND_URL") + "/auth/register";
         case "logout":
             return get_env("BACKEND_URL") + "/auth/logout";
+        case "update_user_profile":
+            return get_env("BACKEND_URL") + "/api/user/profile/update";
         default:
             throw new Error(`Unknown backend url key: ${name}`);
     }

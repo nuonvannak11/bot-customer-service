@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { SocketPayload } from "@/@types/type";
 
@@ -20,40 +20,43 @@ const SocketContext = createContext<SocketContextType>({
 });
 
 export function SocketProvider({ option, children }: SocketProviderProps) {
-  const [socketInstance, setSocketInstance] = useState<Socket | null>(null);
+  const socketRef = useRef<Socket | null>(null);
+  const [socketState, setSocketState] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
 
-  if (!option?.token) {
-    return (
-      <SocketContext.Provider value={{ socket: null, connected: false }}>
-        {children}
-      </SocketContext.Provider>
-    );
-  }
-
   useEffect(() => {
-    if (!option.socket_url || !option.token) return;
-    const newSocket = io(option.socket_url, {
+    if (!option?.socket_url || !option?.token) return;
+
+    const socket = io(option.socket_url, {
       transports: ["websocket"],
       autoConnect: true,
       reconnection: true,
-      auth: {
-        token: option.token,
-      },
+      auth: { token: option.token },
     });
 
-    setSocketInstance(newSocket);
+    socketRef.current = socket;
 
-    newSocket.on("connect", () => setConnected(true));
-    newSocket.on("disconnect", () => setConnected(false));
+    queueMicrotask(() => setSocketState(socket));
+
+    const onConnect = () => setConnected(true);
+    const onDisconnect = () => setConnected(false);
+
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
 
     return () => {
-      newSocket.disconnect();
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+      socket.disconnect();
+
+      socketRef.current = null;
+      setConnected(false);
+      queueMicrotask(() => setSocketState(null));
     };
-  }, [option.socket_url, option.token]);
+  }, [option?.socket_url, option?.token]);
 
   return (
-    <SocketContext.Provider value={{ socket: socketInstance, connected }}>
+    <SocketContext.Provider value={{ socket: socketState, connected }}>
       {children}
     </SocketContext.Provider>
   );

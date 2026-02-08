@@ -40,4 +40,6 @@ class ControllerR2 {
 
     }
 }
-export default new ControllerR2;
+
+const controllerR2 = new ControllerR2();
+export default controllerR2;

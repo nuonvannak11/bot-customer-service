@@ -2,7 +2,6 @@ import { eLog } from "@/libs/lib";
 import { getServerToken } from "@/libs/lib";
 import { redirect } from "next/navigation";
 import controller_telegram from "@/controller/controller_telegram";
-import controller_user from "@/controller/controller_user";
 import { ProtectData } from "@/interface/telegram/interface.telegram";
 
 export async function getDashboardStats() {
@@ -83,18 +82,6 @@ export async function getSettings() {
       avatar: "https://example.com/avatar.png"
     }
   };
-}
-
-export async function getProtectData() {
-  const token = await getServerToken();
-  if (!token) redirect("/login");
-  try {
-    const data = await controller_user.protect_data(token);
-    return data;
-  } catch (error) {
-    eLog("Failed to fetch bot settings:", error);
-    return [];
-  }
 }
 
 export async function getProtects(): Promise<ProtectData> {

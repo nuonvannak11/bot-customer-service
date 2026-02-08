@@ -44,3 +44,14 @@ export interface SetStateProps<T> {
   state: T;
   setState: React.Dispatch<React.SetStateAction<T>>;
 }
+
+export interface ParseJWTPayload {
+  user_id: string;
+  session_id: string;
+}
+
+export interface EnsureUserLoginProp { 
+  user: CheckAuthResponse, 
+  token: string ,
+  cookiesObj: Record<string, string>
+};

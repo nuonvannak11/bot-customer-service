@@ -3,22 +3,26 @@
 import React, { useState } from "react";
 import { X, AtSign, Info, Phone, Bell, UserX } from "lucide-react";
 import clsx from "clsx";
+import { TelegramContact } from "@/interface/telegram/interface.telegram";
+import Image from "next/image";
 
 export default function UserProfileModal({
   contact,
   onClose,
 }: {
-  contact: any;
+  contact: TelegramContact;
   onClose: () => void;
 }) {
   const [activeTab, setActiveTab] = useState("media");
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-100 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="absolute inset-0" onClick={onClose}></div>
       <div className="relative w-full max-w-xs sm:max-w-sm bg-[#17212b] rounded-lg sm:rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
         <div className="relative h-48 sm:h-60 w-full shrink-0">
-          <img
+          <Image
             src={contact.avatar}
+            width={50}
+            height={50}
             className="w-full h-full object-cover"
             alt={contact.name}
           />

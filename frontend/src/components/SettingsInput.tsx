@@ -13,7 +13,7 @@ const SettingsInput = ({
   id,
   name,
   customStyle,
-  isShowPw = true,
+  isShowPw = false,
 }: {
   id?: string;
   label: string;
@@ -56,7 +56,7 @@ const SettingsInput = ({
         <input
           id={id}
           disabled={disabled}
-          type={isPassword && !showPassword ? "password" : "text"}
+          type={isPassword && showPassword ? "password" : "text"}
           value={value}
           name={name}
           onChange={(e) => onChange?.(e.target.value)}

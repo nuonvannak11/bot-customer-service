@@ -69,7 +69,7 @@ export interface ChannelConfig {
   spam: SpamConfig;
   rulesCount: number;
   blockAllLinksFromNoneAdmin: boolean;
-  blockAllExstationFromNoneAdmin:boolean,
+  blockAllExstationFromNoneAdmin: boolean,
 }
 
 export interface SpamConfig {
@@ -108,4 +108,16 @@ export interface FileGuardProps extends SetStateProps<setFileGuardProps> {
   onRemove: (ext: string) => void;
   onSave: () => void;
   t: (key: string) => string;
+}
+
+export interface TelegramContact {
+  id: number;
+  name: string;
+  username: string;
+  avatar: string;
+  time: string;
+  msg: string;
+  unread: number,
+  status: string;
+  category: string;
 }

@@ -14,6 +14,7 @@ import { normalizeText, strlower } from "@/utils/util";
 import { SetStateProps } from "@/interface";
 import { TelegramProtectPageState } from "../TelegramProtectPage";
 import { ActionButton } from "./entity/ActionButton";
+import Image from "next/image";
 
 type GroupManagementProps = SetStateProps<TelegramProtectPageState> & {
   handlers: {
@@ -287,9 +288,11 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
                         }`}
                       >
                         {asset.avartar ? (
-                          <img
+                          <Image
                             src={asset.avartar}
                             alt={asset.name}
+                            width={32}
+                            height={32}
                             className="w-full h-full object-cover rounded-full"
                           />
                         ) : (
@@ -315,7 +318,7 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
               ) : (
                 <div className="py-8 text-center">
                   <p className="text-xs text-slate-500">
-                    No available assets found.
+                    {t("No available assets found.")}
                   </p>
                 </div>
               )}

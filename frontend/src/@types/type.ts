@@ -31,3 +31,9 @@ export type ApiResponse<T> = {
   message: string;
   data: T;
 };
+
+export type OTPResponse<T> = {
+  code: number;
+  message: string;
+  token: T;
+};

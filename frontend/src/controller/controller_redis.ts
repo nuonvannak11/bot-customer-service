@@ -2,11 +2,11 @@ import redis from "@/libs/redis";
 import { eLog } from "@/libs/lib";
 
 class RedisController {
-    async set(key: string, value: any, ttlSeconds?: number): Promise<void> {
+    async set<T>(key: string, value: T, ttlSeconds?: number): Promise<void> {
         try {
             const data = JSON.stringify(value);
             if (ttlSeconds) {
-                await redis.set(key, data, 'EX', ttlSeconds);
+                await redis.set(key, data, "EX", ttlSeconds);
             } else {
                 await redis.set(key, data);
             }
@@ -83,5 +83,5 @@ class RedisController {
         }
     }
 }
-
-export default new RedisController;
+const redisController = new RedisController();
+export default redisController;

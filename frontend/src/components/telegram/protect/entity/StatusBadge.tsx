@@ -3,7 +3,7 @@ export function StatusBadge({
   t,
 }: {
   status: "active" | "inactive";
-  t: any;
+  t: (key: string) => string;
 }) {
   const isActive = status === "active";
   return (
@@ -12,7 +12,8 @@ export function StatusBadge({
         isActive
           ? "bg-emerald-100/80 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20"
           : "bg-red-100/80 dark:bg-red-500/10 border-red-200 dark:border-red-500/20"
-      }`}>
+      }`}
+    >
       <span className="relative flex h-2 w-2">
         <span
           className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
@@ -30,7 +31,8 @@ export function StatusBadge({
           isActive
             ? "text-emerald-700 dark:text-emerald-400"
             : "text-red-700 dark:text-red-400"
-        }`}>
+        }`}
+      >
         {t(status === "active" ? "Active" : "Inactive")}
       </span>
     </div>

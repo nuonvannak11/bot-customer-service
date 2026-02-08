@@ -62,6 +62,8 @@ export default function ProfileDropdown({ user }: { user: UserProfileConfig }) {
           <Image
             className="h-8 w-8 rounded-full object-cover border border-slate-200 dark:border-slate-700"
             src={user.avatar ?? STATIC_IMG_PROFILE}
+            width={40}
+            height={40}
             alt="Avatar"
           />
           <span className="hidden sm:block text-sm text-slate-700 dark:text-slate-200 font-medium">
@@ -81,7 +83,6 @@ export default function ProfileDropdown({ user }: { user: UserProfileConfig }) {
           className="dropdown-content z-50 min-w-48 bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 shadow-xl p-1.5 mr-4 mt-2 origin-top-right will-change-transform"
           sideOffset={5}
           align="end">
-          {/* Group 1: Navigation */}
           <DropdownMenu.Group>
             <DropdownMenu.Item asChild className="dropdown-item outline-none">
               <Link

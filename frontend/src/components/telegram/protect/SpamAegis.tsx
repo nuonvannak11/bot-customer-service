@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useCallback, useMemo, useRef, useLayoutEffect } from "react";
-import toast from "react-hot-toast";
-import { MessageSquareOff, Save, Info } from "lucide-react";
+import { MessageSquareOff, Save } from "lucide-react";
 import gsap from "gsap";
 
 import {

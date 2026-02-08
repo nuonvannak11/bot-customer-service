@@ -3,10 +3,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { empty, strlower } from "@/utils/util";
 import { cookies } from "next/headers";
 import { GroupChannel, PreparedData, ProtectData } from "@/interface/telegram/interface.telegram";
+import check_jwt from "@/helper/check_jwt";
+import { redirect } from "next/navigation";
+import controller_user from "@/controller/controller_user";
+import { CheckAuthResponse, EnsureUserLoginProp } from "@/interface";
 
 export const response_data = (code: number, status: number, message: string, data: unknown) => {
     return NextResponse.json(
-        { code: code, message: message, data: data },
+        {
+            code: code,
+            message: message,
+            data: data
+        },
         { status: status }
     );
 }
@@ -80,11 +88,41 @@ export function mask_phone(phone: string | number) {
     return `${first3}***${last2}`;
 }
 
-export async function getServerToken() {
+export async function getAllCookies(): Promise<Record<string, string>> {
     const cookie = await cookies();
-    const token = cookie.get("authToken")?.value;
-    return token;
+    const cookiesObj: Record<string, string> = {};
+    cookie.getAll().forEach((cookie) => {
+        cookiesObj[cookie.name] = cookie.value;
+    });
+    return cookiesObj;
 }
+
+export async function getCookie(name: string): Promise<string | null> {
+    const cookie = await cookies();
+    const value = cookie.get(name)?.value;
+    if (!value) return null;
+    return value;
+}
+
+export async function getServerToken(cookiesObj?: Record<string, string>): Promise<string | null> {
+    const token = cookiesObj ? cookiesObj["authToken"] : await getCookie("authToken");
+    return token || null;
+}
+
+export async function ensureValidToken(cookiesObj?: Record<string, string>): Promise<string | null> {
+    const candidate = await getServerToken(cookiesObj);
+    return candidate && check_jwt.verifyToken(candidate) ? candidate : null;
+}
+
+export async function ensureUserLogin(): Promise<EnsureUserLoginProp> {
+    const cookiesObj = await getAllCookies();
+    const token = await ensureValidToken(cookiesObj);
+    if (!token) redirect("/login");
+    const ensureUser = await controller_user.check_auth(token);
+    if (!ensureUser) redirect("/login");
+    return { user: ensureUser as CheckAuthResponse, token,cookiesObj };
+}
+
 
 export function prepareProtectData(data: ProtectData): PreparedData {
     const { groupChannel = [], threatLogs = [] } = data ?? {};

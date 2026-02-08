@@ -620,7 +620,7 @@ export default function OneControlLanding({ data }: OneControlLandingProps) {
                     </span>
                     );
                   </p>
-                  <p className="text-slate-500">// Initialize Telegram Bot</p>
+                  <p className="text-slate-500">Initialize Telegram Bot</p>
                   <p className="text-blue-400">
                     async function{" "}
                     <span className="text-yellow-300">startBot</span>() {"{"}
@@ -642,7 +642,7 @@ export default function OneControlLanding({ data }: OneControlLandingProps) {
                   </p>
                   <p className="pl-4 text-white">{"}"});</p>
                   <p className="pl-4 text-green-400">
-                    console.log("System Online 🚀");
+                    console.log(&quot;System Online 🚀&quot;);
                   </p>
                   <p className="text-blue-400">{"}"}</p>
                 </div>

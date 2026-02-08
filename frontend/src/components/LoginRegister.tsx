@@ -156,6 +156,16 @@ const LoginRegister = ({ hash_data }: Props) => {
     return data as AuthFormData;
   };
 
+  const handleErorr = (err: unknown) => {
+    let message = "Something went wrong";
+    if (axios.isAxiosError(err)) {
+      message = err.response?.data?.message ?? err.message;
+    } else if (err instanceof Error) {
+      message = err.message;
+    }
+    toast.error(message, { position: "top-center" });
+  };
+
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
@@ -182,10 +192,8 @@ const LoginRegister = ({ hash_data }: Props) => {
           });
         }
       },
-      (err) => {
-        toast.error(err.response?.data?.message ?? "Something went wrong", {
-          position: "top-center",
-        });
+      (err: unknown) => {
+        handleErorr(err);
       },
     );
   };
@@ -215,11 +223,8 @@ const LoginRegister = ({ hash_data }: Props) => {
           });
         }
       },
-
-      (err) => {
-        toast.error(err.response?.data?.message ?? "Something went wrong", {
-          position: "top-center",
-        });
+      (err: unknown) => {
+        handleErorr(err);
       },
     );
   };
@@ -262,7 +267,8 @@ const LoginRegister = ({ hash_data }: Props) => {
                   ? "text-slate-900"
                   : "text-slate-200 hover:text-white"
               }`}
-              onClick={() => setFormType("login")}>
+              onClick={() => setFormType("login")}
+            >
               {t("login")}
             </button>
             <button
@@ -273,7 +279,8 @@ const LoginRegister = ({ hash_data }: Props) => {
                   ? "text-slate-900"
                   : "text-slate-200 hover:text-white"
               }`}
-              onClick={() => setFormType("register")}>
+              onClick={() => setFormType("register")}
+            >
               {t("register")}
             </button>
           </div>
@@ -283,7 +290,8 @@ const LoginRegister = ({ hash_data }: Props) => {
               id="login-form"
               className="space-y-5 absolute top-0 left-0 w-full"
               ref={loginFormRef}
-              onSubmit={handleLogin}>
+              onSubmit={handleLogin}
+            >
               <SettingsInput
                 id="login-phone"
                 label={t("Phone number")}
@@ -301,10 +309,12 @@ const LoginRegister = ({ hash_data }: Props) => {
                 icon={ShieldCheck}
                 placeholder="56xbvf@2345678"
                 customStyle="w-full rounded-3xl border border-white/10 bg-white/5 px-2 py-2.5 text-white placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+                isShowPw={true}
               />
               <button
                 type="submit"
-                className="w-full rounded-2xl bg-linear-to-r from-indigo-500 via-purple-500 to-cyan-400 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-900/40 transition hover:brightness-110 cursor-pointer">
+                className="w-full rounded-2xl bg-linear-to-r from-indigo-500 via-purple-500 to-cyan-400 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-900/40 transition hover:brightness-110 cursor-pointer"
+              >
                 {t("log_in")}
               </button>
               <input type="hidden" value={hash_data} name="hash_key" />
@@ -314,7 +324,8 @@ const LoginRegister = ({ hash_data }: Props) => {
               onSubmit={handleRegister}
               id="register-form"
               className="space-y-5 absolute top-0 left-0 w-full"
-              ref={registerFormRef}>
+              ref={registerFormRef}
+            >
               <SettingsInput
                 id="register-name"
                 label={t("Username")}
@@ -344,7 +355,8 @@ const LoginRegister = ({ hash_data }: Props) => {
               />
               <button
                 type="submit"
-                className="w-full rounded-2xl bg-linear-to-r from-emerald-400 via-teal-400 to-cyan-400 px-4 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-emerald-900/30 transition hover:brightness-110 cursor-pointer">
+                className="w-full rounded-2xl bg-linear-to-r from-emerald-400 via-teal-400 to-cyan-400 px-4 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-emerald-900/30 transition hover:brightness-110 cursor-pointer"
+              >
                 {t("Register account")}
               </button>
               <input type="hidden" value={hash_data} name="hash_key" />

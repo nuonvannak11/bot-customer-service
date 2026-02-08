@@ -87,6 +87,7 @@ class ControllerTelegramBot extends ProtectController {
                         chatId: chat_id,
                         name: ctx.chat?.title,
                         type: chatType,
+                        avatar: "",
                     }
                 },
                 { upsert: true }

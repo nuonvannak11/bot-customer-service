@@ -164,6 +164,8 @@ export default function Sidebar({
           <Image
             className="h-9 w-9 rounded-full object-cover border border-slate-300 dark:border-slate-600"
             src={user.avatar ?? STATIC_IMG_PROFILE}
+            width={40}
+            height={40}
             alt="User avatar"
           />
           <div className="ml-3 truncate">

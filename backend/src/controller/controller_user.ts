@@ -85,18 +85,18 @@ class UserController extends ProtectController {
             };
             const validationErrors = validate();
             if (validationErrors.length > 0) {
-                return res.status(200).json({ code: 400, message: validationErrors[0] });
+                return res.status(200).json({ code: 400, message: validationErrors[0], token: [] });
             }
             const user = await AppUser.findOne({ phone: phone }).select("+password +access_token_hash");
             if (!user) {
-                return res.status(200).json({ code: 401, message: "Invalid user not found" });
+                return res.status(200).json({ code: 401, message: "Invalid user not found", token: [] });
             }
             if (!user.phone_verified) {
-                return res.status(200).json({ code: 403, message: "Please verify your phone number before login." });
+                return res.status(200).json({ code: 403, message: "Please verify your phone number before login.", token: [] });
             }
             const isMatch = await bcrypt.compare(password, user.password || "");
             if (!isMatch) {
-                return res.status(200).json({ code: 401, message: "Password is incorrect" });
+                return res.status(200).json({ code: 401, message: "Password is incorrect", token: [] });
             }
 
             const get_token = user.access_token_hash;
@@ -119,7 +119,7 @@ class UserController extends ProtectController {
                     }
                 );
                 if (updatedUser.modifiedCount === 0) {
-                    return res.status(200).json({ code: 500, message: "User update failed" });
+                    return res.status(200).json({ code: 500, message: "User update failed", token: [] });
                 }
                 return res.status(200).json({
                     code: 200,
@@ -134,7 +134,7 @@ class UserController extends ProtectController {
                 });
             }
         } catch (error) {
-            return res.status(200).json({ code: 500, message: "Internal server error" });
+            return res.status(200).json({ code: 500, message: "Internal server error", token: [] });
         }
     }
 

@@ -1,18 +1,15 @@
 import { redirect } from "next/navigation";
 import controller_user from "@/controller/controller_user";
-import { cookies } from "next/headers";
-import { checkJwtToken } from "@/hooks/use_check_jwt";
 import { CheckAuthResponse } from "@/interface";
+import { getServerToken } from "@/libs/lib";
+import check_jwt from "./check_jwt";
 
 export async function valid_token(): Promise<string | null> {
-    const cookieStore = await cookies();
-    const get_token = cookieStore.get("authToken")?.value;
-    if (!get_token) return null;
-    const check_auth = await checkJwtToken(get_token);
-    if (!check_auth.status) {
-        return null;
-    }
-    return get_token;
+    const token = await getServerToken();
+    if (!token) return null;
+    const ensureToken = check_jwt.verifyToken(token);
+    if (!ensureToken) return null;
+    return token;
 }
 
 export async function redirectPages(wantRedirect: string = "/dashboard") {

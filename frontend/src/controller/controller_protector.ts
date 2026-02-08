@@ -3,11 +3,10 @@ import { z } from "zod";
 import { eLog, response_data } from "@/libs/lib";
 import { check_header } from "@/libs/lib";
 import HashKey from "@/helper/hash_key";
-import { empty } from "@/utils/util";
+import check_jwt from "@/helper/check_jwt";
 import { rate_limit } from "@/helper/ratelimit";
-import { checkJwtToken } from "@/hooks/use_check_jwt";
 import { fileTypeFromBuffer } from "file-type";
-import { ProtectFileOptions } from "@/interface";
+import { ParseJWTPayload, ProtectFileOptions } from "@/interface";
 
 type ProtectSuccess<TData> = {
     ok: true;
@@ -142,34 +141,30 @@ export class ProtectController {
         return false;
     }
 
-    public async extractToken(req: NextRequest): Promise<string | null> {
+    public extractToken(req: NextRequest): string | null {
         const token = req.cookies.get("authToken")?.value ?? null;
         if (!token) return null;
-        const verify = await checkJwtToken(token);
-        if (!verify.status) {
-            return null;
-        }
         return token;
     }
 
-    public async parse_token(token?: string) {
-        if (empty(token)) return null;
-        const parse_data = await checkJwtToken(token);
-        if (!parse_data.status) return null;
-        return parse_data.data;
+    public parse_token(token: string): ParseJWTPayload | null {
+        if (!token) return null;
+        const ensureToken = check_jwt.verifyToken(token);
+        if (!ensureToken) return null;
+        return ensureToken as ParseJWTPayload;
     }
 
     async protect<T extends ShapeRecord | z.ZodObject<z.ZodRawShape>>(req: NextRequest, json_protector: T, ratlimit?: number, check_token?: false, time_limit?: number): Promise<ProtectResult<ProtectDataFor<T>>>;
     async protect<T extends ShapeRecord | z.ZodObject<z.ZodRawShape>>(req: NextRequest, json_protector: T, ratlimit: number, check_token: true, time_limit?: number): Promise<ProtectResult<ProtectDataWithToken<T>>>;
     async protect<T extends ShapeRecord | z.ZodObject<z.ZodRawShape>>(req: NextRequest, json_protector: T, ratlimit = 5, check_token = false, time_limit = 120): Promise<ProtectResult<ProtectDataFor<T> | ProtectDataWithToken<T>>> {
         try {
-            const token = req.cookies.get("authToken")?.value;
+            const token = this.extractToken(req);
             if (check_token) {
                 if (!token) {
                     return { ok: false, response: response_data(401, 401, "Unauthorized", []) };
                 }
-                const verify = await checkJwtToken(token);
-                if (!verify.status) {
+                const ensureToken = this.parse_token(token);
+                if (!ensureToken) {
                     return { ok: false, response: response_data(401, 401, "Unauthorized", []) };
                 }
             }
@@ -191,9 +186,8 @@ export class ProtectController {
                 return { ok: false, response: response_data(400, 400, "Invalid dangerous keys", []) };
             }
             const hash_key = safeData.hash_key;
-            const decryptKey = HashKey.decrypt(hash_key);
-
-            if (!decryptKey) {
+            const ensureKey = HashKey.decrypt(hash_key);
+            if (!ensureKey) {
                 return { ok: false, response: response_data(400, 400, "Invalid hash key", []) };
             }
             const rl = await rate_limit(hash_key, ratlimit, time_limit);

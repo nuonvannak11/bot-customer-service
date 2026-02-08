@@ -1,4 +1,4 @@
-export const REQUEST_TIMEOUT_MS = 10_000; // 10 seconds
+export const REQUEST_TIMEOUT_MS = 15_000; // 15 seconds
 export const REQUEST_TIMEOUT_BOT_CLOSE_OPEN_MS = 20_000; // 20 seconds
 export const PHONE_REGEX = /^(?:\+?[1-9]\d{7,14}|0\d{8,14})$/;
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;

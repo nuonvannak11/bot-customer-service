@@ -7,6 +7,7 @@ import {
   Activity, AlertOctagon, AlertCircle, BarChart2, 
   Cpu, Terminal 
 } from "lucide-react";
+import Image from "next/image";
 
 export default function TelegramClient({ data }: { data: any }) {
   return (
@@ -16,18 +17,15 @@ export default function TelegramClient({ data }: { data: any }) {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
         <div className="relative z-10 p-8 flex flex-col md:flex-row items-center md:items-start gap-8">
-          
-          {/* Bot Avatar with Pulse Effect */}
           <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-full blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
+            <div className="absolute -inset-1 bg-linear-to-r from-indigo-500 to-cyan-500 rounded-full blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
             <div className="relative w-28 h-28 rounded-full bg-slate-950 border-4 border-slate-800 p-1 flex items-center justify-center overflow-hidden">
-              <img 
+              <Image 
                 src="https://api.dicebear.com/9.x/bottts/svg?seed=NexusBot" 
                 alt="Bot" 
                 className="w-full h-full rounded-full" 
               />
             </div>
-            {/* Status Badge */}
             <div className="absolute bottom-0 right-0 translate-x-1 translate-y-1 bg-slate-900 rounded-full p-1.5 border border-slate-800">
               <div className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/10 border border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.4)]">
                 <Zap className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400" />

@@ -4,7 +4,6 @@ import { z } from "zod";
 import { eLog, response_data } from "@/libs/lib";
 import HashData from "@/helper/hash_data";
 import { make_schema } from "@/helper/helper";
-import { defaultTelegramConfig } from "@/default/default";
 import { ProtectController } from "./controller_protector";
 import { request_get, request_post } from "@/libs/request_server";
 import { REQUEST_TIMEOUT_BOT_CLOSE_OPEN_MS, REQUEST_TIMEOUT_MS } from "@/constants";
@@ -260,7 +259,7 @@ class TelegramController extends ProtectController {
         }
         const encryptedBody = this.encryptPayload(payload);
         try {
-            const axiosResponse = await axios.request({
+            const response = await axios.request({
                 url: get_url(action.endpoint),
                 method: action.method,
                 data: { payload: encryptedBody },
@@ -268,16 +267,11 @@ class TelegramController extends ProtectController {
                 timeout: REQUEST_TIMEOUT_MS,
                 validateStatus: () => true,
             });
-            const responseData = axiosResponse.data ?? {};
-            const backendCode =
-                typeof responseData.code === "number" ? responseData.code : axiosResponse.status;
-            const backendMessage =
-                typeof responseData.message === "string"
-                    ? responseData.message
-                    : axiosResponse.statusText || "Request failed";
-            const backendData = responseData.data ?? [];
-
-            return response_data(backendCode, axiosResponse.status, backendMessage, backendData);
+            if (response.status !== 200) {
+                return response_data(response.status, response.status, response.statusText || "Request failed", []);
+            }; 
+            const { code, message, data } = response.data;
+            return response_data(code, code, message, data);
         } catch (error: unknown) {
             eLog("Handle Protect Error:", error);
             return this.handleError(error);

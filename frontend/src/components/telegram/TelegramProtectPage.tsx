@@ -1,6 +1,6 @@
 "use client";
 
-import React, { cache, useEffect, useState } from "react";
+import React, { useState } from "react";
 import { ShieldCheck, Activity, Shield, ShieldAlert, Lock } from "lucide-react";
 import GroupManagement from "./protect/GroupManagement";
 import FileGuard from "./protect/FileGuard";
