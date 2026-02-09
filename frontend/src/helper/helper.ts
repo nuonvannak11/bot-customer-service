@@ -1,4 +1,31 @@
 
+import Swal from "sweetalert2";
+
+export async function request_sweet_alert<T>(
+    option: { title: string; text: string },
+    tryFn: () => Promise<T>,
+    catchFn?: (err: unknown) => void,
+) {
+    Swal.fire({
+        title: option.title,
+        text: option.text,
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading(),
+    });
+
+    try {
+        const result = await tryFn();
+        Swal.close();
+        return result;
+    } catch (err) {
+        Swal.close();
+        if (catchFn) {
+            catchFn(err);
+        }
+    }
+}
+
 export function make_schema<T extends object>(base: T) {
     const value = { ...base } as T;
     return {

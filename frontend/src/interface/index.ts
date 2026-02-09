@@ -7,6 +7,7 @@ export interface TelegramBotSettingsConfig {
   notifyEnabled: boolean;
   silentMode: boolean;
   exceptionLinks: string[];
+  exceptionFiles:string[];
 }
 
 export interface CheckAuthResponse {

@@ -13,7 +13,7 @@ class R2Controller extends ProtectController {
     private bucket = get_env("R2_BUCKET");
     private publicUrl = get_env("R2_PUBLIC_URL");
 
-    valid_file(file: Express.Multer.File) {
+    private valid_file(file: Express.Multer.File) {
         const MAX_SIZE = 10 * 1024 * 1024; // 10MB
         const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
         const mimetype = file.mimetype;
@@ -82,9 +82,9 @@ class R2Controller extends ProtectController {
             await r2.send(command);
             const fileUrl = this.publicUrl + '/' + key;
             return { success: true, message: "File uploaded successfully", url: fileUrl };
-        } catch (error: any) {
+        } catch (error: unknown) {
             eLog("Error uploading file to R2:", error);
-            return { success: false, message: `Failed to upload file: ${error.message}` };
+            return { success: false, message: "Failed to upload file"};
         }
     }
 
@@ -99,9 +99,9 @@ class R2Controller extends ProtectController {
         try {
             await r2.send(command);
             return { success: true, message: "File deleted successfully" };
-        } catch (error: any) {
+        } catch (error: unknown) {
             eLog("Error deleting file from R2:", error);
-            return { success: false, message: `Failed to delete file: ${error.message}` };
+            return { success: false, message: "Failed to delete file" };
         }
     }
 
@@ -118,7 +118,7 @@ class R2Controller extends ProtectController {
         if (!check_user) {
             return response_data(res, 401, "Unauthorized", []);
         }
-        
+
         const file_name = req.body.name;
         const file_path = req.body.path;
         const format_name = hash_data.decryptData(file_name);
@@ -138,7 +138,44 @@ class R2Controller extends ProtectController {
     }
 
     async delete(req: Request, res: Response) {
+        try {
+            const is_header = check_header(req);
+            if (!is_header) {
+                return response_data(res, 403, "Forbidden", []);
+            }
 
+            const check_token = await this.extractToken(req);
+            if (!check_token) {
+                return response_data(res, 401, "Unauthorized", []);
+            }
+
+            const check_user = await AppUser.findOne({ user_id: check_token.user_id });
+            if (!check_user) {
+                return response_data(res, 401, "Unauthorized", []);
+            }
+
+            const { file_path } = req.body;
+
+            if (empty(file_path)) {
+                return response_data(res, 400, "Missing file path identifier", []);
+            }
+
+            const decrypted_key = hash_data.decryptData(file_path);
+
+            if (empty(decrypted_key)) {
+                return response_data(res, 400, "Invalid or corrupted file path", []);
+            }
+
+            const result = await this.deleteFile(decrypted_key);
+
+            if (!result.success) {
+                return response_data(res, 500, result.message || "Failed to delete file", []);
+            }
+            return response_data(res, 200, "File deleted successfully", []);
+        } catch (error: unknown) {
+            eLog("Controller Delete Error:", error);
+            return response_data(res, 500, "Internal Server Error", []);
+        }
     }
 }
 

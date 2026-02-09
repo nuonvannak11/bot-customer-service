@@ -10,7 +10,7 @@ import SendSMS from "../services/send_sms";
 import Platform from "../models/model_platform";
 import { PHONE_REGEX, EMAIL_REGEX, GOOGLE_TOKEN_REGEX, EXPIRE_TOKEN_TIME } from "../constants";
 import { get_env } from "../utils/get_env";
-import { empty, random_number, expiresAt, eLog, generate_string, str_number, format_phone } from "../utils/util";
+import { empty, random_number, expiresAt, eLog, str_number, format_phone } from "../utils/util";
 import { make_schema, RequestSchema } from "../helper";
 import { get_session_id } from "../helper/random";
 import { check_header, response_data } from "../libs/lib";
@@ -20,7 +20,8 @@ import model_settings from "../models/model_settings";
 import { ISetting } from "../interface/interface_setting";
 import { IUser } from "../interface/interface_user";
 import { SaveUserProfile } from "../interface";
-import mongoose, { set } from "mongoose";
+import mongoose from "mongoose";
+import { generate_id } from "../libs/generate_user_id";
 
 class UserController extends ProtectController {
     private readonly phoneRegex = PHONE_REGEX;
@@ -35,45 +36,51 @@ class UserController extends ProtectController {
     }
 
     public async check_auth(req: Request, res: Response) {
-        const check_token = await this.protect_get<TokenData>(req, res);
-        if (!check_token) {
-            response_data(res, 401, "Unauthorized", []);
-            return;
+        try {
+            const check_token = await this.protect_get<TokenData>(req, res);
+            if (!check_token) {
+                response_data(res, 401, "Unauthorized", []);
+                return;
+            }
+            const { token, user_id } = check_token;
+            const user = await AppUser.findOne({ user_id, access_token_hash: token }).lean();
+            if (!user) {
+                response_data(res, 401, "Unauthorized", []);
+                return;
+            }
+            const settings = await model_settings.findOne({ user_id }).lean<ISetting | null>();
+            const { emailNotifications, twoFactor } = settings?.user || { emailNotifications: false, twoFactor: false };
+            const { email, phone, name, avatar, bio, point } = user;
+            const collection = { avatar, fullName: name, username: name, email, phone, bio, points: point, emailNotifications, twoFactor };
+            const encrypted = hashData.encryptData(JSON.stringify(collection));
+            return response_data(res, 200, "Success", encrypted);
+        } catch (error) {
+            eLog("Check auth error:", error);
+            response_data(res, 500, "Internal server error", []);
         }
-        const { token, user_id } = check_token;
-        const user = await AppUser.findOne({ user_id, access_token_hash: token }).lean();
-        if (!user) {
-            response_data(res, 401, "Unauthorized", []);
-            return;
-        }
-        const settings = await model_settings.findOne({ user_id }).lean<ISetting | null>();
-        const { emailNotifications, twoFactor } = settings?.user || { emailNotifications: false, twoFactor: false };
-        const { email, phone, name, avatar, bio, point } = user;
-        const collection = { avatar, fullName: name, username: name, email, phone, bio, points: point, emailNotifications, twoFactor };
-        const encrypted = hashData.encryptData(JSON.stringify(collection));
-        return response_data(res, 200, "Success", encrypted);
     }
 
     public async login(req: Request, res: Response) {
-        const is_header = check_header(req);
-        if (!is_header) {
-            return res.status(200).json({ code: 400, message: "Invalid request" });
-        }
-        const parsed = RequestSchema.safeParse(req.body);
-        if (!parsed.success) {
-            return res.status(200).json({ code: 400, message: "Invalid request" });
-        }
-        const decrypt_data = hashData.decryptData(parsed.data.payload);
-        if (!decrypt_data) {
-            return res.status(200).json({ code: 400, message: "Invalid payload" });
-        }
-        const parse_data = JSON.parse(decrypt_data);
-        const { phone, password, hash_key } = parse_data;
-        const check_key = HashKey.decrypt(hash_key);
-        if (!check_key) {
-            return res.status(200).json({ code: 400, message: "Invalid hash key" });
-        }
         try {
+            const is_header = check_header(req);
+            if (!is_header) {
+                return res.status(200).json({ code: 400, message: "Invalid request" });
+            }
+            const parsed = RequestSchema.safeParse(req.body);
+            if (!parsed.success) {
+                return res.status(200).json({ code: 400, message: "Invalid request" });
+            }
+            const decrypt_data = hashData.decryptData(parsed.data.payload);
+            if (!decrypt_data) {
+                return res.status(200).json({ code: 400, message: "Invalid payload" });
+            }
+            const parse_data = JSON.parse(decrypt_data);
+            const { phone, password, hash_key } = parse_data;
+            const check_key = HashKey.decrypt(hash_key);
+            if (!check_key) {
+                return res.status(200).json({ code: 400, message: "Invalid hash key" });
+            }
+
             const validate = () => {
                 const errors: string[] = [];
                 if (empty(phone)) errors.push("Phone is required");
@@ -134,30 +141,32 @@ class UserController extends ProtectController {
                 });
             }
         } catch (error) {
+            eLog("Login error:", error);
             return res.status(200).json({ code: 500, message: "Internal server error", token: [] });
         }
     }
 
     public async register(req: Request, res: Response) {
-        const is_header = check_header(req);
-        if (!is_header) {
-            return res.status(200).json({ code: 400, message: "Invalid request" });
-        }
-        const parsed = RequestSchema.safeParse(req.body);
-        if (!parsed.success) {
-            return res.status(200).json({ code: 400, message: "Invalid request" });
-        }
-        const decrypt_data = hashData.decryptData(parsed.data.payload);
-        if (!decrypt_data) {
-            return res.status(200).json({ code: 400, message: "Invalid payload" });
-        }
-        const parse_data = JSON.parse(decrypt_data);
-        const { username, phone, password, hash_key } = parse_data;
-        const check_key = HashKey.decrypt(hash_key);
-        if (!check_key) {
-            return res.status(200).json({ code: 400, message: "Invalid hash key" });
-        }
         try {
+            const is_header = check_header(req);
+            if (!is_header) {
+                return res.status(200).json({ code: 400, message: "Invalid request" });
+            }
+            const parsed = RequestSchema.safeParse(req.body);
+            if (!parsed.success) {
+                return res.status(200).json({ code: 400, message: "Invalid request" });
+            }
+            const decrypt_data = hashData.decryptData(parsed.data.payload);
+            if (!decrypt_data) {
+                return res.status(200).json({ code: 400, message: "Invalid payload" });
+            }
+            const parse_data = JSON.parse(decrypt_data);
+            const { username, phone, password, hash_key } = parse_data;
+            const check_key = HashKey.decrypt(hash_key);
+            if (!check_key) {
+                return res.status(200).json({ code: 400, message: "Invalid hash key" });
+            }
+
             const validate = () => {
                 const errors: string[] = [];
                 if (empty(username)) errors.push("Name is required");
@@ -201,30 +210,32 @@ class UserController extends ProtectController {
             );
             return res.status(200).json({ code: 200, message: "Verification code sent. Please verify your phone.", data: formatPhone });
         } catch (error) {
+            eLog("Register error:", error);
             res.status(200).json({ code: 500, message: "Internal server error" });
         }
     }
 
     public async verifyPhone(req: Request, res: Response) {
-        const is_header = check_header(req);
-        if (!is_header) {
-            return res.status(200).json({ code: 400, message: "Invalid request" });
-        }
-        const parsed = RequestSchema.safeParse(req.body);
-        if (!parsed.success) {
-            return res.status(200).json({ code: 400, message: "Invalid request" });
-        }
-        const decrypt_data = hashData.decryptData(parsed.data.payload);
-        if (!decrypt_data) {
-            return res.status(200).json({ code: 400, message: "Invalid payload" });
-        }
-        const parse_data = JSON.parse(decrypt_data);
-        const { phone, code, hash_key } = parse_data;
-        const check_key = HashKey.decrypt(hash_key);
-        if (!check_key) {
-            return res.status(200).json({ code: 400, message: "Invalid hash key" });
-        }
         try {
+            const is_header = check_header(req);
+            if (!is_header) {
+                return res.status(200).json({ code: 400, message: "Invalid request" });
+            }
+            const parsed = RequestSchema.safeParse(req.body);
+            if (!parsed.success) {
+                return res.status(200).json({ code: 400, message: "Invalid request" });
+            }
+            const decrypt_data = hashData.decryptData(parsed.data.payload);
+            if (!decrypt_data) {
+                return res.status(200).json({ code: 400, message: "Invalid payload" });
+            }
+            const parse_data = JSON.parse(decrypt_data);
+            const { phone, code, hash_key } = parse_data;
+            const check_key = HashKey.decrypt(hash_key);
+            if (!check_key) {
+                return res.status(200).json({ code: 400, message: "Invalid hash key" });
+            }
+
             const validate = () => {
                 const errors: string[] = [];
                 if (empty(phone)) errors.push("Phone is required");
@@ -260,7 +271,7 @@ class UserController extends ProtectController {
 
             const { name, passwordHash } = record.tempData;
             const newUser = new AppUser({
-                user_id: generate_string(),
+                user_id: generate_id(),
                 name,
                 phone: formatPhone,
                 password: passwordHash,
@@ -293,31 +304,32 @@ class UserController extends ProtectController {
                 token,
             });
         } catch (error) {
-            eLog(error);
+            eLog("Verify phone error:", error);
             res.status(500).json({ code: 500, message: "Internal server error" });
         }
     }
 
     public async resendCode(req: Request, res: Response) {
-        const is_header = check_header(req);
-        if (!is_header) {
-            return res.status(200).json({ code: 400, message: "Invalid request" });
-        }
-        const parsed = RequestSchema.safeParse(req.body);
-        if (!parsed.success) {
-            return res.status(200).json({ code: 400, message: "Invalid request" });
-        }
-        const decrypt_data = hashData.decryptData(parsed.data.payload);
-        if (!decrypt_data) {
-            return res.status(200).json({ code: 400, message: "Invalid payload" });
-        }
-        const parse_data = JSON.parse(decrypt_data);
-        const { phone, hash_key } = parse_data;
-        const check_key = HashKey.decrypt(hash_key);
-        if (!check_key) {
-            return res.status(200).json({ code: 400, message: "Invalid hash key" });
-        }
         try {
+            const is_header = check_header(req);
+            if (!is_header) {
+                return res.status(200).json({ code: 400, message: "Invalid request" });
+            }
+            const parsed = RequestSchema.safeParse(req.body);
+            if (!parsed.success) {
+                return res.status(200).json({ code: 400, message: "Invalid request" });
+            }
+            const decrypt_data = hashData.decryptData(parsed.data.payload);
+            if (!decrypt_data) {
+                return res.status(200).json({ code: 400, message: "Invalid payload" });
+            }
+            const parse_data = JSON.parse(decrypt_data);
+            const { phone, hash_key } = parse_data;
+            const check_key = HashKey.decrypt(hash_key);
+            if (!check_key) {
+                return res.status(200).json({ code: 400, message: "Invalid hash key" });
+            }
+
             const formatPhone = format_phone(phone);
             if (!formatPhone || (this.phoneRegex && !this.phoneRegex.test(formatPhone))) {
                 return res.status(200).json({ code: 400, message: "Invalid phone number format" });
@@ -338,9 +350,9 @@ class UserController extends ProtectController {
             existing.code = verificationCode;
             existing.expiresAt = expiresAt(3);
             await existing.save();
-
             res.status(200).json({ code: 200, message: "New OTP code sent successfully." });
         } catch (error) {
+            eLog("Resend code error:", error);
             res.status(500).json({ code: 500, message: "Internal server error" });
         }
     }
@@ -374,7 +386,7 @@ class UserController extends ProtectController {
             let user = await AppUser.findOne({ email }).select("+access_token_hash").lean();
             if (!user) {
                 const created = await AppUser.create({
-                    user_id: generate_string(),
+                    user_id: generate_id(),
                     google_id,
                     email,
                     name,
@@ -419,26 +431,31 @@ class UserController extends ProtectController {
                 data: encryptedCollections,
             });
         } catch (err) {
-            eLog(err);
+            eLog("Google login error:", err);
             res.status(500).json({ code: 500, message: "Google login failed" });
         }
     }
 
     public async get_user_profile(req: Request, res: Response) {
-        const check_token = await this.protect_get<TokenData>(req, res);
-        if (!check_token) return;
-        const { user_id } = check_token;
-        const user = await AppUser.findOne({ user_id }).lean<IUser | null>();
-        if (!user) {
-            response_data(res, 401, "Unauthorized", []);
-            return;
+        try {
+            const check_token = await this.protect_get<TokenData>(req, res);
+            if (!check_token) return;
+            const { user_id } = check_token;
+            const user = await AppUser.findOne({ user_id }).lean<IUser | null>();
+            if (!user) {
+                response_data(res, 401, "Unauthorized", []);
+                return;
+            }
+            const settings = await model_settings.findOne({ user_id }).lean<ISetting | null>();
+            const { emailNotifications, twoFactor } = settings?.user || { emailNotifications: false, twoFactor: false };
+            const { email, phone, name, avatar, bio, point } = user;
+            const collection = { avatar, fullName: name, username: name, email, phone, bio, points: point, emailNotifications, twoFactor };
+            const encrypted = hashData.encryptData(JSON.stringify(collection));
+            return response_data(res, 200, "Success", encrypted);
+        } catch (err) {
+            eLog("Get user profile error:", err);
+            return response_data(res, 500, "Internal server error", []);
         }
-        const settings = await model_settings.findOne({ user_id }).lean<ISetting | null>();
-        const { emailNotifications, twoFactor } = settings?.user || { emailNotifications: false, twoFactor: false };
-        const { email, phone, name, avatar, bio, point } = user;
-        const collection = { avatar, fullName: name, username: name, email, phone, bio, points: point, emailNotifications, twoFactor };
-        const encrypted = hashData.encryptData(JSON.stringify(collection));
-        return response_data(res, 200, "Success", encrypted);
     }
 
     public async update_profile(req: Request, res: Response) {
@@ -486,7 +503,7 @@ class UserController extends ProtectController {
                 session.endSession();
             }
         } catch (err) {
-            eLog(err);
+            eLog("Update profile error:", err);
             return response_data(res, 500, "Internal server error", []);
         }
     }

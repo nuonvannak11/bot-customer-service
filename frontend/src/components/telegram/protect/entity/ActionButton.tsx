@@ -1,9 +1,11 @@
 export const ActionButton = ({
+  disabled,
   onClick,
   label,
   icon,
   colorClass,
 }: {
+  disabled: boolean;
   onClick: () => void;
   label: string;
   icon: React.ReactNode;
@@ -20,9 +22,9 @@ export const ActionButton = ({
   const baseIcon = "p-1 rounded bg-slate-800 transition-colors";
   return (
     <button
+      disabled={disabled}
       onClick={onClick}
-      className={`${baseBtn} ${colors[colorClass].split(" ").slice(0, 3).join(" ")}`}
-    >
+      className={`${baseBtn} ${colors[colorClass].split(" ").slice(0, 3).join(" ")}`}>
       <div className={`${baseIcon} ${colors[colorClass].split(" ").pop()}`}>
         {icon}
       </div>

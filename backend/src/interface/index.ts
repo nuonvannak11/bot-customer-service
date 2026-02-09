@@ -19,6 +19,7 @@ export interface SaveTgBotRequest {
   silentMode?: boolean;
   hash_key: string;
   exceptionLinks?: string[];
+  exceptionFiles?: string[];
 }
 
 export interface SaveUserProfile {

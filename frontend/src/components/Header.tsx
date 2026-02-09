@@ -1,13 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useTheme } from "next-themes";
-import { Menu, Search, Sun, Moon } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import ProfileDropdown from "./ProfileDropdown";
-import LanguageDropdown from "./LanguageDropdown";
-import NotificationDropdown from "./alerts/NotificationDropdown";
 import { UserProfileConfig } from "@/interface";
+import { dynamicNoSSR } from "@/helper/dynamicHelper";
+
+const ProfileDropdown = dynamicNoSSR(() => import("./ProfileDropdown"));
+const LanguageDropdown = dynamicNoSSR(() => import("./LanguageDropdown"));
+const NotificationDropdown = dynamicNoSSR(
+  () => import("./alerts/NotificationDropdown"),
+);
+const ThemeToggle = dynamicNoSSR(() => import("./toggle/ThemeToggle"));
 
 export default function Header({
   user,
@@ -17,24 +20,13 @@ export default function Header({
   setSidebarOpen: (v: boolean) => void;
 }) {
   const { t } = useTranslation();
-  const { theme, setTheme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  };
 
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white/80 px-4 py-3 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/80">
       <div className="flex items-center gap-3">
         <button
           onClick={() => setSidebarOpen(true)}
-          className="rounded-md p-2 text-slate-500 hover:bg-slate-100 lg:hidden dark:hover:bg-slate-800"
-        >
+          className="rounded-md p-2 text-slate-500 hover:bg-slate-100 lg:hidden dark:hover:bg-slate-800">
           <Menu size={24} />
         </button>
       </div>
@@ -51,22 +43,8 @@ export default function Header({
             aria-label={t("Search here...")}
           />
         </div>
-
         <LanguageDropdown />
-
-        <button
-          onClick={toggleTheme}
-          disabled={!mounted}
-          className="cursor-pointer rounded-full p-2 text-slate-500 transition-colors hover:bg-slate-100 focus:ring-2 focus:ring-indigo-500/20 outline-none dark:hover:bg-slate-800"
-        >
-          {!mounted ? (
-            <div className="h-5 w-5" /> 
-          ) : (theme === "dark" || resolvedTheme === "dark") ? (
-            <Sun size={20} />
-          ) : (
-            <Moon size={20} />
-          )}
-        </button>
+        <ThemeToggle />
         <NotificationDropdown />
         <ProfileDropdown user={user} />
       </div>

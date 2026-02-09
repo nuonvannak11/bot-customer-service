@@ -13,6 +13,7 @@ import {
   Link as LinkIcon,
   Plus,
   X,
+  AlertTriangle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
@@ -38,6 +39,7 @@ export default function TelegramSettingsClient({
   const { t } = useTranslation();
   const [loading, setLoading] = useState({ request: false, page: false });
   const [currentLinkInput, setCurrentLinkInput] = useState("");
+  const [currentFileInput, setCurrentFileInput] = useState("");
   const [originalSettings, setOriginalSettings] =
     useState<TelegramBotSettingsConfig>(initialSettings);
   const [settings, setSettings] =
@@ -103,7 +105,10 @@ export default function TelegramSettingsClient({
     });
   };
 
-  const handleChange = (field: keyof TelegramBotSettingsConfig, value: unknown) => {
+  const handleChange = (
+    field: keyof TelegramBotSettingsConfig,
+    value: unknown,
+  ) => {
     if (field === "is_process") {
       handleToggleBot(!!value);
     } else {
@@ -122,7 +127,9 @@ export default function TelegramSettingsClient({
     }
 
     if (JSON.stringify(payload) === JSON.stringify(originalSettings)) {
-      toast(t("No changes to save"), { icon: "⚠️" });
+      toast(t("No changes to save"), {
+        icon: <AlertTriangle size={18} color="#facc15" />,
+      });
       return;
     }
     await executeApiCall<TelegramBotSettingsConfig>(
@@ -279,6 +286,7 @@ export default function TelegramSettingsClient({
             />
           </div>
 
+          {/* Exception Links */}
           <div className="space-y-4">
             <h4 className="text-xs font-bold text-cyan-500 uppercase tracking-widest flex items-center gap-2">
               <LinkIcon size={14} /> Exception Links
@@ -330,6 +338,59 @@ export default function TelegramSettingsClient({
               </div>
             )}
           </div>
+
+          <div className="space-y-4">
+            <h4 className="text-xs font-bold text-cyan-500 uppercase tracking-widest flex items-center gap-2">
+              <LinkIcon size={14} /> Exception Files
+            </h4>
+
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={currentFileInput}
+                  onChange={(e) => setCurrentFileInput(e.target.value)}
+                  onKeyDown={handleLinkKeyDown}
+                  placeholder=".png, .jpg, .jpeg, .gif,.pdf,.exel"
+                  className="w-full bg-slate-950 border border-slate-700 text-slate-200 text-sm rounded-xl px-4 py-3 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder:text-slate-600"
+                />
+              </div>
+              <button
+                onClick={handleAddFile}
+                disabled={!currentFileInput}
+                className="bg-slate-800 hover:bg-cyan-600 text-cyan-400 hover:text-white border border-slate-700 hover:border-cyan-500 rounded-xl px-4 flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed group">
+                <Plus
+                  size={20}
+                  className="group-active:scale-90 transition-transform"
+                />
+              </button>
+            </div>
+
+            {settings.exceptionFiles && settings.exceptionFiles.length > 0 ? (
+              <div className="flex flex-wrap gap-2 pt-2">
+                {settings.exceptionFiles.map((file, index) => (
+                  <div
+                    key={index}
+                    className="group flex items-center gap-2 bg-slate-800/50 border border-slate-700/50 hover:border-rose-500/30 hover:bg-rose-500/5 rounded-lg pl-3 pr-1 py-1.5 transition-all duration-200">
+                    <span className="text-xs text-slate-300 font-medium truncate max-w-[200px]">
+                      {file}
+                    </span>
+                    <button
+                      onClick={() => handleRemoveFile(file)}
+                      className="p-1 rounded-md text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                      title="Remove link">
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-xs text-slate-600 italic px-1">
+                No exception file added yet.
+              </div>
+            )}
+          </div>
+
           <div className="w-full h-px bg-slate-800/50" />
           <div className="bg-slate-950/50 border border-slate-800 rounded-2xl p-5 space-y-4">
             <Toggle

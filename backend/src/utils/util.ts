@@ -1,7 +1,6 @@
 
 import { get_env } from "./get_env";
 import { MAX_TIMEOUT } from "../constants";
-import crypto from "crypto";
 
 export function empty(data: any): boolean {
     if (data == null) return true;
@@ -73,10 +72,6 @@ export async function safeWithTimeout<T>(
 export function str_lower(str: string): string {
     if (!str) return "";
     return str.toLowerCase();
-}
-
-export function generate_string(): string {
-    return crypto.randomBytes(16).toString("hex");
 }
 
 export function str_number(value: unknown, fallback = 0): number {

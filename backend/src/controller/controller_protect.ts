@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { response_data, check_header, checkJwtToken } from "../libs/lib";
+import { response_data, check_header, checkJwtToken, ensureHashKey } from "../libs/lib";
 import HashKey from "../helper/hash_key";
 import hashData from "../helper/hash_data";
 import { RequestSchema } from "../helper";
@@ -99,13 +99,12 @@ export class ProtectController {
             return { success: false, error: { code: 400, message: "Invalid JSON format" } };
         }
 
-        if ("hash_key" in parsedData) {
-            const isValidKey = HashKey.decrypt((parsedData as any).hash_key);
+        if (ensureHashKey(parsedData)) {
+            const isValidKey = HashKey.decrypt(parsedData.hash_key);
             if (!isValidKey) {
                 return { success: false, error: { code: 400, message: "Invalid hash key" } };
             }
         }
-
         return { success: true, data: parsedData };
     }
 
@@ -139,14 +138,18 @@ export class ProtectController {
         };
     }
 
-    private hasDangerousKeys(obj: any): boolean {
+    private hasDangerousKeys(obj: unknown): boolean {
         if (typeof obj !== "object" || obj === null) return false;
-        for (const key in obj) {
-            if (key.startsWith("$") || key.includes(".")) return true;
-
-            const value = obj[key];
-            if (typeof value === "object" && this.hasDangerousKeys(value)) {
+        const record = obj as Record<string, unknown>;
+        for (const key of Object.keys(record)) {
+            if (key.startsWith("$") || key.includes(".")) {
                 return true;
+            }
+            const value = record[key];
+            if (typeof value === "object" && value !== null) {
+                if (this.hasDangerousKeys(value)) {
+                    return true;
+                }
             }
         }
         return false;

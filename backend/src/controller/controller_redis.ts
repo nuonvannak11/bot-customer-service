@@ -1,11 +1,24 @@
-import e from "express";
 import redis, { redisPublisher } from "../config/redis";
 import { eLog } from "../utils/util";
 
 class RedisController {
-    async set(key: string, value: any, ttlSeconds?: number): Promise<void> {
+    private safeStringify(value: unknown): string {
         try {
-            const data = JSON.stringify(value);
+            return JSON.stringify(value);
+        } catch (err) {
+            eLog("Redis stringify failed, falling back to safe serializer");
+            return JSON.stringify(value, (_key, val) => {
+                if (typeof val === "bigint") return val.toString();
+                if (typeof val === "function") return "[Function]";
+                if (typeof val === "undefined") return null;
+                return val;
+            });
+        }
+    }
+
+    public async set(key: string, value: unknown, ttlSeconds?: number): Promise<void> {
+        try {
+            const data = this.safeStringify(value);
             if (ttlSeconds) {
                 await redis.set(key, data, 'EX', ttlSeconds);
             } else {
@@ -17,7 +30,7 @@ class RedisController {
         }
     }
 
-    async get<T>(key: string): Promise<T | null> {
+    public async get<T>(key: string): Promise<T | null> {
         try {
             const data = await redis.get(key);
             if (!data) return null;
@@ -28,7 +41,7 @@ class RedisController {
         }
     }
 
-    async del(key: string): Promise<number> {
+    public async del(key: string): Promise<number> {
         try {
             return await redis.del(key);
         } catch (error) {
@@ -37,16 +50,16 @@ class RedisController {
         }
     }
 
-    async has(key: string): Promise<boolean> {
+    public async has(key: string): Promise<boolean> {
         const count = await redis.exists(key);
         return count === 1;
     }
 
-    async clearAll(): Promise<void> {
+    public async clearAll(): Promise<void> {
         await redis.flushall();
     }
 
-    async publish(channel: string, payload: unknown): Promise<boolean> {
+    public async publish(channel: string, payload: unknown): Promise<boolean> {
         try {
             const message = JSON.stringify(payload);
             await redisPublisher.publish(channel, message);
@@ -57,7 +70,7 @@ class RedisController {
         }
     }
 
-    async sendToQueue(queueName: string, payload: unknown): Promise<{ status: boolean; message?: string }> {
+    public async sendToQueue(queueName: string, payload: unknown): Promise<{ status: boolean; message?: string }> {
         try {
             const message = JSON.stringify(payload);
             await redis.rpush(queueName, message);
@@ -68,7 +81,7 @@ class RedisController {
         }
     }
 
-    async getFromQueue<T>(queueName: string): Promise<T | null> {
+    public async getFromQueue<T>(queueName: string): Promise<T | null> {
         try {
             const result = await redis.blpop(queueName, 0);
             if (!result) return null;

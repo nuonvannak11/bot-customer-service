@@ -1,19 +1,22 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import clsx from "clsx";
+import Swal from "sweetalert2";
+import toast from "react-hot-toast";
 import { ShieldCheck, Activity, Shield, ShieldAlert, Lock } from "lucide-react";
 import GroupManagement from "./protect/GroupManagement";
 import FileGuard from "./protect/FileGuard";
 import LinkSentry from "./protect/LinkSentry";
 import SpamAegis from "./protect/SpamAegis";
-import clsx from "clsx";
 import {
   GroupChannel,
   PreparedData,
 } from "@/interface/telegram/interface.telegram";
 import { useTranslation } from "react-i18next";
 import { DEFAULT_ASSET } from "@/default/default";
-import Swal from "sweetalert2";
+import { request_sweet_alert } from "@/helper/helper";
+import { getErrorMessage } from "@/utils/util";
 
 type TelegramProtectPageProps = {
   protects: PreparedData;
@@ -33,60 +36,199 @@ export default function TelegramProtectPage({
   const { t } = useTranslation();
   const [state, setState] = useState<TelegramProtectPageState>({
     managedAssets: cleanProtects,
-    activeAsset: cleanProtects?.active[0] ?? DEFAULT_ASSET,
+    activeAsset: cleanProtects?.active?.[0] ?? DEFAULT_ASSET,
   });
   const [loading, setLoading] = useState(false);
 
-  const handledSubmit = async (asset_key: string, payload: GroupChannel) => {
-    if (asset_key === "delete") {
-      try {
-        const result = await Swal.fire({
-          title: "Are you sure?",
-          text: `This ${payload.name} will be permanently deleted!`,
-          icon: "warning",
-          showCancelButton: true,
-          confirmButtonColor: "#d33",
-          cancelButtonColor: "#3085d6",
-          confirmButtonText: "Yes, delete it!",
-          cancelButtonText: "Cancel",
-        });
-        if (result.isConfirmed) {
-          const body = JSON.stringify({
-            asset_key,
-            hash_key,
-            asset: payload,
+  useEffect(() => {
+    if (!protects) return;
+    const { threatLogs: _, ...latestClean } = protects;
+    setState((prev) => {
+      const stillExists = latestClean.active.some(
+        (a) => a.chatId === prev.activeAsset?.chatId,
+      );
+      return {
+        managedAssets: latestClean,
+        activeAsset: stillExists
+          ? prev.activeAsset
+          : (latestClean.active[0] ?? DEFAULT_ASSET),
+      };
+    });
+  }, [protects]);
+
+  const performApiCall = async (
+    asset_key: string,
+    payload: GroupChannel,
+    signal?: AbortSignal,
+  ) => {
+    const response = await fetch("/api/telegram/protect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ asset_key, hash_key, asset: payload }),
+      signal,
+    });
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const { code, message, data } = await response.json();
+    if (code !== 200) throw new Error(message);
+    return { message, data };
+  };
+
+  const handleDelete = async (payload: GroupChannel) => {
+    if (loading) return;
+    const confirmResult = await Swal.fire({
+      title: t("Are you sure?"),
+      text: `${payload.name} ${t("will be permanently deleted!")}`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: t("Yes, delete it!"),
+      cancelButtonText: t("Cancel"),
+    });
+    if (!confirmResult.isConfirmed) return;
+    setLoading(true);
+
+    try {
+      const result = await request_sweet_alert(
+        { title: t("Processing"), text: t("Deleting asset...") },
+        async () => {
+          const { message, data } = await performApiCall("delete", payload);
+          setState((prev) => {
+            const { managedAssets, activeAsset } = prev;
+            const newActiveList = prev.managedAssets.active.filter(
+              (asset) => asset.chatId !== data.chatId,
+            );
+            const newActiveAsset =
+              activeAsset.chatId === data.chatId
+                ? { ...(newActiveList[0] ?? DEFAULT_ASSET) }
+                : activeAsset;
+
+            let newGroupList = managedAssets.group;
+            let newChannelList = managedAssets.channel;
+
+            const existsInGroup = managedAssets.group.some(
+              (a) => a.chatId === data.chatId,
+            );
+            const existsInChannel = managedAssets.channel.some(
+              (a) => a.chatId === data.chatId,
+            );
+
+            if (!existsInGroup && data.type === "group") {
+              newGroupList = [...managedAssets.group, data];
+            }
+            if (!existsInChannel && data.type === "channel") {
+              newChannelList = [...managedAssets.channel, data];
+            }
+            return {
+              ...prev,
+              managedAssets: {
+                ...prev.managedAssets,
+                active: newActiveList,
+                group: newGroupList,
+                channel: newChannelList,
+              },
+              activeAsset: newActiveAsset,
+            };
           });
-          const res = await fetch("/api/telegram/protect", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body,
+          return message;
+        },
+
+        (err) => {
+          throw err;
+        },
+      );
+      if (result)
+        toast.success(result, { position: "top-right", duration: 1500 });
+    } catch (err) {
+      toast.error(getErrorMessage(err) || "An error occurred", {
+        position: "top-right",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdate = async (asset_key: string, payload: GroupChannel) => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const result = await request_sweet_alert(
+        { title: t("Processing"), text: t("Saving changes...") },
+        async () => {
+          const { message, data } = await performApiCall(asset_key, payload);
+          setState((prev) => {
+            const { managedAssets, activeAsset } = prev;
+            if (asset_key === "update") {
+              const isActive = managedAssets.active.some(
+                (a) => a.chatId === data.chatId,
+              );
+              const newActiveList = isActive
+                ? managedAssets.active.map((a) =>
+                    a.chatId === data.chatId ? { ...data } : a,
+                  )
+                : [...managedAssets.active, { ...data }];
+              return {
+                ...prev,
+                managedAssets: { ...managedAssets, active: newActiveList },
+                activeAsset:
+                  activeAsset?.chatId === data.chatId
+                    ? { ...data }
+                    : activeAsset,
+              };
+            } else {
+              const isGroup = managedAssets.group.some(
+                (a) => a.chatId === data.chatId,
+              );
+              const isChannel = managedAssets.channel.some(
+                (a) => a.chatId === data.chatId,
+              );
+
+              let newGroupList = managedAssets.group;
+              let newChannelList = managedAssets.channel;
+              let newActiveList = managedAssets.active;
+
+              if (isGroup) {
+                newGroupList = managedAssets.group.filter(
+                  (a) => a.chatId !== data.chatId,
+                );
+              } else if (isChannel) {
+                newChannelList = managedAssets.channel.filter(
+                  (a) => a.chatId !== data.chatId,
+                );
+              }
+              const existsInActive = newActiveList.some(
+                (a) => a.chatId === data.chatId,
+              );
+              if (!existsInActive) {
+                newActiveList = [...newActiveList, data];
+              }
+              return {
+                ...prev,
+                managedAssets: {
+                  ...managedAssets,
+                  group: newGroupList,
+                  channel: newChannelList,
+                  active: newActiveList,
+                },
+              };
+            }
           });
-          console.log("Response from protect:", res);
-        }
-      } catch (err) {
-        console.log(err);
-        Swal.fire({
-          title: "Error",
-          text: "Failed to delete user",
-          icon: "error",
-        });
-      }
-    } else {
-      try {
-        const body = JSON.stringify({
-          asset_key,
-          hash_key,
-          asset: payload,
-        });
-        const res = await fetch("/api/telegram/protect", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body,
-        });
-        console.log("Response from protect:", res);
-      } catch (err) {
-        console.log(err);
-      }
+          return message;
+        },
+
+        (err) => {
+          throw err;
+        },
+      );
+      if (result)
+        toast.success(result, { position: "top-right", duration: 1500 });
+    } catch (err) {
+      toast.error(getErrorMessage(err) || "Update failed", {
+        position: "top-right",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -95,6 +237,7 @@ export default function TelegramProtectPage({
       <div className="relative overflow-hidden rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl p-6 lg:p-8">
         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-6">
             <div className="relative group">
@@ -114,11 +257,11 @@ export default function TelegramProtectPage({
               <div className="flex gap-4 mt-3 text-xs font-mono text-slate-500">
                 <span className="flex items-center gap-1">
                   <Activity size={12} />
-                  {state.activeAsset?.upTime || 0} days
+                  {state.activeAsset?.upTime ?? 0} days
                 </span>
                 <span className="flex items-center gap-1">
                   <Shield size={12} /> Rules:{" "}
-                  {state.activeAsset?.config?.rulesCount || 0}
+                  {state.activeAsset?.config?.rulesCount ?? 0}
                 </span>
               </div>
             </div>
@@ -129,7 +272,7 @@ export default function TelegramProtectPage({
                 Threats Blocked
               </p>
               <p className="text-2xl font-black text-rose-400 mt-1">
-                {state.activeAsset?.threatsBlocked}
+                {state.activeAsset?.threatsBlocked ?? 0}
               </p>
             </div>
             <div className="px-5 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-center">
@@ -137,61 +280,56 @@ export default function TelegramProtectPage({
                 Safe Files
               </p>
               <p className="text-2xl font-black text-emerald-400 mt-1">
-                {state.activeAsset?.safeFiles}
+                {state.activeAsset?.safeFiles ?? 0}
               </p>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Management Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <GroupManagement
           state={state}
           setState={setState}
+          loading={loading}
           handlers={{
-            onAdd: (asset) => {
-              handledSubmit("add", asset);
-            },
-            onRemove: (asset) => {
-              handledSubmit("delete", asset);
-            },
-            onSave: (asset) => {
-              handledSubmit("update", asset);
-            },
+            onAdd: (asset) => handleUpdate("add", asset),
+            onRemove: (asset) => handleDelete(asset),
+            onSave: (asset) => handleUpdate("update", asset),
           }}
           t={t}
         />
         <FileGuard
           state={state}
           setState={setState}
+          loading={loading}
           handlers={{
-            onSave: (asset) => {
-              handledSubmit("update", asset);
-            },
+            onSave: (asset) => handleUpdate("update", asset),
           }}
           t={t}
         />
         <LinkSentry
           state={state}
           setState={setState}
+          loading={loading}
           handlers={{
-            onSave: (asset) => {
-              handledSubmit("update", asset);
-            },
+            onSave: (asset) => handleUpdate("update", asset),
           }}
           t={t}
         />
         <SpamAegis
           state={state}
           setState={setState}
+          loading={loading}
           handlers={{
-            onSave: (asset) => {
-              handledSubmit("update", asset);
-            },
+            onSave: (asset) => handleUpdate("update", asset),
           }}
           t={t}
         />
       </div>
+
+      {/* Logs Section */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-lg overflow-hidden">
         <div className="p-5 border-b border-slate-800 flex items-center justify-between">
           <h3 className="font-bold text-white flex items-center gap-2">
@@ -217,16 +355,13 @@ export default function TelegramProtectPage({
                 protects.threatLogs.map((log) => (
                   <tr
                     key={log.id}
-                    className="hover:bg-slate-800/50 transition-colors"
-                  >
+                    className="hover:bg-slate-800/50 transition-colors">
                     <td className="px-6 py-4 font-mono text-xs text-slate-500">
                       {log.time}
                     </td>
-
                     <td className="px-6 py-4 font-medium text-white">
                       {log.user}
                     </td>
-
                     <td className="px-6 py-4">
                       <span
                         className={clsx(
@@ -239,16 +374,13 @@ export default function TelegramProtectPage({
                             "bg-indigo-500/10 border-indigo-500/20 text-indigo-400",
                           log.type === "Injection" &&
                             "bg-red-600/10 border-red-600/20 text-red-500",
-                        )}
-                      >
+                        )}>
                         {log.type}
                       </span>
                     </td>
-
                     <td className="px-6 py-4 font-mono text-xs text-slate-400 truncate max-w-[200px]">
                       {log.content}
                     </td>
-
                     <td className="px-6 py-4 text-right">
                       <span className="flex items-center justify-end gap-1 text-emerald-400 text-xs font-bold">
                         <Lock size={12} /> {log.action}
@@ -260,8 +392,7 @@ export default function TelegramProtectPage({
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-6 py-10 text-center text-slate-500 italic"
-                  >
+                    className="px-6 py-10 text-center text-slate-500 italic">
                     {t("No records found")}
                   </td>
                 </tr>

@@ -10,6 +10,7 @@ import { StatusBadge } from "./entity/StatusBadge";
 import { strlower } from "@/utils/util";
 
 type FileGuardProps = SetStateProps<TelegramProtectPageState> & {
+  loading: boolean;
   handlers: {
     onSave: (asset: GroupChannel) => void;
   };
@@ -19,6 +20,7 @@ type FileGuardProps = SetStateProps<TelegramProtectPageState> & {
 export default function FileGuard({
   state,
   setState,
+  loading,
   handlers,
   t,
 }: FileGuardProps) {
@@ -46,6 +48,7 @@ export default function FileGuard({
   };
 
   const handleAddExtension = () => {
+    if (loading) return;
     const ext = strlower(newExt.trim());
     if (!ext) return toast.error("Extension cannot be empty");
     if (!ext.startsWith(".")) {
@@ -125,6 +128,7 @@ export default function FileGuard({
         <div className="p-6 flex-1 space-y-6">
           <div className="flex gap-2">
             <input
+              disabled={loading}
               type="text"
               value={newExt}
               onChange={(e) => setNewExt(e.target.value)}
@@ -133,6 +137,7 @@ export default function FileGuard({
               className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all shadow-sm"
             />
             <button
+              disabled={loading}
               onClick={handleAddExtension}
               className="px-4 bg-slate-900 cursor-pointer dark:bg-slate-800 hover:bg-rose-600 dark:hover:bg-rose-600 text-white rounded-xl flex items-center justify-center transition-colors shadow-md active:scale-95"
             >
@@ -150,6 +155,7 @@ export default function FileGuard({
                   >
                     {ext}
                     <button
+                      disabled={loading}
                       onClick={() => handleRemoveExtension(ext)}
                       className="p-0.5 rounded-md text-slate-400 hover:bg-rose-100 dark:hover:bg-rose-500/30 hover:text-rose-600 dark:hover:text-rose-200 transition-colors"
                     >
@@ -206,6 +212,7 @@ export default function FileGuard({
             * Updates apply immediately
           </p>
           <button
+            disabled={loading}
             onClick={() => onSave(activeAsset)}
             className="flex items-center cursor-pointer gap-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-2.5 px-5 rounded-lg transition-colors shadow-sm active:scale-95"
           >

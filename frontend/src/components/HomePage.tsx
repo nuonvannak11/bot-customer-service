@@ -226,8 +226,10 @@ export default function OneControlLanding({ data }: OneControlLandingProps) {
                   className="cursor-pointer relative shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900 rounded-full transition-transform active:scale-95">
                   <Image
                     src={data?.avatar || "/img/default_avatar.png"}
-                    className="w-10 h-10 rounded-full object-cover border-2 border-slate-700 group-hover:border-slate-500 transition-colors bg-slate-800"
+                    width={40}
+                    height={40}
                     alt={data?.fullName || "User Avatar"}
+                    className="w-10 h-10 rounded-full object-cover border-2 border-slate-700 group-hover:border-slate-500 transition-colors bg-slate-800"
                   />
                   <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-slate-900 rounded-full"></span>
                 </button>
@@ -289,7 +291,6 @@ export default function OneControlLanding({ data }: OneControlLandingProps) {
       <header
         ref={heroRef}
         className={`relative min-h-screen flex items-center justify-center pt-20 overflow-hidden bg-[${colors.dark950}]`}>
-        {/* Background Gradients & Grid */}
         <div
           className="absolute inset-0 opacity-30 pointer-events-none"
           style={{
@@ -298,7 +299,8 @@ export default function OneControlLanding({ data }: OneControlLandingProps) {
             backgroundSize: "50px 50px",
             maskImage:
               "radial-gradient(circle at center, black 40%, transparent 85%)",
-          }}></div>
+          }}
+        />
 
         {/* Animated Blobs (GSAP Controlled) */}
         <div

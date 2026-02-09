@@ -15,6 +15,7 @@ import { response_data } from "../libs/lib";
 import { IManagedAssetRemoveRequest, IManagedAssetRequest, SaveTgBotRequest } from "../interface";
 import { get_url } from "../libs/get_urls";
 import { httpAgent } from "../libs/lib";
+import { getErrorMessage } from "../helper/errorHandling";
 
 interface OpenCloseBotRequest {
     token: string;
@@ -60,7 +61,7 @@ class TelegramController extends ProtectController {
         const regex = /^[0-9]{7,12}:[A-Za-z0-9_-]{35}$/;
         return regex.test(token.trim());
     }
-
+    
     private buildItemGroup(group: IManagedAsset | IGroup) {
         return {
             chatId: group.chatId,
@@ -171,9 +172,9 @@ class TelegramController extends ProtectController {
             } else {
                 return response_data(res, 500, "Failed to start bot (External API Error)", null);
             }
-        } catch (err: any) {
+        } catch (err) {
             eLog("❌ Critical System Error:", err);
-            return response_data(res, 500, err.message || "System error starting bot", null);
+            return response_data(res, 500, getErrorMessage(err) || "System error starting bot", null);
         } finally {
             await session.endSession();
         }
@@ -265,9 +266,9 @@ class TelegramController extends ProtectController {
             } else {
                 return response_data(res, 500, "Failed to close bot (External API Error)", null);
             }
-        } catch (err: any) {
+        } catch (err) {
             eLog("❌ Critical Error in handleCloseBot:", err);
-            return response_data(res, 400, err.message || "Failed to initiate close", null);
+            return response_data(res, 400, getErrorMessage(err) || "Failed to initiate close", null);
         } finally {
             await session.endSession();
         }
@@ -283,8 +284,8 @@ class TelegramController extends ProtectController {
                 return null;
             }
             return data;
-        } catch (err: any) {
-            eLog("❌ get_file_link error:", err?.message || err);
+        } catch (err: unknown) {
+            eLog("❌ get_file_link error:", getErrorMessage(err) || err);
             return null;
         }
     }
@@ -321,6 +322,7 @@ class TelegramController extends ProtectController {
                 notifyEnabled: activeBot?.push_notifications ?? false,
                 silentMode: activeBot?.silent_mode ?? false,
                 exceptionLinks: settings?.user?.exceptionLinks ?? [],
+                exceptionFiles: settings?.user?.exceptionFiles ?? [],
             };
             const encrypted = hash_data.encryptData(JSON.stringify(collection));
             return response_data(res, 200, "Success", encrypted);
@@ -334,7 +336,7 @@ class TelegramController extends ProtectController {
         const result = await this.protect_post<SaveTgBotRequest>(req, res, true);
         if (!result) return;
 
-        const { exceptionLinks, user_id, botToken, webhookUrl, webhookEnabled, notifyEnabled, silentMode } = result;
+        const {exceptionFiles, exceptionLinks, user_id, botToken, webhookUrl, webhookEnabled, notifyEnabled, silentMode } = result;
 
         if (!user_id || !botToken) return response_data(res, 400, "Invalid request", []);
         if (!this.validateTelegramToken(botToken)) return response_data(res, 400, "Invalid bot token", []);
@@ -373,6 +375,8 @@ class TelegramController extends ProtectController {
             }
             platform.telegram.web_hook = webhookUrl ?? "";
             settings.user.exceptionLinks = exceptionLinks ?? [];
+            settings.user.exceptionFiles = exceptionFiles ?? [];
+
 
             if (botIndex === -1) {
                 botList.push({ bot_token_enc });
@@ -472,7 +476,7 @@ class TelegramController extends ProtectController {
                 }
                 return await this.handleCloseBot(res, bot_token, bot_token_enc, user_id);
             }
-        } catch (err: any) {
+        } catch (err) {
             eLog("❌ open_close_bot error:", err);
             return response_data(res, 500, "Internal server error", null);
         }
@@ -652,7 +656,7 @@ class TelegramController extends ProtectController {
             }
             return response_data(res, 200, "Success", asset)
         } catch (err) {
-            eLog("❌ protects error:", err);
+            eLog("❌ protects error:", getErrorMessage(err));
             return response_data(res, 500, "Internal server error", []);
         }
     }

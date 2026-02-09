@@ -9,6 +9,7 @@ import { TelegramProtectPageState } from "../TelegramProtectPage";
 import { StatusBadge } from "./entity/StatusBadge";
 
 type LinkSentryProps = SetStateProps<TelegramProtectPageState> & {
+  loading: boolean;
   handlers: {
     onSave: (asset: GroupChannel) => void;
   };
@@ -18,6 +19,7 @@ type LinkSentryProps = SetStateProps<TelegramProtectPageState> & {
 export default function LinkSentry({
   state,
   setState,
+  loading,
   handlers,
   t,
 }: LinkSentryProps) {
@@ -62,6 +64,7 @@ export default function LinkSentry({
   };
 
   const handleToggleBlockAdmin = () => {
+    if (loading) return;
     updateAssetConfig({
       blockAllLinksFromNoneAdmin: !config.blockAllLinksFromNoneAdmin,
     });
@@ -109,6 +112,7 @@ export default function LinkSentry({
         <div className="p-6 flex-1 space-y-6">
           <div className="flex gap-2">
             <input
+              disabled={loading}
               type="text"
               value={newDomain}
               onChange={(e) => setNewDomain(e.target.value)}
@@ -117,6 +121,7 @@ export default function LinkSentry({
               className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
             />
             <button
+              disabled={loading}
               onClick={handleAddDomain}
               className="px-4 bg-slate-900 dark:bg-slate-800 hover:bg-orange-600 dark:hover:bg-orange-600 text-white rounded-xl flex items-center justify-center transition-colors shadow-md active:scale-95"
             >
@@ -133,6 +138,7 @@ export default function LinkSentry({
                   >
                     {domain}
                     <button
+                      disabled={loading}
                       onClick={() => handleRemoveDomain(domain)}
                       className="p-0.5 rounded-md text-slate-400 hover:bg-orange-100 dark:hover:bg-orange-500/30 hover:text-orange-600 dark:hover:text-orange-200 transition-colors"
                     >
@@ -181,6 +187,7 @@ export default function LinkSentry({
             * Updates apply immediately
           </p>
           <button
+            disabled={loading}
             onClick={() => onSave(activeAsset)}
             className="flex items-center cursor-pointer gap-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold py-2.5 px-5 rounded-lg transition-colors shadow-sm active:scale-95"
           >

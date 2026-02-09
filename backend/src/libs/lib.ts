@@ -45,6 +45,12 @@ export async function checkJwtToken(token?: string): Promise<{ status: boolean; 
     return { status: true, data: verify.decoded as JWTPayload };
 }
 
+export function ensureHashKey(data: unknown): data is { hash_key: string } {
+    if (typeof data !== "object" || data === null) return false;
+    const record = data as Record<string, unknown>;
+    return typeof record.hash_key === "string";
+}
+
 export const httpAgent = new http.Agent({
     keepAlive: true,
     maxSockets: 100,

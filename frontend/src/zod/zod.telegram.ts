@@ -90,5 +90,6 @@ export const telegramPayloadSchema = z.object({
     notifyEnabled: z.boolean().optional(),
     silentMode: z.boolean().optional(),
     exceptionLinks: z.array(z.string()).optional(),
+    exceptionFiles: z.array(z.string()).optional(),
     botUsername: z.string().optional(),
 });

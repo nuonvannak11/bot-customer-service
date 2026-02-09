@@ -15,6 +15,7 @@ import { RangeInput } from "@/components/ui/RangeInput";
 import { SpamSettingCard } from "./entity/SpamSettingCard";
 
 type SpamAegisProps = SetStateProps<TelegramProtectPageState> & {
+  loading: boolean;
   handlers: {
     onSave: (asset: GroupChannel) => void;
   };
@@ -24,6 +25,7 @@ type SpamAegisProps = SetStateProps<TelegramProtectPageState> & {
 export default function SpamAegis({
   state,
   setState,
+  loading,
   handlers,
   t,
 }: SpamAegisProps) {
@@ -118,6 +120,7 @@ export default function SpamAegis({
         </div>
 
         <button
+          disabled={loading}
           onClick={() => onSave(activeAsset)}
           className="flex cursor-pointer items-center gap-2 text-white text-xs font-bold px-4 py-2 rounded-lg transition-all duration-300 ease-out shadow-lg bg-indigo-600 hover:bg-indigo-500 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:scale-95">
           <Save size={14} />
@@ -137,7 +140,7 @@ export default function SpamAegis({
             min={0}
             max={20}
             step={1}
-            disabled={isChanel}
+            disabled={isChanel || loading}
             value={spamConfig.rateLimit}
             onChange={(e) =>
               handleConfigChange("rateLimit", parseFloat(e.target.value))
@@ -156,7 +159,7 @@ export default function SpamAegis({
             min={0}
             max={3}
             step={1}
-            disabled={isChanel}
+            disabled={isChanel || loading}
             value={spamConfig.duplicateSensitivity}
             onChange={(e) =>
               handleConfigChange(
@@ -178,7 +181,7 @@ export default function SpamAegis({
             min={0}
             max={4}
             step={1}
-            disabled={isChanel}
+            disabled={isChanel || loading}
             value={spamConfig.newUserRestriction}
             onChange={(e) =>
               handleConfigChange(
