@@ -47,6 +47,8 @@ export interface SpamAegisProps {
 }
 
 export interface ProtectData {
+  exceptionLinks: string[];
+  exceptionFiles: string[];
   groupChannel: GroupChannel[];
   threatLogs: ThreatLog[];
 }
@@ -88,6 +90,8 @@ export interface ThreatLog {
 }
 
 export interface PreparedData {
+  exceptionLinks: string[];
+  exceptionFiles: string[];
   group: GroupChannel[];
   channel: GroupChannel[];
   active: GroupChannel[];

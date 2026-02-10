@@ -2,7 +2,14 @@
 
 import React, { useState } from "react";
 import toast from "react-hot-toast";
-import { Link2Off, Plus, X, Save, ShieldAlert } from "lucide-react";
+import {
+  Link2Off,
+  Plus,
+  X,
+  Save,
+  ShieldAlert,
+  AlertTriangle,
+} from "lucide-react";
 import { GroupChannel } from "@/interface/telegram/interface.telegram";
 import { SetStateProps } from "@/interface";
 import { TelegramProtectPageState } from "../TelegramProtectPage";
@@ -26,6 +33,7 @@ export default function LinkSentry({
   const { onSave } = handlers;
   const { activeAsset } = state;
   const config = activeAsset.config;
+  const isAllowNoneAdmin = config.blockAllLinksFromNoneAdmin;
   const [newDomain, setNewDomain] = useState("");
 
   const updateAssetConfig = (updates: Partial<typeof config>) => {
@@ -38,7 +46,7 @@ export default function LinkSentry({
         managedAssets: {
           ...prev.managedAssets,
           active: prev.managedAssets.active.map((asset) =>
-            asset.chatId === activeAsset.chatId ? updatedAsset : asset
+            asset.chatId === activeAsset.chatId ? updatedAsset : asset,
           ),
         },
       };
@@ -46,6 +54,13 @@ export default function LinkSentry({
   };
 
   const handleAddDomain = () => {
+    if (loading) return;
+    if (isAllowNoneAdmin) {
+      toast(t("You can't add while you allow non-admin files"), {
+        icon: <AlertTriangle size={18} className="text-amber-500" />,
+      });
+      return;
+    }
     const domain = newDomain.trim();
     if (!domain) return toast.error("Domain cannot be empty");
     if (config.blacklistedDomains.includes(domain)) {
@@ -58,21 +73,31 @@ export default function LinkSentry({
   };
 
   const handleRemoveDomain = (domainToRemove: string) => {
+    if (loading) return;
+    if (isAllowNoneAdmin) {
+      toast(t("You can't remove while you allow non-admin files"), {
+        icon: <AlertTriangle size={18} className="text-amber-500" />,
+      });
+      return;
+    }
     updateAssetConfig({
-      blacklistedDomains: config.blacklistedDomains.filter((d) => d !== domainToRemove),
+      blacklistedDomains: config.blacklistedDomains.filter(
+        (d) => d !== domainToRemove,
+      ),
     });
   };
 
   const handleToggleBlockAdmin = () => {
     if (loading) return;
     updateAssetConfig({
-      blockAllLinksFromNoneAdmin: !config.blockAllLinksFromNoneAdmin,
+      blockAllLinksFromNoneAdmin: !isAllowNoneAdmin,
     });
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleAddDomain();
-  };
+  const classInput = isAllowNoneAdmin ? "cursor-not-allowed opacity-50" : "";
+  const classButton = isAllowNoneAdmin
+    ? "cursor-not-allowed opacity-50"
+    : "cursor-pointer";
 
   return (
     <div className="w-full">
@@ -87,7 +112,7 @@ export default function LinkSentry({
             </div>
             <div>
               <h3 className="font-bold text-slate-800 dark:text-white text-base tracking-tight">
-               {t("Link Sentry")}
+                {t("Link Sentry")}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
                 {t("Anti-phishing & scam filter")}
@@ -112,52 +137,54 @@ export default function LinkSentry({
         <div className="p-6 flex-1 space-y-6">
           <div className="flex gap-2">
             <input
-              disabled={loading}
+              disabled={loading || isAllowNoneAdmin}
               type="text"
               value={newDomain}
               onChange={(e) => setNewDomain(e.target.value)}
-              onKeyDown={handleKeyDown}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleAddDomain();
+              }}
               placeholder="Add domain (e.g. scam-site.com)"
-              className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
+              className={`${classInput} flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm`}
             />
             <button
-              disabled={loading}
-              onClick={handleAddDomain}
-              className="px-4 bg-slate-900 dark:bg-slate-800 hover:bg-orange-600 dark:hover:bg-orange-600 text-white rounded-xl flex items-center justify-center transition-colors shadow-md active:scale-95"
-            >
-              <Plus size={20} />
+              disabled={loading || isAllowNoneAdmin}
+              onClick={() => handleAddDomain()}
+              className={`${classButton} px-4 bg-slate-900 dark:bg-slate-800 hover:bg-orange-600 dark:hover:bg-orange-600 text-white rounded-xl flex items-center justify-center transition-colors shadow-md active:scale-95`}>
+              <Plus size={20} className={classInput} />
             </button>
           </div>
           <div className="h-[120px] p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800/50 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
             {config.blacklistedDomains.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
+              <div className={`${classInput} flex flex-wrap gap-2`}>
                 {config.blacklistedDomains.map((domain) => (
                   <span
                     key={domain}
-                    className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 rounded-lg bg-white dark:bg-orange-500/10 border border-slate-200 dark:border-orange-500/20 text-slate-700 dark:text-orange-200 text-xs font-semibold shadow-sm hover:border-orange-300 dark:hover:border-orange-500/50 transition-colors"
-                  >
+                    className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 rounded-lg bg-white dark:bg-orange-500/10 border border-slate-200 dark:border-orange-500/20 text-slate-700 dark:text-orange-200 text-xs font-semibold shadow-sm hover:border-orange-300 dark:hover:border-orange-500/50 transition-colors">
                     {domain}
                     <button
-                      disabled={loading}
+                      disabled={loading || isAllowNoneAdmin}
                       onClick={() => handleRemoveDomain(domain)}
-                      className="p-0.5 rounded-md text-slate-400 hover:bg-orange-100 dark:hover:bg-orange-500/30 hover:text-orange-600 dark:hover:text-orange-200 transition-colors"
-                    >
-                      <X size={14} />
+                      className={`${classButton} p-0.5 rounded-md text-slate-400 hover:bg-orange-100 dark:hover:bg-orange-500/30 hover:text-orange-600 dark:hover:text-orange-200 transition-colors`}>
+                      <X size={14} className={classInput} />
                     </button>
                   </span>
                 ))}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-600 space-y-2 py-4">
-                <ShieldAlert size={32} strokeWidth={1.5} className="opacity-50" />
+                <ShieldAlert
+                  size={32}
+                  strokeWidth={1.5}
+                  className="opacity-50"
+                />
                 <span className="text-xs">No domains blocked</span>
               </div>
             )}
           </div>
           <div
             onClick={handleToggleBlockAdmin}
-            className="group cursor-pointer flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-[0.99]"
-          >
+            className="group cursor-pointer flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-[0.99]">
             <div className="flex flex-col">
               <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                 Block Non-Admin Links
@@ -171,11 +198,12 @@ export default function LinkSentry({
                 config.blockAllLinksFromNoneAdmin
                   ? "bg-orange-500"
                   : "bg-slate-300 dark:bg-slate-700"
-              }`}
-            >
+              }`}>
               <span
                 className={`absolute top-1 left-1 bg-white rounded-full w-4 h-4 shadow-sm transform transition-transform duration-200 ease-in-out ${
-                  config.blockAllLinksFromNoneAdmin ? "translate-x-5" : "translate-x-0"
+                  config.blockAllLinksFromNoneAdmin
+                    ? "translate-x-5"
+                    : "translate-x-0"
                 }`}
               />
             </div>
@@ -189,8 +217,7 @@ export default function LinkSentry({
           <button
             disabled={loading}
             onClick={() => onSave(activeAsset)}
-            className="flex items-center cursor-pointer gap-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold py-2.5 px-5 rounded-lg transition-colors shadow-sm active:scale-95"
-          >
+            className="flex items-center cursor-pointer gap-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold py-2.5 px-5 rounded-lg transition-colors shadow-sm active:scale-95">
             <Save size={16} />
             <span>Save Changes</span>
           </button>

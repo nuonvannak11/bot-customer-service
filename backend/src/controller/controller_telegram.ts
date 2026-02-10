@@ -495,6 +495,7 @@ class TelegramController extends ProtectController {
                 return response_data(res, 401, "Unauthorized user", []);
             }
             const botResult = await model_bot.findOne({ user_id }, { bot_token: 1 }).lean();
+            const settings = await model_setting.findOne({ user_id }).lean();
             if (!botResult?.bot_token) {
                 return response_data(res, 404, "Bot token not found", []);
             }
@@ -510,7 +511,10 @@ class TelegramController extends ProtectController {
                 .map(group => (this.buildItemGroup(group)));
             const finalCollection = [...existingAssets, ...unmanagedAssets];
             return response_data(res, 200, "Success", {
-                groupChannel: finalCollection, threatLogs: [
+                exceptionLinks: settings?.user?.exceptionLinks ?? [],
+                exceptionFiles: settings?.user?.exceptionFiles ?? [],
+                groupChannel: finalCollection, 
+                threatLogs: [
                     {
                         id: 1,
                         user: "BadGuy_99",

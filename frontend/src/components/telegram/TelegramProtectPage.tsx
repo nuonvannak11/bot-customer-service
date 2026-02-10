@@ -24,7 +24,12 @@ type TelegramProtectPageProps = {
 };
 
 export interface TelegramProtectPageState {
-  managedAssets: Omit<PreparedData, "threatLogs">;
+  managedAssets: Omit<
+    PreparedData,
+    "threatLogs" | "exceptionFiles" | "exceptionLinks"
+  >;
+  exceptionFiles: string[];
+  exceptionLinks: string[];
   activeAsset: GroupChannel;
 }
 
@@ -32,9 +37,12 @@ export default function TelegramProtectPage({
   protects,
   hash_key,
 }: TelegramProtectPageProps) {
-  const { threatLogs, ...cleanProtects } = protects;
+  const { threatLogs, exceptionFiles, exceptionLinks, ...cleanProtects } =
+    protects;
   const { t } = useTranslation();
   const [state, setState] = useState<TelegramProtectPageState>({
+    exceptionFiles,
+    exceptionLinks,
     managedAssets: cleanProtects,
     activeAsset: cleanProtects?.active?.[0] ?? DEFAULT_ASSET,
   });
@@ -48,6 +56,7 @@ export default function TelegramProtectPage({
         (a) => a.chatId === prev.activeAsset?.chatId,
       );
       return {
+        ...prev,
         managedAssets: latestClean,
         activeAsset: stillExists
           ? prev.activeAsset

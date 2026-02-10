@@ -17,7 +17,7 @@ import Image from "next/image";
 import { toast } from "react-hot-toast";
 
 import SettingsInput from "@/components/SettingsInput";
-import Toggle from "@/components/ToggleCheckBox";
+import Toggle from "@/components/ui/ToggleCheckBox";
 import { UserProfileConfig } from "@/interface";
 
 export default function ProfileClient({

@@ -120,13 +120,15 @@ export async function ensureUserLogin(): Promise<EnsureUserLoginProp> {
     if (!token) redirect("/login");
     const ensureUser = await controller_user.check_auth(token);
     if (!ensureUser) redirect("/login");
-    return { user: ensureUser as CheckAuthResponse, token,cookiesObj };
+    return { user: ensureUser as CheckAuthResponse, token, cookiesObj };
 }
 
 
 export function prepareProtectData(data: ProtectData): PreparedData {
-    const { groupChannel = [], threatLogs = [] } = data ?? {};
+    const { groupChannel = [], threatLogs = [], exceptionLinks = [], exceptionFiles = [] } = data ?? {};
     return {
+        exceptionLinks,
+        exceptionFiles,
         group: filterChannels(groupChannel, "Group"),
         channel: filterChannels(groupChannel, "Channel"),
         active: filterActive(groupChannel),
