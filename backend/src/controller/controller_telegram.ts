@@ -5,6 +5,7 @@ import { eLog } from "../utils/util";
 import AppUser from "../models/model_user";
 import Platform from "../models/model_platform";
 import model_bot from "../models/model_bot";
+import ThreatLogModel from "../models/model_telegram_threat_log";
 import model_setting from "../models/model_settings";
 import GroupModel, { IGroup } from '../models/model_telegram_group_chanel';
 import ManagedAssetModel, { IManagedAsset } from '../models/model_managed_asset';
@@ -43,6 +44,7 @@ const DEFAULT_ASSET_CONFIG = {
     config: {
         blockedExtensions: [],
         blacklistedDomains: [],
+        badWords: [],
         spam: {
             rateLimit: 0,
             duplicateSensitivity: 0,
@@ -51,6 +53,7 @@ const DEFAULT_ASSET_CONFIG = {
         rulesCount: 0,
         blockAllLinksFromNoneAdmin: false,
         blockAllExstationFromNoneAdmin: false,
+        blockBadWordsEnabled: false,
     },
     threatsBlocked: 0,
     safeFiles: 0,
@@ -61,7 +64,7 @@ class TelegramController extends ProtectController {
         const regex = /^[0-9]{7,12}:[A-Za-z0-9_-]{35}$/;
         return regex.test(token.trim());
     }
-    
+
     private buildItemGroup(group: IManagedAsset | IGroup) {
         return {
             chatId: group.chatId,
@@ -336,7 +339,7 @@ class TelegramController extends ProtectController {
         const result = await this.protect_post<SaveTgBotRequest>(req, res, true);
         if (!result) return;
 
-        const {exceptionFiles, exceptionLinks, user_id, botToken, webhookUrl, webhookEnabled, notifyEnabled, silentMode } = result;
+        const { exceptionFiles, exceptionLinks, user_id, botToken, webhookUrl, webhookEnabled, notifyEnabled, silentMode } = result;
 
         if (!user_id || !botToken) return response_data(res, 400, "Invalid request", []);
         if (!this.validateTelegramToken(botToken)) return response_data(res, 400, "Invalid bot token", []);
@@ -510,44 +513,17 @@ class TelegramController extends ProtectController {
                 .filter(group => !managedChatIds.has(group.chatId))
                 .map(group => (this.buildItemGroup(group)));
             const finalCollection = [...existingAssets, ...unmanagedAssets];
+            const threatLogs = await ThreatLogModel
+                .find({ bot_token })
+                .sort({ createdAt: -1 })
+                .limit(5)
+                .select("chatId offenderName threatType content action createdAt").lean();
+
             return response_data(res, 200, "Success", {
                 exceptionLinks: settings?.user?.exceptionLinks ?? [],
                 exceptionFiles: settings?.user?.exceptionFiles ?? [],
-                groupChannel: finalCollection, 
-                threatLogs: [
-                    {
-                        id: 1,
-                        user: "BadGuy_99",
-                        type: "File",
-                        content: "free_nitro.exe",
-                        action: "Blocked",
-                        time: "10:42 AM",
-                    },
-                    {
-                        id: 2,
-                        user: "SpamBot_X",
-                        type: "Link",
-                        content: "http://click-me.sus",
-                        action: "Blocked",
-                        time: "10:35 AM",
-                    },
-                    {
-                        id: 3,
-                        user: "Unknown",
-                        type: "Spam",
-                        content: "Buy Crypto!!! Buy Crypto!!!",
-                        action: "Muted (1h)",
-                        time: "09:12 AM",
-                    },
-                    {
-                        id: 4,
-                        user: "ScriptKiddie",
-                        type: "Injection",
-                        content: "<script>alert('hack')</script>",
-                        action: "Ban",
-                        time: "Yesterday",
-                    },
-                ]
+                groupChannel: finalCollection,
+                threatLogs,
             });
         } catch (err) {
             eLog("❌ protects error:", err);
@@ -667,3 +643,38 @@ class TelegramController extends ProtectController {
 }
 
 export default new TelegramController();
+
+// const threatLogs = [
+//     {
+//         id: 1,
+//         user: "BadGuy_99",
+//         type: "File",
+//         content: "free_nitro.exe",
+//         action: "Blocked",
+//         time: "10:42 AM",
+//     },
+//     {
+//         id: 2,
+//         user: "SpamBot_X",
+//         type: "Link",
+//         content: "http://click-me.sus",
+//         action: "Blocked",
+//         time: "10:35 AM",
+//     },
+//     {
+//         id: 3,
+//         user: "Unknown",
+//         type: "Spam",
+//         content: "Buy Crypto!!! Buy Crypto!!!",
+//         action: "Muted (1h)",
+//         time: "09:12 AM",
+//     },
+//     {
+//         id: 4,
+//         user: "ScriptKiddie",
+//         type: "Injection",
+//         content: "<script>alert('hack')</script>",
+//         action: "Ban",
+//         time: "Yesterday",
+//     },
+// ]

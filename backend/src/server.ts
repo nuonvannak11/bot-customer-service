@@ -5,7 +5,7 @@ import { errorHandler } from "./middleware/errorHandler";
 import connectDB from "./config/db";
 import { connectRedis } from "./config/redis";
 import setUpRoutes from "./routes";
-import { startRealTimeListener } from "./worker/RedisListener";
+import { startRealTimeListener } from "./publish/RedisListener";
 import cronJob from "./cron/cron.index";
 
 const app = express();

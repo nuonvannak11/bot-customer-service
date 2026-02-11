@@ -309,7 +309,6 @@ const LoginRegister = ({ hash_data }: Props) => {
                 icon={ShieldCheck}
                 placeholder="56xbvf@2345678"
                 customStyle="w-full rounded-3xl border border-white/10 bg-white/5 px-2 py-2.5 text-white placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
-                isShowPw={true}
               />
               <button
                 type="submit"

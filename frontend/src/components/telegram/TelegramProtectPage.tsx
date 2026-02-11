@@ -9,14 +9,12 @@ import GroupManagement from "./protect/GroupManagement";
 import FileGuard from "./protect/FileGuard";
 import LinkSentry from "./protect/LinkSentry";
 import SpamAegis from "./protect/SpamAegis";
-import {
-  GroupChannel,
-  PreparedData,
-} from "@/interface/interface.telegram";
+import { GroupChannel, PreparedData } from "@/interface/interface.telegram";
 import { useTranslation } from "react-i18next";
 import { DEFAULT_ASSET } from "@/data/data.default";
 import { request_sweet_alert } from "@/helper/helper";
 import { getErrorMessage } from "@/utils/util";
+import BlockBadWords from "./protect/BlockBadWords";
 
 type TelegramProtectPageProps = {
   protects: PreparedData;
@@ -336,6 +334,15 @@ export default function TelegramProtectPage({
           }}
           t={t}
         />
+        <BlockBadWords
+          state={state}
+          setState={setState}
+          loading={loading}
+          handlers={{
+            onSave: (asset) => handleUpdate("update", asset),
+          }}
+          t={t}
+        />
       </div>
 
       {/* Logs Section */}
@@ -363,28 +370,18 @@ export default function TelegramProtectPage({
               {protects.threatLogs?.length ? (
                 protects.threatLogs.map((log) => (
                   <tr
-                    key={log.id}
-                    className="hover:bg-slate-800/50 transition-colors">
+                    key={log.chatId}
+                    className="hover:bg-slate-800/50 transition-colors"
+                  >
                     <td className="px-6 py-4 font-mono text-xs text-slate-500">
-                      {log.time}
+                      {log.createdAt}
                     </td>
                     <td className="px-6 py-4 font-medium text-white">
-                      {log.user}
+                      {log.offenderName}
                     </td>
                     <td className="px-6 py-4">
-                      <span
-                        className={clsx(
-                          "px-2 py-1 rounded text-xs font-bold border",
-                          log.type === "File" &&
-                            "bg-rose-500/10 border-rose-500/20 text-rose-400",
-                          log.type === "Link" &&
-                            "bg-amber-500/10 border-amber-500/20 text-amber-400",
-                          log.type === "Spam" &&
-                            "bg-indigo-500/10 border-indigo-500/20 text-indigo-400",
-                          log.type === "Injection" &&
-                            "bg-red-600/10 border-red-600/20 text-red-500",
-                        )}>
-                        {log.type}
+                      <span className="px-2 py-1 rounded text-xs font-bold border bg-indigo-500/10 border-indigo-500/20 text-indigo-400">
+                        {log.threatType}
                       </span>
                     </td>
                     <td className="px-6 py-4 font-mono text-xs text-slate-400 truncate max-w-[200px]">
@@ -401,7 +398,8 @@ export default function TelegramProtectPage({
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-6 py-10 text-center text-slate-500 italic">
+                    className="px-6 py-10 text-center text-slate-500 italic"
+                  >
                     {t("No records found")}
                   </td>
                 </tr>

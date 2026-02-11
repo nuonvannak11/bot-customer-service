@@ -57,7 +57,7 @@ export interface GroupChannel {
   chatId: string;
   name: string;
   avartar: string;
-  type: "Group" | "Channel";
+  type: "private" | "group" | "supergroup" | "channel";
   allowScan: boolean;
   upTime: number;
   threatsBlocked: number;
@@ -72,6 +72,8 @@ export interface ChannelConfig {
   rulesCount: number;
   blockAllLinksFromNoneAdmin: boolean;
   blockAllExstationFromNoneAdmin: boolean,
+  badWords: string[],
+  blockBadWordsEnabled: boolean,
 }
 
 export interface SpamConfig {
@@ -81,12 +83,12 @@ export interface SpamConfig {
 }
 
 export interface ThreatLog {
-  id: number;
-  user: string;
-  type: "File" | "Link" | "Spam" | "Injection";
+  chatId: string;
+  offenderName: string;
+  threatType: string
   content: string;
   action: string;
-  time: string;
+  createdAt: string;
 }
 
 export interface PreparedData {

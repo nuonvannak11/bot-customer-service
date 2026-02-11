@@ -6,12 +6,13 @@ export interface IManagedAsset extends mongoose.Document {
     chatId: string;
     name: string;
     avatar: string;
-    type: "Group" | "Channel";
+    type: "private" | "group" | "supergroup" | "channel";
     allowScan: boolean;
     upTime: number;
     config: {
         blockedExtensions: string[];
         blacklistedDomains: string[];
+        badWords: string[];
         spam: {
             rateLimit: number;
             duplicateSensitivity: number;
@@ -20,6 +21,7 @@ export interface IManagedAsset extends mongoose.Document {
         rulesCount: number;
         blockAllLinksFromNoneAdmin: boolean;
         blockAllExstationFromNoneAdmin: boolean;
+        blockBadWordsEnabled: boolean;
     };
     threatsBlocked: number;
     safeFiles: number;
@@ -36,30 +38,14 @@ const spamSchema = new mongoose.Schema(
 
 const configSchema = new mongoose.Schema(
     {
-        blockedExtensions: {
-            type: [String],
-            default: [],
-        },
-        blacklistedDomains: {
-            type: [String],
-            default: [],
-        },
-        spam: {
-            type: spamSchema,
-            default: () => ({}),
-        },
-        rulesCount: {
-            type: Number,
-            default: 0,
-        },
-        blockAllLinksFromNoneAdmin: {
-            type: Boolean,
-            default: false,
-        },
-        blockAllExstationFromNoneAdmin: {
-            type: Boolean,
-            default: false,
-        },
+        blockedExtensions: { type: [String], default: [] },
+        blacklistedDomains: { type: [String], default: [] },
+        badWords: { type: [String], default: [] },
+        spam: { type: spamSchema, default: () => ({}) },
+        rulesCount: { type: Number, default: 0 },
+        blockAllLinksFromNoneAdmin: { type: Boolean, default: false },
+        blockAllExstationFromNoneAdmin: { type: Boolean, default: false },
+        blockBadWordsEnabled: { type: Boolean, default: false },
     },
     { _id: false }
 );
@@ -73,7 +59,7 @@ const managedAssetSchema = new mongoose.Schema(
         avatar: { type: String, default: "" },
         type: {
             type: String,
-            enum: ["Group", "Channel"],
+            enum: ["private", "group", "supergroup", "channel"],
             required: true,
         },
 

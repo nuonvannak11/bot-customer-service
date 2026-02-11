@@ -36,6 +36,7 @@ export const DEFAULT_ASSET = {
   config: {
     blockedExtensions: [],
     blacklistedDomains: [],
+    badWords: [],
     spam: {
       rateLimit: 0,
       duplicateSensitivity: 0,
@@ -44,5 +45,6 @@ export const DEFAULT_ASSET = {
     rulesCount: 0,
     blockAllLinksFromNoneAdmin: false,
     blockAllExstationFromNoneAdmin: false,
+    blockBadWordsEnabled: false,
   },
 };
