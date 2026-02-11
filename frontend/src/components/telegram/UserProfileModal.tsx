@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { X, AtSign, Info, Phone, Bell, UserX } from "lucide-react";
 import clsx from "clsx";
-import { TelegramContact } from "@/interface/telegram/interface.telegram";
+import { TelegramContact } from "@/interface/interface.telegram";
 import Image from "next/image";
 
 export default function UserProfileModal({

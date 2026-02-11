@@ -12,9 +12,9 @@ import SpamAegis from "./protect/SpamAegis";
 import {
   GroupChannel,
   PreparedData,
-} from "@/interface/telegram/interface.telegram";
+} from "@/interface/interface.telegram";
 import { useTranslation } from "react-i18next";
-import { DEFAULT_ASSET } from "@/default/default";
+import { DEFAULT_ASSET } from "@/data/data.default";
 import { request_sweet_alert } from "@/helper/helper";
 import { getErrorMessage } from "@/utils/util";
 

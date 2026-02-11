@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { empty, strlower } from "@/utils/util";
 import { cookies } from "next/headers";
-import { GroupChannel, PreparedData, ProtectData } from "@/interface/telegram/interface.telegram";
+import { GroupChannel, PreparedData, ProtectData } from "@/interface/interface.telegram";
 import check_jwt from "@/helper/check_jwt";
 import { redirect } from "next/navigation";
 import controller_user from "@/controller/controller_user";

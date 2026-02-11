@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState } from "react";
-import { JWTPayload } from "@/@types/auth";
+import { JWTPayload } from "@/interface/index";
 
 interface AuthContextType {
   user: JWTPayload | null;

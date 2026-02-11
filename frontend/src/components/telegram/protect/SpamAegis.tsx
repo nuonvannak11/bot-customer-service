@@ -7,7 +7,7 @@ import gsap from "gsap";
 import {
   GroupChannel,
   SpamConfigState,
-} from "@/interface/telegram/interface.telegram";
+} from "@/interface/interface.telegram";
 import { SetStateProps } from "@/interface";
 import { TelegramProtectPageState } from "../TelegramProtectPage";
 

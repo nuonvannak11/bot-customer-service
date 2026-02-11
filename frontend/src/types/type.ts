@@ -4,11 +4,6 @@ declare module "next-auth" {
   }
 }
 
-export interface SocketPayload {
-  token: string;
-  socket_url: string;
-}
-
 export type AuthResponse<T = unknown> = {
   code: number;
   message: string;
@@ -19,7 +14,6 @@ export type LoginResponse = AuthResponse & {
   token: string;
 }
 
-// 2. Change 'any' to 'unknown' to fix the explicit-any error
 export type ResponseData = {
   code: number;
   message: string;

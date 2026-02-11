@@ -6,7 +6,7 @@ import { response_data } from "@/libs/lib";
 import HashData from "@/helper/hash_data";
 import { empty } from "@/utils/util";
 import { SAFE_TEXT, EMAIL_REGEX, REQUEST_TIMEOUT_MS } from "@/constants";
-import { ApiResponse, AuthResponse, LoginResponse, OTPResponse } from "@/@types/type";
+import { ApiResponse, AuthResponse, LoginResponse, OTPResponse } from "@/types/type";
 import { CheckAuthResponse, UserProfileConfig } from "@/interface";
 import controller_r2 from "./controller_r2";
 import { ProtectController } from "./controller_protector";

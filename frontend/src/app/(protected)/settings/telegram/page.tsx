@@ -5,7 +5,7 @@ import TelegramSettingsClient from "@/components/settings/TelegramSettingsClient
 import BotSettingsSkeleton from "@/components/skeleton/BotSettingsSkeleton";
 import { ensureToken } from "@/hooks/use-redirect";
 import controller_telegram from "@/controller/controller_telegram";
-import { defaultTelegramConfig } from "@/default/default";
+import { defaultTelegramConfig } from "@/data/data.default";
 
 async function TelegramSettings() {
   const token = await ensureToken();

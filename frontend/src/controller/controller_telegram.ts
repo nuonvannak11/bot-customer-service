@@ -9,9 +9,10 @@ import { request_get, request_post } from "@/libs/request_server";
 import { REQUEST_TIMEOUT_BOT_CLOSE_OPEN_MS, REQUEST_TIMEOUT_MS } from "@/constants";
 import { validateDomains } from "@/helper/helper.domain";
 import { get_url } from "@/libs/get_urls";
-import { ProtectData } from "@/interface/telegram/interface.telegram";
+import { ProtectData } from "@/interface/interface.telegram";
 import { ProtectRequestSchema, telegramPayloadSchema } from "@/zod/zod.telegram";
 import { TelegramBotSettingsConfig } from "@/interface";
+import { getErrorMessage } from "@/utils/util";
 
 interface ApiResponse<T = unknown> {
     code: number;
@@ -62,7 +63,7 @@ class TelegramController extends ProtectController {
                 );
             }
         }
-        const message = err instanceof Error ? err.message : "Internal Server Error";
+        const message = getErrorMessage(err) || "Internal Server Error";
         return response_data(500, 500, message, []);
     }
 
@@ -92,7 +93,7 @@ class TelegramController extends ProtectController {
         return make_schema(raw).pick(TELEGRAM_SETTING_KEYS).get();
     }
 
-    async save(req: NextRequest) {
+    public async save_setting_bot(req: NextRequest) {
         const result = await this.protect(req, telegramPayloadSchema, 10, true);
         if (!result.ok) return result.response!;
         const { data } = result;
@@ -140,7 +141,7 @@ class TelegramController extends ProtectController {
         }
     }
 
-    async get_setting_bot(token: string): Promise<TelegramBotSettingsConfig | null> {
+    public async get_setting_bot(token: string): Promise<TelegramBotSettingsConfig | null> {
         if (!token) return null;
         try {
             const res = await request_get<ApiResponse<string>>({
@@ -161,7 +162,7 @@ class TelegramController extends ProtectController {
         }
     }
 
-    async get_group_telegram(token?: string) {
+    public async get_group_telegram(token?: string) {
         if (!token) return [];
 
         try {
@@ -179,7 +180,7 @@ class TelegramController extends ProtectController {
         }
     }
 
-    async bot_open_close(req: NextRequest, forcedMethod?: BotAction) {
+    public async bot_open_close(req: NextRequest, forcedMethod?: BotAction) {
         const result = await this.protect(req, botActionSchema, 10, true);
         if (!result.ok) return result.response!;
 
@@ -221,7 +222,7 @@ class TelegramController extends ProtectController {
         }
     }
 
-    async get_protects(token?: string): Promise<ProtectData | null> {
+    public async get_protects(token?: string): Promise<ProtectData | null> {
         if (!token) return null;
         try {
             const res = await request_get<{ data: ProtectData }>({
@@ -232,12 +233,12 @@ class TelegramController extends ProtectController {
             if (!res.success || !res.data?.data) return null;
             return res.data.data;
         } catch (error) {
-            console.error("[protects] Failed:", error);
+            eLog("[protects] Failed:", error);
             return null;
         }
     }
 
-    async handleProtect(req: NextRequest): Promise<Response> {
+    public async handleProtect(req: NextRequest): Promise<Response> {
         const result = await this.protect(req, ProtectRequestSchema, 50, true, 120);
         if (!result.ok) return result.response!;
         const { data } = result;
@@ -269,7 +270,7 @@ class TelegramController extends ProtectController {
             });
             if (response.status !== 200) {
                 return response_data(response.status, response.status, response.statusText || "Request failed", []);
-            }; 
+            };
             const { code, message, data } = response.data;
             return response_data(code, code, message, data);
         } catch (error: unknown) {

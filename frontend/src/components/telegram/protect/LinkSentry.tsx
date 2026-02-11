@@ -10,10 +10,12 @@ import {
   ShieldAlert,
   AlertTriangle,
 } from "lucide-react";
-import { GroupChannel } from "@/interface/telegram/interface.telegram";
+import { GroupChannel } from "@/interface/interface.telegram";
 import { SetStateProps } from "@/interface";
 import { TelegramProtectPageState } from "../TelegramProtectPage";
 import { StatusBadge } from "./entity/StatusBadge";
+import Swal from "sweetalert2";
+import { useRouter } from "next/navigation";
 
 type LinkSentryProps = SetStateProps<TelegramProtectPageState> & {
   loading: boolean;
@@ -30,10 +32,13 @@ export default function LinkSentry({
   handlers,
   t,
 }: LinkSentryProps) {
+  const router = useRouter();
   const { onSave } = handlers;
   const { activeAsset } = state;
+  const isExceptionLinks = state.exceptionLinks?.length > 0;
   const config = activeAsset.config;
-  const isAllowNoneAdmin = config.blockAllLinksFromNoneAdmin;
+  const isAllowNoneAdmin =
+    config.blockAllLinksFromNoneAdmin && isExceptionLinks;
   const [newDomain, setNewDomain] = useState("");
 
   const updateAssetConfig = (updates: Partial<typeof config>) => {
@@ -87,8 +92,24 @@ export default function LinkSentry({
     });
   };
 
-  const handleToggleBlockAdmin = () => {
-    if (loading) return;
+  const handleToggleBlockAdmin = async () => {
+    if (!isExceptionLinks) {
+      const result = await Swal.fire({
+        icon: "warning",
+        title: t("Whitelist required"),
+        text: t(
+          "You can't open this feature without adding links to whitelist.",
+        ),
+        showCancelButton: true,
+        confirmButtonText: t("Go to whitelist"),
+        cancelButtonText: t("Cancel"),
+        confirmButtonColor: "#f59e0b",
+      });
+      if (result.isConfirmed) {
+        router.push("/settings/telegram/?tab=links-whitelist");
+      }
+      return;
+    }
     updateAssetConfig({
       blockAllLinksFromNoneAdmin: !isAllowNoneAdmin,
     });

@@ -64,3 +64,6 @@ export function getErrorMessage(err: unknown): string {
     if (typeof err === "string") return err
     return JSON.stringify(err)
 }
+
+export const cn = (...classes: (string | undefined | null | false)[]) =>
+    classes.filter(Boolean).join(" ");

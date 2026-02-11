@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
-import { SocketPayload } from "@/@types/type";
+import { SocketPayload } from "@/interface/index";
 
 type SocketContextType = {
   socket: Socket | null;

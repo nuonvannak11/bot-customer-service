@@ -16,7 +16,7 @@ import model_settings_bot_telegram from "../models/model_setting_bot_telegram";
 import model_bot from "../models/model_bot";
 import model_telegram_group from "../models/model_telegram_group_chanel";
 import { BotSettingDTO } from "../interface";
-import { default_settings_bot } from "../defaultSettings";
+import { default_settings_bot } from "../constants/constant.setting";
 import hash_data from "../helper/hash_data";
 
 

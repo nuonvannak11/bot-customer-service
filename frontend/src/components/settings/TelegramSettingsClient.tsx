@@ -24,12 +24,7 @@ import { TelegramBotSettingsConfig } from "@/interface/index";
 import Toggle from "@/components/ui/ToggleCheckBox";
 import SettingsInput from "@/components/SettingsInput";
 import { getErrorMessage, strlower } from "@/utils/util";
-
-interface ApiResponse<T> {
-  code: number;
-  message: string;
-  data: T;
-}
+import { ApiResponse } from "@/types/type";
 
 interface Props {
   hash_key: string;
@@ -54,10 +49,14 @@ export default function TelegramSettingsClient({
     link: "",
   });
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const linkInputRef = React.useRef<HTMLInputElement>(null);
+
   React.useEffect(() => {
     if (tab) {
       if (tab === "files-whitelist") {
         fileInputRef.current?.focus();
+      }else if (tab === "links-whitelist") {
+        linkInputRef.current?.focus();
       }
     }
   }, [tab]);
@@ -228,275 +227,338 @@ export default function TelegramSettingsClient({
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4 md:p-6 space-y-6">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden transition-colors duration-300">
-        <div className="px-6 py-6 border-b border-gray-200 dark:border-gray-800 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <div className="p-3 bg-linear-to-r from-cyan-500 to-blue-600 rounded-xl shadow-lg shadow-cyan-500/20">
-                <Bot className="text-white w-6 h-6" />
-              </div>
-              <div className="absolute -bottom-1 -right-1 w-5 h-5 flex items-center justify-center">
-                <div
-                  className={`absolute inset-0 rounded-full transition-all duration-300 ease-in-out ${
-                    settings.is_process
-                      ? "bg-green-500 blur-[6px] opacity-80"
-                      : "bg-red-500 blur-[6px] opacity-80"
-                  }
-                `}
-                />
-                <div className="relative z-10 w-full h-full rounded-full overflow-hidden ring-2 ring-slate-900 bg-slate-900 flex items-center justify-center">
-                  <Image
-                    src={
+      <div className="relative group">
+        <div className="absolute -inset-0.5 bg-linear-to-r from-cyan-500 to-blue-600 rounded-2xl blur-md opacity-20 group-hover:opacity-30 transition duration-1000"></div>
+        <div className="relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl overflow-hidden transition-all duration-300">
+          <div className="px-6 py-6 border-b border-gray-200 dark:border-gray-800 flex flex-col md:flex-row md:items-center justify-between gap-6 bg-gray-50/50 dark:bg-gray-900/50">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="p-3 bg-linear-to-br from-cyan-400 to-blue-600 rounded-xl shadow-lg shadow-cyan-500/30 ring-1 ring-white/20">
+                  <Bot className="text-white w-6 h-6" />
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 flex items-center justify-center">
+                  <div
+                    className={`absolute inset-0 rounded-full transition-all duration-300 ease-in-out ${
                       settings.is_process
-                        ? "/icon/gif/running.gif"
-                        : "/icon/gif/closed.gif"
+                        ? "bg-emerald-500 blur-xs opacity-100"
+                        : "bg-red-500 blur-xs opacity-100"
+                    }`}
+                  />
+                  <div className="relative z-10 w-full h-full rounded-full overflow-hidden ring-2 ring-white dark:ring-gray-900 bg-slate-900 flex items-center justify-center">
+                    <Image
+                      src={
+                        settings.is_process
+                          ? "/icon/gif/running.gif"
+                          : "/icon/gif/closed.gif"
+                      }
+                      alt={settings.is_process ? "running" : "disabled"}
+                      width={25}
+                      height={25}
+                      className="object-cover"
+                      unoptimized
+                    />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+                  {t("Bot Configuration")}
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-slate-400">
+                  {t("Manage your Telegram integration credentials")}
+                </p>
+              </div>
+            </div>
+            <button
+              disabled={loading}
+              onClick={() => handleToggleBot(!settings.is_process)}
+              className={clsx(
+                "cursor-pointer flex items-center gap-3 px-5 py-2.5 rounded-full border text-sm font-semibold transition-all duration-300 shadow-sm hover:shadow-md active:scale-95",
+                settings.is_process
+                  ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 shadow-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-900/50"
+                  : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700",
+              )}>
+              <span className="relative flex h-3 w-3">
+                <span
+                  className={clsx(
+                    "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75",
+                    settings.is_process ? "bg-emerald-400" : "bg-gray-400",
+                  )}
+                />
+                <span
+                  className={clsx(
+                    "relative inline-flex rounded-full h-3 w-3",
+                    settings.is_process ? "bg-emerald-500" : "bg-gray-500",
+                  )}
+                />
+              </span>
+              {settings.is_process ? t("Bot Active") : t("Bot Paused")}
+            </button>
+          </div>
+
+          <div className="p-6 md:p-8 space-y-8">
+            <div className="space-y-6">
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400">
+                  <ShieldCheck size={16} />
+                </span>
+                {t("Authentication")}
+              </h3>
+
+              <div className="grid grid-cols-1 gap-6">
+                <SettingsInput
+                  label={t("Bot Username")}
+                  value={settings.botUsername}
+                  disabled={true}
+                />
+                <SettingsInput
+                  label={t("Bot Token")}
+                  type="password"
+                  icon={ShieldCheck}
+                  value={settings.botToken}
+                  onChange={(v) => handleChange("botToken", v)}
+                  placeholder="123456:ABC..."
+                />
+                <SettingsInput
+                  label={t("Webhook URL")}
+                  icon={Globe}
+                  value={settings.webhookUrl}
+                  onChange={(v) => handleChange("webhookUrl", v)}
+                  placeholder="https://api.domain.com/webhook"
+                />
+              </div>
+            </div>
+
+            <div className="h-px w-full bg-linear-to-r from-transparent via-gray-200 dark:via-gray-700 to-transparent" />
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                  <span className="p-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400">
+                    <LinkIcon size={16} />
+                  </span>
+                  {t("Whitelisted Links")}
+                </h3>
+                <div className="flex gap-2 w-full group">
+                  <SettingsInput
+                    ref={linkInputRef}
+                    value={currentInput.link}
+                    onChange={(v) =>
+                      setCurrentInput((prev) => ({
+                        ...prev,
+                        link: v,
+                      }))
                     }
-                    alt={settings.is_process ? "running" : "disabled"}
-                    width={25}
-                    height={25}
-                    className="object-cover"
-                    unoptimized
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAdd("link");
+                      }
+                    }}
+                    placeholder="https://example.com"
+                    className="flex-1 transition-all"
+                  />
+                  <button
+                    onClick={() => handleAdd("link")}
+                    disabled={!currentInput.link}
+                    className="
+                      cursor-pointer
+                      h-[46px] w-[46px]
+                      flex items-center justify-center
+                      rounded-xl
+                      transition-all duration-300
+                      bg-white dark:bg-slate-800
+                      text-indigo-600 dark:text-indigo-400
+                      border border-indigo-100 dark:border-indigo-900
+                      shadow-lg shadow-blue-500/10
+                      hover:bg-indigo-50 dark:hover:bg-indigo-900/30
+                      hover:border-indigo-300 dark:hover:border-indigo-500
+                      hover:shadow-indigo-500/30
+                      hover:scale-105
+                      disabled:opacity-50 disabled:cursor-not-allowed
+                    ">
+                    <Plus size={20} />
+                  </button>
+                </div>
+                <div className="h-[130px] overflow-y-auto overflow-x-hidden bg-gray-50 dark:bg-gray-950/50 rounded-xl p-4 border border-gray-100 dark:border-gray-800 w-full shadow-inner transition-colors hover:border-indigo-500/20">
+                  {settings.exceptionLinks?.length ? (
+                    <div className="flex flex-wrap gap-2">
+                      {settings.exceptionLinks.map((link, idx) => (
+                        <span
+                          key={idx}
+                          className="group/tag inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 shadow-sm hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-700 transition-all duration-200 hover:-translate-y-0.5">
+                          <span className="truncate max-w-[150px]">{link}</span>
+                          <button
+                            onClick={handleRemove("link", link)}
+                            className="text-gray-400 hover:text-red-500 transition-colors p-0.5 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20">
+                            <X size={14} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-400 text-center py-6 flex flex-col items-center gap-2">
+                      <span className="w-8 h-5 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center opacity-50">
+                        <LinkIcon size={14} />
+                      </span>
+                      {t("No whitelisted links added.")}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                  <span className="p-1.5 rounded-lg bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400">
+                    <FileCode size={16} />
+                  </span>
+                  {t("Whitelisted Extensions")}
+                </h3>
+
+                <div className="flex gap-2">
+                  <SettingsInput
+                    ref={fileInputRef}
+                    value={currentInput.file}
+                    onChange={(v) =>
+                      setCurrentInput((prev) => ({
+                        ...prev,
+                        file: v,
+                      }))
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAdd("file");
+                      }
+                    }}
+                    placeholder=".jpg, .pdf"
+                    className="flex-1"
+                  />
+                  <button
+                    onClick={() => handleAdd("file")}
+                    disabled={!currentInput.file}
+                    className="
+                      cursor-pointer
+                      h-[46px] w-[46px]
+                      flex items-center justify-center
+                      rounded-xl
+                      transition-all duration-300
+                      bg-white dark:bg-slate-800
+                      text-rose-600 dark:text-rose-400
+                      border border-rose-100 dark:border-rose-900
+                      shadow-lg shadow-blue-500/10
+                      hover:bg-rose-50 dark:hover:bg-rose-900/30
+                      hover:border-rose-300 dark:hover:border-rose-500
+                      hover:shadow-rose-500/30
+                      hover:scale-105
+                      disabled:opacity-50 disabled:cursor-not-allowed
+                    ">
+                    <Plus size={20} />
+                  </button>
+                </div>
+
+                <div className="h-[130px] overflow-y-auto overflow-x-hidden bg-gray-50 dark:bg-gray-950/50 rounded-xl p-4 border border-gray-100 dark:border-gray-800 shadow-inner transition-colors hover:border-rose-500/20">
+                  {settings.exceptionFiles?.length ? (
+                    <div className="flex flex-wrap gap-2">
+                      {settings.exceptionFiles.map((file, idx) => (
+                        <span
+                          key={idx}
+                          className="group/tag inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 shadow-sm hover:shadow-md hover:border-rose-300 dark:hover:border-rose-700 transition-all duration-200 hover:-translate-y-0.5">
+                          <span className="truncate max-w-[150px]">{file}</span>
+                          <button
+                            onClick={handleRemove("file", file)}
+                            className="cursor-pointer text-gray-400 hover:text-red-500 transition-colors p-0.5 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20">
+                            <X size={14} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-400 text-center py-6 flex flex-col items-center gap-2">
+                      <span className="w-8 h-5 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center opacity-50">
+                        <FileCode size={14} />
+                      </span>
+                      {t("No extensions added.")}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="h-px w-full bg-linear-to-r from-transparent via-gray-200 dark:via-gray-700 to-transparent" />
+
+            <div className="space-y-6">
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                  <Zap size={16} />
+                </span>
+                {t("Behavior")}
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 hover:bg-white dark:hover:bg-gray-800 hover:border-amber-400/30 hover:shadow-lg hover:shadow-amber-500/5 transition-all duration-300 group">
+                  <Toggle
+                    label={t("Webhook")}
+                    description={t("Real-time updates")}
+                    icon={
+                      <Zap
+                        size={18}
+                        className="text-amber-500 group-hover:scale-110 transition-transform"
+                      />
+                    }
+                    checked={settings.webhookEnabled}
+                    onChange={(v) => handleChange("webhookEnabled", v)}
+                  />
+                </div>
+                <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 hover:bg-white dark:hover:bg-gray-800 hover:border-emerald-400/30 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-300 group">
+                  <Toggle
+                    label={t("Notifications")}
+                    description={t("Alert on request")}
+                    icon={
+                      <Bell
+                        size={18}
+                        className="text-emerald-500 group-hover:scale-110 transition-transform"
+                      />
+                    }
+                    checked={settings.notifyEnabled}
+                    onChange={(v) => handleChange("notifyEnabled", v)}
+                  />
+                </div>
+                <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 hover:bg-white dark:hover:bg-gray-800 hover:border-rose-400/30 hover:shadow-lg hover:shadow-rose-500/5 transition-all duration-300 group">
+                  <Toggle
+                    label={t("Silent Mode")}
+                    description={t("No sound delivery")}
+                    icon={
+                      <VolumeX
+                        size={18}
+                        className="text-rose-500 group-hover:scale-110 transition-transform"
+                      />
+                    }
+                    checked={settings.silentMode}
+                    onChange={(v) => handleChange("silentMode", v)}
                   />
                 </div>
               </div>
             </div>
-            <div>
-              <h3 className="text-xl font-bold text-white tracking-tight">
-                {t("Bot Configuration")}
-              </h3>
-              <p className="text-sm text-slate-400">
-                {t("Manage your Telegram integration credentials")}
-              </p>
+            <div className="pt-4">
+              <button
+                onClick={() => handleSaveSettings()}
+                disabled={loading}
+                className="relative overflow-hidden group cursor-pointer w-full flex items-center justify-center gap-2 bg-linear-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold py-3.5 px-6 rounded-xl transition-all duration-300 shadow-lg shadow-blue-500/30 hover:shadow-cyan-500/40 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed">
+                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 rounded-xl" />
+
+                <div className="relative flex items-center gap-2">
+                  {loading ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Save
+                      size={18}
+                      className="group-hover:rotate-12 transition-transform"
+                    />
+                  )}
+                  {t("Save Configuration")}
+                </div>
+              </button>
             </div>
-          </div>
-          {/* Status Toggle Button */}
-          <button
-            disabled={loading}
-            onClick={() => handleToggleBot(!settings.is_process)}
-            className={clsx(
-              "cursor-pointer flex items-center gap-3 px-5 py-2.5 rounded-full border text-sm font-semibold transition-all shadow-sm",
-              settings.is_process
-                ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50"
-                : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700",
-            )}>
-            <span className="relative flex h-3 w-3">
-              <span
-                className={clsx(
-                  "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75",
-                  settings.is_process ? "bg-emerald-400" : "bg-gray-400",
-                )}
-              />
-              <span
-                className={clsx(
-                  "relative inline-flex rounded-full h-3 w-3",
-                  settings.is_process ? "bg-emerald-500" : "bg-gray-500",
-                )}
-              />
-            </span>
-            {settings.is_process ? t("Bot Active") : t("Bot Paused")}
-          </button>
-        </div>
-        <div className="p-6 md:p-8 space-y-8">
-          {/* 1. Credentials Section */}
-          <div className="space-y-6">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-              <ShieldCheck size={16} className="text-blue-500" />
-              {t("Authentication")}
-            </h3>
-
-            <div className="grid grid-cols-1 gap-6">
-              <SettingsInput
-                label={t("Bot Username")}
-                value={settings.botUsername}
-                disabled={true}
-              />
-              <SettingsInput
-                label={t("Bot Token")}
-                type="password"
-                icon={ShieldCheck}
-                value={settings.botToken}
-                onChange={(v) => handleChange("botToken", v)}
-                placeholder="123456:ABC..."
-                isShowPw={true}
-              />
-              <SettingsInput
-                label={t("Webhook URL")}
-                icon={Globe}
-                value={settings.webhookUrl}
-                onChange={(v) => handleChange("webhookUrl", v)}
-                placeholder="https://api.domain.com/webhook"
-              />
-            </div>
-          </div>
-          <div className="h-px w-full bg-gray-100 dark:bg-gray-800" />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Exception Links */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                <LinkIcon size={16} className="text-indigo-500" />
-                {t("Whitelisted Links")}
-              </h3>
-              <div className="flex gap-2 w-full">
-                <SettingsInput
-                  value={currentInput.link}
-                  onChange={(v) =>
-                    setCurrentInput((prev) => ({
-                      ...prev,
-                      link: v,
-                    }))
-                  }
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAdd("link");
-                    }
-                  }}
-                  placeholder="https://example.com"
-                  className="flex-1"
-                />
-                <button
-                  onClick={() => handleAdd("link")}
-                  disabled={!currentInput.link}
-                  className="h-[46px] w-[46px] flex items-center justify-center bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
-                  <Plus size={20} />
-                </button>
-              </div>
-              <div className="bg-gray-50 dark:bg-gray-950/50 rounded-xl p-4 min-h-[100px] border border-gray-100 dark:border-gray-800 w-full">
-                {settings.exceptionLinks?.length ? (
-                  <div className="flex flex-wrap gap-2">
-                    {settings.exceptionLinks.map((link, idx) => (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 shadow-sm">
-                        <span className="truncate max-w-[150px]">{link}</span>
-                        <button
-                          onClick={handleRemove("link", link)}
-                          className="text-gray-400 hover:text-red-500 transition-colors">
-                          <X size={14} />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-400 text-center py-6">
-                    {t("No whitelisted links added.")}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Exception Files */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                <FileCode size={16} className="text-rose-500" />
-                {t("Whitelisted Extensions")}
-              </h3>
-
-              <div className="flex gap-2">
-                <SettingsInput
-                  ref={fileInputRef}
-                  value={currentInput.file}
-                  onChange={(v) =>
-                    setCurrentInput((prev) => ({
-                      ...prev,
-                      file: v,
-                    }))
-                  }
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAdd("file");
-                    }
-                  }}
-                  placeholder=".jpg, .pdf"
-                  className="flex-1"
-                />
-                <button
-                  onClick={() => handleAdd("file")}
-                  disabled={!currentInput.file}
-                  className="h-[46px] w-[46px] flex items-center justify-center bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
-                  <Plus size={20} />
-                </button>
-              </div>
-
-              <div className="bg-gray-50 dark:bg-gray-950/50 rounded-xl p-4 min-h-[100px] border border-gray-100 dark:border-gray-800">
-                {settings.exceptionFiles?.length ? (
-                  <div className="flex flex-wrap gap-2">
-                    {settings.exceptionFiles.map((file, idx) => (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 shadow-sm">
-                        <span className="truncate max-w-[150px]">{file}</span>
-                        <button
-                          onClick={handleRemove("file", file)}
-                          className="cursor-pointer text-gray-400 hover:text-red-500 transition-colors">
-                          <X size={14} />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-400 text-center py-6">
-                    {t("No extensions added.")}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="h-px w-full bg-gray-100 dark:bg-gray-800" />
-
-          {/* 3. Toggles Section */}
-          <div className="space-y-6">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-              <Zap size={16} className="text-amber-500" />
-              {t("Behavior")}
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Note: Ensure your Toggle component handles dark mode via standard tailwind classes or context */}
-              <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
-                <Toggle
-                  label={t("Webhook")}
-                  description={t("Real-time updates")}
-                  icon={<Zap size={18} className="text-amber-500" />}
-                  checked={settings.webhookEnabled}
-                  onChange={(v) => handleChange("webhookEnabled", v)}
-                />
-              </div>
-              <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
-                <Toggle
-                  label={t("Notifications")}
-                  description={t("Alert on request")}
-                  icon={<Bell size={18} className="text-emerald-500" />}
-                  checked={settings.notifyEnabled}
-                  onChange={(v) => handleChange("notifyEnabled", v)}
-                />
-              </div>
-              <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
-                <Toggle
-                  label={t("Silent Mode")}
-                  description={t("No sound delivery")}
-                  icon={<VolumeX size={18} className="text-rose-500" />}
-                  checked={settings.silentMode}
-                  onChange={(v) => handleChange("silentMode", v)}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Save Footer */}
-          <div className="pt-4">
-            <button
-              onClick={() => handleSaveSettings()}
-              disabled={loading}
-              className="cursor-pointer w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-xl transition-all shadow-sm shadow-blue-500/20 active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed">
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <Save size={18} />
-              )}
-              {t("Save Configuration")}
-            </button>
           </div>
         </div>
       </div>

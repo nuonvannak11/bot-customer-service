@@ -2,7 +2,7 @@ import { eLog } from "@/libs/lib";
 import { getServerToken } from "@/libs/lib";
 import { redirect } from "next/navigation";
 import controller_telegram from "@/controller/controller_telegram";
-import { ProtectData } from "@/interface/telegram/interface.telegram";
+import { ProtectData } from "@/interface/interface.telegram";
 
 export async function getDashboardStats() {
   await new Promise((resolve) => setTimeout(resolve, 300));

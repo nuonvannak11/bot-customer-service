@@ -9,6 +9,7 @@ export const defaultTelegramConfig: TelegramBotSettingsConfig = {
     notifyEnabled: false,
     silentMode: false,
     exceptionLinks: [],
+    exceptionFiles: [],
 };
 
 export const defaultUserProfileConfig: UserProfileConfig = {

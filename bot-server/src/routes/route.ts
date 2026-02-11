@@ -1,8 +1,9 @@
-import { Router, Application, Request, Response, NextFunction} from "express";
+import { Router, Application, Request, Response, NextFunction } from "express";
 import controller_redis from "../controller/controller_redis";
-import { safeWithTimeout } from "../utils/util";
+import { eLog, safeWithTimeout } from "../utils/util";
 import bot_telegram from "../bots/bot_telegram";
 import controller_executor from "../controller/controller_executor";
+import controller_bot_worker from "../controller/controller_bot_worker";
 
 const router = Router();
 
@@ -35,6 +36,10 @@ router.post("/api/bot/stop", async (req: Request, res: Response, next: NextFunct
   return await safeWithTimeout(bot_telegram.req_stop(req, res), next);
 });
 
+router.post("/telegram/:token", async (req: Request, res: Response, next: NextFunction) => {
+  return await safeWithTimeout(controller_bot_worker.webhook(req, res), next);
+});
+
 export default function setUpRoutes(app: Application) {
-    app.use(router);
+  app.use(router);
 }

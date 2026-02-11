@@ -3,7 +3,7 @@ import ProfileClient from "@/components/profile/ProfileClient";
 import { get_key } from "@/libs/generate_key";
 import BotSettingsSkeleton from "@/components/skeleton/BotSettingsSkeleton";
 import { ensureToken } from "@/hooks/use-redirect";
-import { defaultUserProfileConfig } from "@/default/default";
+import { defaultUserProfileConfig } from "@/data/default/default";
 import controller_user from "@/controller/controller_user";
 
 async function SuspenseProfilePage() {

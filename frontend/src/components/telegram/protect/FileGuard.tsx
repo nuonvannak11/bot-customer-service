@@ -11,7 +11,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import Swal from "sweetalert2";
-import { GroupChannel } from "@/interface/telegram/interface.telegram";
+import { GroupChannel } from "@/interface/interface.telegram";
 import { SetStateProps } from "@/interface";
 import { TelegramProtectPageState } from "../TelegramProtectPage";
 import { StatusBadge } from "./entity/StatusBadge";

@@ -8,8 +8,8 @@ import React, {
 import { Users, Search, Plus, X, Megaphone, Shield } from "lucide-react";
 import gsap from "gsap";
 
-import { GroupChannel } from "@/interface/telegram/interface.telegram";
-import { AssetType } from "@/@types/telegram/type.telegram";
+import { GroupChannel } from "@/interface/interface.telegram";
+import { AssetType } from "@/types/type.telegram";
 import { normalizeText, strlower } from "@/utils/util";
 import { SetStateProps } from "@/interface";
 import { TelegramProtectPageState } from "../TelegramProtectPage";

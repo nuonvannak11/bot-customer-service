@@ -56,3 +56,14 @@ export interface EnsureUserLoginProp {
   token: string ,
   cookiesObj: Record<string, string>
 };
+
+export interface SocketPayload {
+  token: string;
+  socket_url: string;
+}
+
+export interface JWTPayload {
+  token: string;
+  user_id?: string;
+  [key: string]: unknown;
+}

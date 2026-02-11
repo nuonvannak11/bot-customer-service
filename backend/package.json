@@ -6,10 +6,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
-    "start:worker": "node dist/cron_worker.js",
     "dev:api": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "dev:worker": "ts-node-dev --respawn --transpile-only src/cron_worker.ts",
-    "dev": "concurrently \"npm run dev:api\" \"npm run dev:worker\"",
+    "dev": "concurrently \"npm run dev:api\"",
     "lint": "eslint \"src/**/*.ts\"",
     "format": "prettier --write ."
   },
