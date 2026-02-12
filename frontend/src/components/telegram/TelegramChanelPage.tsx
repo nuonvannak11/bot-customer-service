@@ -151,7 +151,7 @@ export default function TelegramChanelPage(chanel: any) {
           "lg:w-[300px]",
         )}>
         <div className="shrink-0 px-3 py-3 gap-3 flex items-center">
-          <div className="flex-1 bg-[#242f3d] h-[40px] rounded-full flex items-center px-4 transition-colors group focus-within:bg-[#242f3d] focus-within:border focus-within:border-[#3390ec] border border-transparent">
+          <div className="flex-1 bg-[#242f3d] h-10 rounded-full flex items-center px-4 transition-colors group focus-within:bg-[#242f3d] focus-within:border focus-within:border-[#3390ec] border border-transparent">
             <Search
               size={18}
               className="text-[#707579] group-focus-within:text-[#3390ec]"
@@ -180,7 +180,7 @@ export default function TelegramChanelPage(chanel: any) {
                 {tab.count > 0 && (
                   <span
                     className={clsx(
-                      "text-[11px] font-bold px-1.5 rounded-full h-5 min-w-[20px] flex items-center justify-center transition-colors",
+                      "text-[11px] font-bold px-1.5 rounded-full h-5 min-w-5 flex items-center justify-center transition-colors",
                       activeTab === tab.id
                         ? "bg-[#3390ec] text-white"
                         : "bg-[#242f3d] text-[#707579]",
@@ -365,11 +365,11 @@ export default function TelegramChanelPage(chanel: any) {
                 <button className="p-3 text-[#707579] hover:text-[#e5e5e5] transition rounded-full hover:bg-[#2b2d31]">
                   <Paperclip size={24} />
                 </button>
-                <div className="flex-1 bg-[#0e1621] rounded-xl flex items-center min-h-[48px] px-4 border border-transparent focus-within:border-[#0e1621] transition-colors">
+                <div className="flex-1 bg-[#0e1621] rounded-xl flex items-center min-h-12 px-4 border border-transparent focus-within:border-[#0e1621] transition-colors">
                   <textarea
                     rows={1}
                     placeholder="Write a message..."
-                    className="bg-transparent text-white text-[16px] placeholder-[#707579] resize-none outline-none w-full h-[24px] max-h-32"
+                    className="bg-transparent text-white text-[16px] placeholder-[#707579] resize-none outline-none w-full h-6 max-h-32"
                   />
                 </div>
                 <button className="p-3 text-[#707579] hover:text-[#e5e5e5] transition rounded-full hover:bg-[#2b2d31]">

@@ -11,6 +11,10 @@ const chatIdSchema = z
     .transform((value) => String(value).trim())
     .refine((value) => value.length > 0, "chatId is required");
 
+const DeleteAssetSchema = z.object({
+    chatId: chatIdSchema,
+});
+
 export const ProtectActionSchema = z.enum(["add", "update", "delete"]);
 
 export const TelegramChatTypeSchema = z.enum([
@@ -31,10 +35,12 @@ export const SpamConfigSchema = z.object({
 export const ChannelConfigSchema = z.object({
     blockedExtensions: z.array(z.string()).optional(),
     blacklistedDomains: z.array(z.string()).optional(),
+    badWords: z.array(z.string()).optional(),
     spam: SpamConfigSchema,
     rulesCount: z.number(),
     blockAllLinksFromNoneAdmin: z.boolean(),
     blockAllExstationFromNoneAdmin: z.boolean(),
+    blockBadWordsEnabled: z.boolean(),
 });
 
 export const GroupChannelSchema = z.object({
@@ -47,10 +53,6 @@ export const GroupChannelSchema = z.object({
     threatsBlocked: z.number(),
     safeFiles: z.number(),
     config: ChannelConfigSchema,
-});
-
-const DeleteAssetSchema = z.object({
-    chatId: chatIdSchema,
 });
 
 export const ProtectRequestSchema = z.object({

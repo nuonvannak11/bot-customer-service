@@ -1,10 +1,6 @@
-interface SpamSettingCardProps {
-  label: string;
-  valueDisplay: string;
-  isActive?: boolean;
-  children: React.ReactNode;
-  description?: string;
-}
+"use client"
+
+import { SpamSettingCardProps } from "@/interface/interface.telegram";
 
 export const SpamSettingCard: React.FC<SpamSettingCardProps> = ({
   label,

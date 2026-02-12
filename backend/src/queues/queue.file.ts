@@ -3,19 +3,11 @@ import PQueue from "p-queue";
 import { fileTypeFromBuffer } from "file-type";
 import { eLog } from "../utils/util";
 import { LIMIT_TELEGRAM_FILE_SIZE } from "../constants";
-import controller_telegram from "./controller_telegram";
+import controller_telegram from "../controller/controller_telegram";
 import FileStore, { IFileStore } from "../models/model_file_store";
-import { VirusAlert } from "../interface";
-import controller_redis from "./controller_redis";
-
-const CONFIG = {
-    BLOCKED_EXTENSIONS: new Set(["exe", "msi", "apk", "cab", "deb", "rpm", "bat", "cmd", "sh", "scr", "vbs"]),
-    SCAN_BYTES: 4100,
-    TIMEOUT_MS: 10000,
-    MAX_RETRIES: 3,
-    RETRY_DELAY_MS: 1000,
-    QUEUE: { concurrency: 1, interval: 500, intervalCap: 2 }
-};
+import { ScanFileProps } from "../interface";
+import controller_redis from "../controller/controller_redis";
+import { ConfigQueuesExecutFile } from "../data/data.static";
 
 interface ScanResult {
     isSafe: boolean;
@@ -25,19 +17,23 @@ interface ScanResult {
 const agent = new https.Agent({
     keepAlive: true,
     maxSockets: 20,
-    timeout: CONFIG.TIMEOUT_MS,
+    timeout: ConfigQueuesExecutFile.TIMEOUT_MS,
 });
 
-class BotProcessorImg {
+class QueuesExecutFile {
     private queues = new Map<string, PQueue>();
     private processingFiles = new Set<string>();
+    private user_id: string = "";
+    private chat_id: string = "";
+    private message_id: number = 0;
 
-    public async addTask(option: VirusAlert): Promise<void> {
+    public async addTask(option: ScanFileProps): Promise<void> {
         try {
-            if (!option?.user_id || !option?.chat_id || !option?.message_id) return;
-
             const { user_id, chat_id, message_id } = option;
-
+            if (!user_id || !chat_id || !message_id) return;
+            this.user_id = user_id;
+            this.chat_id = chat_id;
+            this.message_id = message_id;
             const doc = await FileStore.findOne({
                 user_id,
                 telegram_chat_id: chat_id,
@@ -49,12 +45,10 @@ class BotProcessorImg {
                 return;
             }
             if (!this.queues.has(user_id)) {
-                this.queues.set(user_id, new PQueue(CONFIG.QUEUE));
+                this.queues.set(user_id, new PQueue(ConfigQueuesExecutFile.QUEUE));
             }
             const queue = this.queues.get(user_id)!;
-
             this.processingFiles.add(doc.telegram_file_id);
-
             queue.add(async () => {
                 try {
                     await this.processFile(doc as IFileStore, user_id);
@@ -111,16 +105,16 @@ class BotProcessorImg {
 
     private async downloadHeaderSafe(url: string): Promise<Buffer | null> {
         let attempt = 0;
-        while (attempt < CONFIG.MAX_RETRIES) {
+        while (attempt < ConfigQueuesExecutFile.MAX_RETRIES) {
             try {
                 return await this.fetchBytes(url);
             } catch (error) {
                 attempt++;
-                const isLast = attempt === CONFIG.MAX_RETRIES;
+                const isLast = attempt === ConfigQueuesExecutFile.MAX_RETRIES;
                 const msg = error instanceof Error ? error.message : String(error);
                 if (msg.includes("404")) return null;
                 if (!isLast) {
-                    const delay = CONFIG.RETRY_DELAY_MS * attempt;
+                    const delay = ConfigQueuesExecutFile.RETRY_DELAY_MS * attempt;
                     await new Promise(r => setTimeout(r, delay));
                 } else {
                     eLog(`[BotImg] Failed to download ${url} after ${attempt} attempts: ${msg}`);
@@ -134,8 +128,8 @@ class BotProcessorImg {
         return new Promise((resolve, reject) => {
             const req = https.get(url, {
                 agent,
-                headers: { Range: `bytes=0-${CONFIG.SCAN_BYTES}` },
-                timeout: CONFIG.TIMEOUT_MS,
+                headers: { Range: `bytes=0-${ConfigQueuesExecutFile.SCAN_BYTES}` },
+                timeout: ConfigQueuesExecutFile.TIMEOUT_MS,
             }, (res) => {
                 const code = res.statusCode ?? 0;
                 if (code >= 300 && code < 400) {
@@ -155,8 +149,8 @@ class BotProcessorImg {
 
                 res.on("data", (chunk: Buffer) => {
                     total += chunk.length;
-                    if (total > CONFIG.SCAN_BYTES) {
-                        const allowed = chunk.subarray(0, chunk.length - (total - CONFIG.SCAN_BYTES));
+                    if (total > ConfigQueuesExecutFile.SCAN_BYTES) {
+                        const allowed = chunk.subarray(0, chunk.length - (total - ConfigQueuesExecutFile.SCAN_BYTES));
                         if (allowed.length) chunks.push(allowed);
                         res.destroy();
                         return;
@@ -191,7 +185,6 @@ class BotProcessorImg {
         try {
             const type = await fileTypeFromBuffer(buffer);
             if (!type) return { isSafe: true };
-
             if (CONFIG.BLOCKED_EXTENSIONS.has(type.ext)) {
                 return { isSafe: false, reason: `Blocked Extension: ${type.ext}` };
             }
@@ -222,5 +215,5 @@ class BotProcessorImg {
         return null;
     }
 }
-
-export default new BotProcessorImg();
+const queuesExecutFile = new QueuesExecutFile();
+export default queuesExecutFile;

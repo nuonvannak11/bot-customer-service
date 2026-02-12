@@ -17,6 +17,7 @@ import { IManagedAssetRemoveRequest, IManagedAssetRequest, SaveTgBotRequest } fr
 import { get_url } from "../libs/get_urls";
 import { httpAgent } from "../libs/lib";
 import { getErrorMessage } from "../helper/errorHandling";
+import { DEFAULT_ASSET_CONFIG } from "../data/data.static";
 
 interface OpenCloseBotRequest {
     token: string;
@@ -37,27 +38,6 @@ const req_bot = axios.create({
     timeout: 20000,
     validateStatus: (status) => status < 500
 });
-
-const DEFAULT_ASSET_CONFIG = {
-    allowScan: false,
-    upTime: 0,
-    config: {
-        blockedExtensions: [],
-        blacklistedDomains: [],
-        badWords: [],
-        spam: {
-            rateLimit: 0,
-            duplicateSensitivity: 0,
-            newUserRestriction: 0,
-        },
-        rulesCount: 0,
-        blockAllLinksFromNoneAdmin: false,
-        blockAllExstationFromNoneAdmin: false,
-        blockBadWordsEnabled: false,
-    },
-    threatsBlocked: 0,
-    safeFiles: 0,
-};
 
 class TelegramController extends ProtectController {
     private validateTelegramToken(token: string): boolean {
@@ -485,6 +465,22 @@ class TelegramController extends ProtectController {
         }
     }
 
+    public async get_block_exstaion(chat_id: string, user_id: string): Promise<{ ext_user: string[], ext_group_chanel: string[]} | null> {
+        try {
+            if (!chat_id || !user_id) return null;
+            const [managedAsset, settings] = await Promise.all([
+                ManagedAssetModel.find({ user_id, chatId: chat_id }).lean(),
+                model_setting.find({ user_id }).lean()
+            ]);
+            const ext_user = settings?.user?.exceptionFiles ||[];
+            const ext_group_chanel = managedAsset?.
+            return {ext_user, ext_group_chanel: exceptionFiles}
+        } catch (err) {
+            eLog("❌ get_block_exstaion error:", err);
+            return null;
+        }
+    }
+
     public async get_protects(req: Request, res: Response) {
         try {
             const result = await this.protect_get<GetBotSettingRequest>(req, res);
@@ -497,8 +493,10 @@ class TelegramController extends ProtectController {
             if (!check_user) {
                 return response_data(res, 401, "Unauthorized user", []);
             }
-            const botResult = await model_bot.findOne({ user_id }, { bot_token: 1 }).lean();
-            const settings = await model_setting.findOne({ user_id }).lean();
+            const [botResult, settings] = await Promise.all([
+                model_bot.findOne({ user_id }, { bot_token: 1 }).lean(),
+                model_setting.findOne({ user_id }).lean()
+            ]);
             if (!botResult?.bot_token) {
                 return response_data(res, 404, "Bot token not found", []);
             }
@@ -625,7 +623,6 @@ class TelegramController extends ProtectController {
 
             if (!user) return response_data(res, 401, "Unauthorized access", []);
             if (!bot?.bot_token) return response_data(res, 404, "Bot token not found", []);
-
             const update_result = await ManagedAssetModel.updateOne(
                 { user_id, chatId: asset.chatId, bot_token: bot.bot_token },
                 { $set: { ...asset } },

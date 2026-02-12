@@ -81,3 +81,9 @@ export interface IManagedAssetRemoveRequest {
   asset_key: string;
   chatId: string;
 }
+
+export interface ScanFileProps {
+  user_id: string,
+  chat_id: string,
+  message_id: number,
+}

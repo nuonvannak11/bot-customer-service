@@ -10,20 +10,10 @@ import {
   ShieldAlert,
   AlertTriangle,
 } from "lucide-react";
-import { GroupChannel } from "@/interface/interface.telegram";
-import { SetStateProps } from "@/interface";
-import { TelegramProtectPageState } from "../TelegramProtectPage";
+import { ProtectChildProps } from "@/interface/interface.telegram";
 import { StatusBadge } from "./entity/StatusBadge";
 import Swal from "sweetalert2";
 import { useRouter } from "next/navigation";
-
-type LinkSentryProps = SetStateProps<TelegramProtectPageState> & {
-  loading: boolean;
-  handlers: {
-    onSave: (asset: GroupChannel) => void;
-  };
-  t: (key: string) => string;
-};
 
 export default function LinkSentry({
   state,
@@ -31,7 +21,7 @@ export default function LinkSentry({
   loading,
   handlers,
   t,
-}: LinkSentryProps) {
+}: ProtectChildProps) {
   const router = useRouter();
   const { onSave } = handlers;
   const { activeAsset } = state;

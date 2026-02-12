@@ -12,7 +12,7 @@ import controller_r2 from "./controller_r2";
 import { ProtectController } from "./controller_protector";
 import { request_get, request_patch, request_post } from "@/libs/request_server";
 import { get_url } from "@/libs/get_urls";
-import { JSON_PROTECTOR, SchemaUpdateUserProfile } from "@/zod/zod.user";
+import { JSON_PROTECTOR, SchemaUpdateUserProfile } from "@/schema/zod.user";
 
 class UserController extends ProtectController {
     private getHeaders(token: string) {

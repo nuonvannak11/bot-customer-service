@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import clsx from "clsx";
 import Swal from "sweetalert2";
 import toast from "react-hot-toast";
 import { ShieldCheck, Activity, Shield, ShieldAlert, Lock } from "lucide-react";
@@ -9,27 +8,16 @@ import GroupManagement from "./protect/GroupManagement";
 import FileGuard from "./protect/FileGuard";
 import LinkSentry from "./protect/LinkSentry";
 import SpamAegis from "./protect/SpamAegis";
-import { GroupChannel, PreparedData } from "@/interface/interface.telegram";
+import {
+  GroupChannel,
+  TelegramProtectPageProps,
+  TelegramProtectPageState,
+} from "@/interface/interface.telegram";
 import { useTranslation } from "react-i18next";
 import { DEFAULT_ASSET } from "@/data/data.default";
 import { request_sweet_alert } from "@/helper/helper";
 import { getErrorMessage } from "@/utils/util";
 import BlockBadWords from "./protect/BlockBadWords";
-
-type TelegramProtectPageProps = {
-  protects: PreparedData;
-  hash_key: string;
-};
-
-export interface TelegramProtectPageState {
-  managedAssets: Omit<
-    PreparedData,
-    "threatLogs" | "exceptionFiles" | "exceptionLinks"
-  >;
-  exceptionFiles: string[];
-  exceptionLinks: string[];
-  activeAsset: GroupChannel;
-}
 
 export default function TelegramProtectPage({
   protects,
@@ -371,8 +359,7 @@ export default function TelegramProtectPage({
                 protects.threatLogs.map((log) => (
                   <tr
                     key={log.chatId}
-                    className="hover:bg-slate-800/50 transition-colors"
-                  >
+                    className="hover:bg-slate-800/50 transition-colors">
                     <td className="px-6 py-4 font-mono text-xs text-slate-500">
                       {log.createdAt}
                     </td>
@@ -398,8 +385,7 @@ export default function TelegramProtectPage({
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-6 py-10 text-center text-slate-500 italic"
-                  >
+                    className="px-6 py-10 text-center text-slate-500 italic">
                     {t("No records found")}
                   </td>
                 </tr>

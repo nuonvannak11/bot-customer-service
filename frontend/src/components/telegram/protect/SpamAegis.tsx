@@ -3,24 +3,12 @@
 import React, { useCallback, useMemo, useRef, useLayoutEffect } from "react";
 import { MessageSquareOff, Save } from "lucide-react";
 import gsap from "gsap";
-
 import {
-  GroupChannel,
+  ProtectChildProps,
   SpamConfigState,
 } from "@/interface/interface.telegram";
-import { SetStateProps } from "@/interface";
-import { TelegramProtectPageState } from "../TelegramProtectPage";
-
 import { RangeInput } from "@/components/ui/RangeInput";
 import { SpamSettingCard } from "./entity/SpamSettingCard";
-
-type SpamAegisProps = SetStateProps<TelegramProtectPageState> & {
-  loading: boolean;
-  handlers: {
-    onSave: (asset: GroupChannel) => void;
-  };
-  t: (key: string) => string;
-};
 
 export default function SpamAegis({
   state,
@@ -28,7 +16,7 @@ export default function SpamAegis({
   loading,
   handlers,
   t,
-}: SpamAegisProps) {
+}: ProtectChildProps) {
   const { onSave } = handlers;
   const { activeAsset } = state;
   const spamConfig = activeAsset?.config?.spam;

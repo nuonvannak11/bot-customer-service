@@ -11,20 +11,10 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import Swal from "sweetalert2";
-import { GroupChannel } from "@/interface/interface.telegram";
-import { SetStateProps } from "@/interface";
-import { TelegramProtectPageState } from "../TelegramProtectPage";
+import { ProtectChildProps } from "@/interface/interface.telegram";
 import { StatusBadge } from "./entity/StatusBadge";
 import { strlower } from "@/utils/util";
 import { useRouter } from "next/navigation";
-
-type FileGuardProps = SetStateProps<TelegramProtectPageState> & {
-  loading: boolean;
-  handlers: {
-    onSave: (asset: GroupChannel) => void;
-  };
-  t: (key: string) => string;
-};
 
 export default function FileGuard({
   state,
@@ -32,7 +22,7 @@ export default function FileGuard({
   loading,
   handlers,
   t,
-}: FileGuardProps) {
+}: ProtectChildProps) {
   const router = useRouter();
   const { onSave } = handlers;
   const { activeAsset } = state;

@@ -3,8 +3,10 @@ import { eLog } from "../utils/util";
 
 export default async function cronJob() {
     try {
-        cron.schedule("* * * * *", async () => {
+        cron.schedule("* * * * *", async () => { // 1min
 
+        });
+        cron.schedule('0 0 * * *', async () => { // 1day
         });
         eLog("Cron job started");
     } catch (err) {

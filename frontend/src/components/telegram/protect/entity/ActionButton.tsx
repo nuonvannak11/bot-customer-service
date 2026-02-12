@@ -1,16 +1,13 @@
+"use client"
+import { ActionButtonProps } from "@/interface/interface.telegram";
+
 export const ActionButton = ({
   disabled,
   onClick,
   label,
   icon,
   colorClass,
-}: {
-  disabled: boolean;
-  onClick: () => void;
-  label: string;
-  icon: React.ReactNode;
-  colorClass: "indigo" | "purple";
-}) => {
+}: ActionButtonProps) => {
   const colors = {
     indigo:
       "hover:bg-indigo-900/20 hover:border-indigo-500/30 hover:text-indigo-400 group-hover:bg-indigo-500/20",

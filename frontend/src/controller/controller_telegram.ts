@@ -10,7 +10,7 @@ import { REQUEST_TIMEOUT_BOT_CLOSE_OPEN_MS, REQUEST_TIMEOUT_MS } from "@/constan
 import { validateDomains } from "@/helper/helper.domain";
 import { get_url } from "@/libs/get_urls";
 import { ProtectData } from "@/interface/interface.telegram";
-import { ProtectRequestSchema, telegramPayloadSchema } from "@/zod/zod.telegram";
+import { ProtectRequestSchema, telegramPayloadSchema } from "@/schema/zod.telegram";
 import { TelegramBotSettingsConfig } from "@/interface";
 import { getErrorMessage } from "@/utils/util";
 

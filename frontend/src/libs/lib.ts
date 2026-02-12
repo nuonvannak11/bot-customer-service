@@ -129,8 +129,8 @@ export function prepareProtectData(data: ProtectData): PreparedData {
     return {
         exceptionLinks,
         exceptionFiles,
-        group: filterChannels(groupChannel, "Group"),
-        channel: filterChannels(groupChannel, "Channel"),
+        group: filterChannels(groupChannel, "group"),
+        channel: filterChannels(groupChannel, "channel"),
         active: filterActive(groupChannel),
         threatLogs,
     };
@@ -144,9 +144,9 @@ function filterActive(data: GroupChannel[] = []): GroupChannel[] {
 
 function filterChannels(
     channels: GroupChannel[] = [],
-    type: "Group" | "Channel"
+    type: "group" | "channel"
 ): GroupChannel[] {
     return channels.filter(
-        (item) => item.type && strlower(item.type).includes(strlower(type)) && item.allowScan === false
+        (item) => item.type && strlower(item.type).includes(type) && item.allowScan === false
     );
 }

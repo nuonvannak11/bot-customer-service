@@ -7,24 +7,14 @@ import React, {
 } from "react";
 import { Users, Search, Plus, X, Megaphone, Shield } from "lucide-react";
 import gsap from "gsap";
-
-import { GroupChannel } from "@/interface/interface.telegram";
+import Image from "next/image";
+import {
+  GroupChannel,
+  GroupManagementProps,
+} from "@/interface/interface.telegram";
 import { AssetType } from "@/types/type.telegram";
 import { normalizeText, strlower } from "@/utils/util";
-import { SetStateProps } from "@/interface";
-import { TelegramProtectPageState } from "../TelegramProtectPage";
 import { ActionButton } from "./entity/ActionButton";
-import Image from "next/image";
-
-type GroupManagementProps = SetStateProps<TelegramProtectPageState> & {
-  loading: boolean;
-  handlers: {
-    onAdd: (asset: GroupChannel) => void;
-    onRemove: (asset: GroupChannel) => void;
-    onSave: (asset: GroupChannel) => void;
-  };
-  t: (key: string) => string;
-};
 
 const GroupManagement: React.FC<GroupManagementProps> = ({
   state,
@@ -166,7 +156,7 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
           {filteredManagedAssets.length > 0 ? (
             filteredManagedAssets.map((group) => {
               const isActive = state.activeAsset?.chatId === group.chatId;
-              const isGroup = group.type === "Group";
+              const isGroup = strlower(group.type).includes("group");
               return (
                 <div
                   key={Number(group.chatId)}
@@ -281,7 +271,7 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
                     <div className="flex items-center gap-3">
                       <div
                         className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          asset.type === "Group"
+                          strlower(asset.type).includes("group")
                             ? "bg-indigo-500/10 text-indigo-400"
                             : "bg-purple-500/10 text-purple-400"
                         }`}>

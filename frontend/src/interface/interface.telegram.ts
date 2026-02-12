@@ -1,31 +1,11 @@
 import { AssetType } from "@/types/type.telegram";
 import { SetStateProps } from "@/interface";
 
-export interface GroupManagementProps {
-  managedAssets: GroupChannel[];
-  activeId: number | null;
-  onSelect: (id: number) => void;
-  active: GroupChannel[];
-  onAdd: (asset: GroupChannel) => void;
-  onRemove: (id: number) => void;
-}
 
 export interface ManagedAsset {
   id: number;
   name: string;
   type: AssetType;
-}
-
-export interface LinkSentryProps {
-  contextLabel?: string;
-  domains: string[];
-  newDomain: string;
-  onNewDomainChange: (value: string) => void;
-  onAdd: () => void;
-  onRemove: (domain: string) => void;
-  onBlockAllLinksFromNoneAdmin: (value: boolean) => void;
-  onSave?: () => void;
-  blockAllLinksFromNoneAdmin: boolean;
 }
 
 export interface SpamConfigState {
@@ -71,9 +51,9 @@ export interface ChannelConfig {
   spam: SpamConfig;
   rulesCount: number;
   blockAllLinksFromNoneAdmin: boolean;
-  blockAllExstationFromNoneAdmin: boolean,
-  badWords: string[],
-  blockBadWordsEnabled: boolean,
+  blockAllExstationFromNoneAdmin: boolean;
+  badWords: string[];
+  blockBadWordsEnabled: boolean;
 }
 
 export interface SpamConfig {
@@ -85,7 +65,7 @@ export interface SpamConfig {
 export interface ThreatLog {
   chatId: string;
   offenderName: string;
-  threatType: string
+  threatType: string;
   content: string;
   action: string;
   createdAt: string;
@@ -101,19 +81,8 @@ export interface PreparedData {
 }
 
 export interface setFileGuardProps {
-  blockUrlNoneAdmin: boolean,
-  blockExtNoneAdmin: boolean,
-}
-
-export interface FileGuardProps extends SetStateProps<setFileGuardProps> {
-  contextLabel?: string;
-  extensions: string[];
-  newExt: string;
-  onNewExtChange: (value: string) => void;
-  onAdd: () => void;
-  onRemove: (ext: string) => void;
-  onSave: () => void;
-  t: (key: string) => string;
+  blockUrlNoneAdmin: boolean;
+  blockExtNoneAdmin: boolean;
 }
 
 export interface TelegramContact {
@@ -123,7 +92,57 @@ export interface TelegramContact {
   avatar: string;
   time: string;
   msg: string;
-  unread: number,
+  unread: number;
   status: string;
   category: string;
+}
+
+export interface SpamSettingCardProps {
+  label: string;
+  valueDisplay: string;
+  isActive?: boolean;
+  children: React.ReactNode;
+  description?: string;
+}
+
+export interface ActionButtonProps {
+  disabled: boolean;
+  onClick: () => void;
+  label: string;
+  icon: React.ReactNode;
+  colorClass: "indigo" | "purple";
+}
+
+export interface TelegramProtectPageProps {
+  protects: PreparedData;
+  hash_key: string;
+};
+
+export interface TelegramProtectPageState {
+  managedAssets: Omit<
+    PreparedData,
+    "threatLogs" | "exceptionFiles" | "exceptionLinks"
+  >;
+  exceptionFiles: string[];
+  exceptionLinks: string[];
+  activeAsset: GroupChannel;
+}
+
+export interface GroupManagementProps extends SetStateProps<TelegramProtectPageState> {
+  loading: boolean;
+  handlers: {
+    onAdd: (asset: GroupChannel) => void;
+    onRemove: (asset: GroupChannel) => void;
+    onSave: (asset: GroupChannel) => void;
+  };
+  t: (key: string) => string;
+}
+
+export interface ProtectChildProps extends Omit<
+  GroupManagementProps,
+  "handlers"
+> {
+  handlers: {
+    onSave: (asset: GroupChannel) => void;
+  };
 }
