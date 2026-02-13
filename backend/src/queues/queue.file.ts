@@ -1,7 +1,7 @@
 import * as https from "https";
 import PQueue from "p-queue";
 import { fileTypeFromBuffer } from "file-type";
-import { eLog } from "../utils/util";
+import { eLog, str_lower } from "../utils/util";
 import { LIMIT_TELEGRAM_FILE_SIZE } from "../constants";
 import controller_telegram from "../controller/controller_telegram";
 import FileStore, { IFileStore } from "../models/model_file_store";
@@ -23,17 +23,12 @@ const agent = new https.Agent({
 class QueuesExecutFile {
     private queues = new Map<string, PQueue>();
     private processingFiles = new Set<string>();
-    private user_id: string = "";
-    private chat_id: string = "";
-    private message_id: number = 0;
 
     public async addTask(option: ScanFileProps): Promise<void> {
         try {
             const { user_id, chat_id, message_id } = option;
             if (!user_id || !chat_id || !message_id) return;
-            this.user_id = user_id;
-            this.chat_id = chat_id;
-            this.message_id = message_id;
+
             const doc = await FileStore.findOne({
                 user_id,
                 telegram_chat_id: chat_id,
@@ -41,17 +36,20 @@ class QueuesExecutFile {
             }).select('_id telegram_file_id file_name file_size telegram_chat_id telegram_message_id').lean();
 
             if (!doc || !doc.telegram_file_id) return;
+            
             if (this.processingFiles.has(doc.telegram_file_id)) {
                 return;
             }
+
             if (!this.queues.has(user_id)) {
                 this.queues.set(user_id, new PQueue(ConfigQueuesExecutFile.QUEUE));
             }
+        
             const queue = this.queues.get(user_id)!;
             this.processingFiles.add(doc.telegram_file_id);
             queue.add(async () => {
                 try {
-                    await this.processFile(doc as IFileStore, user_id);
+                    await this.processFile(doc as IFileStore, user_id, chat_id);
                 } finally {
                     this.processingFiles.delete(doc.telegram_file_id!);
                     this.cleanupQueue(user_id);
@@ -69,7 +67,7 @@ class QueuesExecutFile {
         }
     }
 
-    private async processFile(doc: IFileStore, userId: string): Promise<void> {
+    private async processFile(doc: IFileStore, userId: string, chatId: string): Promise<void> {
         const fileId = doc.telegram_file_id!;
         const fileName = doc.file_name || "unknown";
 
@@ -77,21 +75,17 @@ class QueuesExecutFile {
             if (doc.file_size && doc.file_size > LIMIT_TELEGRAM_FILE_SIZE) {
                 return;
             }
-
             const fileUrlData = await controller_telegram.get_file_link(userId, fileId);
             const fileUrl = this.extractUrl(fileUrlData);
             if (!fileUrl) {
                 eLog(`[BotImg] Could not resolve URL for ${fileName}`);
                 return;
             }
+            
             eLog(`[BotImg] Scanning header: ${fileName}`);
             const buffer = await this.downloadHeaderSafe(fileUrl);
-
-            if (!buffer) {
-                return;
-            }
-
-            const scanResult = await this.analyzeBuffer(buffer);
+            if (!buffer) return;
+            const scanResult = await this.analyzeBuffer(buffer, chatId, userId);
             if (!scanResult.isSafe) {
                 eLog(`[BotImg] ❌ UNSAFE DETECTED (${scanResult.reason}): ${fileName}`);
                 await this.handleUnsafeFile(doc, userId);
@@ -100,6 +94,13 @@ class QueuesExecutFile {
             }
         } catch (error) {
             eLog(`[BotImg] Worker Error (${fileName}):`, error);
+        } finally {
+            try {
+                await FileStore.deleteOne({ _id: doc._id });
+                eLog(`[BotImg] 🗑️ Cleaned up FileStore record: ${doc._id}`);
+            } catch (cleanupErr) {
+                eLog(`[BotImg] Failed to delete FileStore record ${doc._id}:`, cleanupErr);
+            }
         }
     }
 
@@ -144,6 +145,7 @@ class QueuesExecutFile {
                     res.destroy();
                     return reject(new Error(`HTTP ${code}`));
                 }
+                
                 const chunks: Buffer[] = [];
                 let total = 0;
 
@@ -152,7 +154,7 @@ class QueuesExecutFile {
                     if (total > ConfigQueuesExecutFile.SCAN_BYTES) {
                         const allowed = chunk.subarray(0, chunk.length - (total - ConfigQueuesExecutFile.SCAN_BYTES));
                         if (allowed.length) chunks.push(allowed);
-                        res.destroy();
+                        res.destroy(); // Stops downloading early
                         return;
                     }
                     chunks.push(chunk);
@@ -170,23 +172,31 @@ class QueuesExecutFile {
         });
     }
 
-    private async analyzeBuffer(buffer: Buffer): Promise<ScanResult> {
-        if (!buffer || buffer.length === 0) {
-            return { isSafe: false, reason: "Empty Buffer" };
-        }
-
-        if (buffer.length >= 2) {
-            const magic = buffer.toString("ascii", 0, 2);
-            if (magic === "MZ") {
+    private async analyzeBuffer(buffer: Buffer, chatId: string, userId: string): Promise<ScanResult> {
+        try {
+            if (!buffer?.length) {
+                return { isSafe: false, reason: "Empty Buffer" };
+            }
+            if (buffer.length >= 2 && buffer[0] === 0x4d && buffer[1] === 0x5a) {
                 return { isSafe: false, reason: "Executable Header (MZ)" };
             }
-        }
 
-        try {
             const type = await fileTypeFromBuffer(buffer);
             if (!type) return { isSafe: true };
-            if (CONFIG.BLOCKED_EXTENSIONS.has(type.ext)) {
-                return { isSafe: false, reason: `Blocked Extension: ${type.ext}` };
+            
+            const data_extensions = await controller_telegram.get_file_extensions(chatId, userId);
+            if (!data_extensions?.extensions?.length) {
+                return { isSafe: true };
+            }
+
+            const { accept, extensions } = data_extensions;
+            const ext = str_lower(type.ext);
+            const hasExt = extensions.includes(ext);
+            const isSafe = accept === hasExt;
+
+            if (!isSafe) {
+                const listType = accept ? 'Not in allowed extensions' : 'Blocked Extension';
+                return { isSafe: false, reason: `${listType}: ${ext}` };
             }
             return { isSafe: true };
         } catch (err) {
@@ -202,9 +212,8 @@ class QueuesExecutFile {
                 chat_id: doc.telegram_chat_id,
                 message_id: doc.telegram_message_id
             });
-            await FileStore.deleteOne({ _id: doc._id });
         } catch (err) {
-            eLog(`[BotImg] Failed to cleanup unsafe file ${doc._id}:`, err);
+            eLog(`[BotImg] Failed to cleanup unsafe file msg:`, err);
         }
     }
 
@@ -215,5 +224,6 @@ class QueuesExecutFile {
         return null;
     }
 }
+
 const queuesExecutFile = new QueuesExecutFile();
 export default queuesExecutFile;

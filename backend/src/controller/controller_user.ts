@@ -21,7 +21,7 @@ import { ISetting } from "../interface/interface_setting";
 import { IUser } from "../interface/interface_user";
 import { SaveUserProfile } from "../interface";
 import mongoose from "mongoose";
-import { generate_id } from "../libs/generate_user_id";
+import { generate_id } from "../libs/generate_id";
 
 class UserController extends ProtectController {
     private readonly phoneRegex = PHONE_REGEX;

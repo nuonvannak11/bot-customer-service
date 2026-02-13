@@ -7,6 +7,7 @@ import { connectRedis } from "./config/redis";
 import setUpRoutes from "./routes";
 import { startRealTimeListener } from "./publish/RedisListener";
 import cronJob from "./cron/cron.index";
+// import controller_server from "./controller/controller_server";
 
 const app = express();
 const port = get_env("PORT", "3100");
@@ -22,7 +23,7 @@ setUpRoutes(app);
 startRealTimeListener();
 cronJob();
 app.use(errorHandler);
-
+// controller_server.add_server("157.245.232.202");
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
 });

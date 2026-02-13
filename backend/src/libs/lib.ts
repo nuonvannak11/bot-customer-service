@@ -4,6 +4,13 @@ import { empty } from "../utils/util";
 import { getIP } from "../helper/get_ip";
 import check_jwt from "../helper/check_jwt";
 import { JWTPayload } from "../interface/index";
+import { get_env } from "../utils/get_env";
+
+export function eLog(data: any, ...args: any[]): void {
+    if (get_env('NODE_ENV', 'development') === 'development') {
+        console.log(data, ...args);
+    }
+}
 
 export function check_header(request: Request) {
     const cookie = request.get("cookie");
@@ -14,7 +21,6 @@ export function check_header(request: Request) {
     if (empty(cookie)) return false;
     if (empty(origin)) return false;
     if (empty(ua)) return false;
-    // if (origin !== get_env("NEXT_ORIGIN")) return false;
     const badUA = ["python-requests", "curl", "wget", "axios", "fetch", "httpclient", "scrapy", "postman", "insomnia", "http.rb", "java", "go-http-client", "node-fetch", "okhttp"];
     if (ua) {
         const lowerUA = ua.toLowerCase();

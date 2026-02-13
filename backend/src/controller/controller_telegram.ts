@@ -465,18 +465,28 @@ class TelegramController extends ProtectController {
         }
     }
 
-    public async get_block_exstaion(chat_id: string, user_id: string): Promise<{ ext_user: string[], ext_group_chanel: string[]} | null> {
+    public async get_file_extensions(chat_id: string, user_id: string): Promise<{ accept: boolean, extensions?: string[] } | null> {
+        if (!chat_id || !user_id) return null;
         try {
-            if (!chat_id || !user_id) return null;
-            const [managedAsset, settings] = await Promise.all([
-                ManagedAssetModel.find({ user_id, chatId: chat_id }).lean(),
-                model_setting.find({ user_id }).lean()
-            ]);
-            const ext_user = settings?.user?.exceptionFiles ||[];
-            const ext_group_chanel = managedAsset?.
-            return {ext_user, ext_group_chanel: exceptionFiles}
+            const managedAsset = await ManagedAssetModel.findOne(
+                { user_id, chatId: chat_id },
+                { config: 1 }).lean();
+            const config = managedAsset?.config;
+            if (!config) return null;
+            if (config.blockAllExstationFromNoneAdmin) {
+                const settings = await model_setting.findOne(
+                    { user_id },
+                    { 'user.exceptionFiles': 1 }).lean();
+                if (!settings) return null;
+                const exceptionFiles = settings.user?.exceptionFiles;
+                if (exceptionFiles?.length) {
+                    return { accept: true, extensions: exceptionFiles };
+                }
+            }
+            const blockedExts = config.blockedExtensions;
+            return blockedExts?.length ? { accept: false, extensions: blockedExts } : null;
         } catch (err) {
-            eLog("❌ get_block_exstaion error:", err);
+            eLog("❌ get_blocked_extensions error:", err);
             return null;
         }
     }
