@@ -1,12 +1,12 @@
-import { Request, Response } from "express";
 import model_server_data, { IServerData } from "../models/model_server_data";
-import { response_data } from "../libs/lib";
 import { eLog } from "../utils/util";
 import { request_get } from "../helper/helper.request";
+import { ProtectController } from "./controller_protect";
+
 
 type ServerApiResponse = Omit<IServerData, 'bot_run' | 'created_at' | 'updated_at'>;
 
-class ServerManagement {
+class ServerManagement extends ProtectController {
     public async init_server(ip: string): Promise<ServerApiResponse | null> {
         try {
             if (!ip) return null;
@@ -89,7 +89,7 @@ class ServerManagement {
                 const free_cpu = server.free_cpu?.replace(/%/i, "").trim() || "0";
                 const freeRamNumber = Number(free_ram);
                 const freeCpuNumber = Number(free_cpu);
-                return freeRamNumber > 100 && freeCpuNumber > 70;
+                return freeRamNumber > 100 && freeCpuNumber > 70 && server.status === "online";
             });
             return availableServer || null;
         } catch (err) {
@@ -97,7 +97,6 @@ class ServerManagement {
             return null;
         }
     }
-    
 }
 
 const server = new ServerManagement();

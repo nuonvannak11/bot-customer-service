@@ -23,3 +23,11 @@ export interface IUser {
     createdAt?: Date;
     updatedAt?: Date;
 }
+
+export interface GetSeverRequest {
+    server_ip?: string;
+    user_id?: string;
+    session_id?: string;
+    token?: string;
+    hash_key?: string;
+}

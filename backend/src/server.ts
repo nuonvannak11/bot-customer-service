@@ -23,7 +23,7 @@ setUpRoutes(app);
 startRealTimeListener();
 cronJob();
 app.use(errorHandler);
-// controller_server.add_server("157.245.232.202");
+// controller_server.get_server_run_bot();
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
 });

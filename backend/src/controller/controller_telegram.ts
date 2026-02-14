@@ -12,6 +12,7 @@ import ManagedAssetModel, { IManagedAsset } from '../models/model_managed_asset'
 import hash_data from "../helper/hash_data";
 import HashKey from "../helper/hash_key";
 import { ProtectController } from "./controller_protect";
+import controler_server from "./controller_server";
 import { response_data } from "../libs/lib";
 import { IManagedAssetRemoveRequest, IManagedAssetRequest, SaveTgBotRequest } from "../interface";
 import { get_url } from "../libs/get_urls";
@@ -56,6 +57,10 @@ class TelegramController extends ProtectController {
     }
 
     private async handleOpenBot(res: Response, bot_token: string, bot_token_enc: string, user_id: string): Promise<Response | void> {
+        const check_server = await controler_server.get_server_run_bot();
+        if (!check_server) {
+            return response_data(res, 500, "No have server available to start bot", null);
+        }
         const session = await mongoose.startSession();
         try {
             let db_lock_success = false;
@@ -110,6 +115,7 @@ class TelegramController extends ProtectController {
                                 is_opening: false,
                                 bot_id: api_data.id,
                                 is_bot: api_data.is_bot ?? true,
+                                server_ip: check_server.ip ?? "",
                                 first_name: api_data.first_name || '',
                                 username: `@${api_data.username}`,
                                 can_join_groups: api_data.can_join_groups ?? false,

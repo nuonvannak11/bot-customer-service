@@ -10,7 +10,7 @@ export interface IBot extends Document {
     can_join_groups: boolean;
     can_read_all_group_messages: boolean;
     supports_inline_queries: boolean;
-    server_ip: string;
+    server_ip?: string;
     avatar?: string;
     user_id: string;
     bot_token: string;

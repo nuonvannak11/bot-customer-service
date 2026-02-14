@@ -87,3 +87,9 @@ export interface ScanFileProps {
   chat_id: string,
   message_id: number,
 }
+
+export interface AddServerRequest {
+  server_id: string;
+  server_ip: string;
+  server_port: string;
+}
