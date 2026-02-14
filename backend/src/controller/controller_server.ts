@@ -80,9 +80,24 @@ class ServerManagement {
         }
     }
 
-    public async get_server_run_bot() {
-
+    public async get_server_run_bot(): Promise<IServerData | null> {
+        try {
+            const servers = await this.get_servers();
+            if (!servers || !Array.isArray(servers)) return null;
+            const availableServer = servers.find((server) => {
+                const free_ram = server.free_ram?.replace(/mb/i, "").trim() || "0";
+                const free_cpu = server.free_cpu?.replace(/%/i, "").trim() || "0";
+                const freeRamNumber = Number(free_ram);
+                const freeCpuNumber = Number(free_cpu);
+                return freeRamNumber > 100 && freeCpuNumber > 70;
+            });
+            return availableServer || null;
+        } catch (err) {
+            eLog("❌ get_server_run_bot error:", err);
+            return null;
+        }
     }
+    
 }
 
 const server = new ServerManagement();
