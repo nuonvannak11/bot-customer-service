@@ -1,8 +1,8 @@
 import type { Algorithm } from 'jsonwebtoken';
 import type { Socket } from 'socket.io';
-import checkJwt from './helper/check_jwt';
-import { SessionStore } from './sessionStore';
-import type { SocketData } from './types/socket';
+import checkJwt from '../helper/check_jwt';
+import sessionStore from '../controller/controller.session.store';
+import type { SocketData } from '../types/socket';
 
 type JwtAuthPayload = {
 	user_id: string;
@@ -35,8 +35,8 @@ function isJwtAuthPayload(payload: unknown): payload is JwtAuthPayload {
 	return typeof maybe.user_id === 'string' && typeof maybe.session_id === 'string';
 }
 
-export function createSocketAuthMiddleware(options: { jwtAlgorithms?: Algorithm[]; sessionStore: SessionStore; }) {
-	const { jwtAlgorithms, sessionStore } = options;
+export function createSocketAuthMiddleware(options: { jwtAlgorithms?: Algorithm[];}) {
+	const { jwtAlgorithms } = options;
 	return (socket: Socket<any, any, any, SocketData>, next: (err?: Error) => void) => {
 		void (async () => {
 			const token = readHandshakeToken(socket);
@@ -50,7 +50,6 @@ export function createSocketAuthMiddleware(options: { jwtAlgorithms?: Algorithm[
 
 			const userId = decoded.user_id.trim();
 			const sessionId = decoded.session_id.trim();
-			// Fix: reject empty/whitespace user_id or session_id from the token.
 			if (!userId || !sessionId) return next(new Error('TOKEN_INVALID'));
 
 			try {

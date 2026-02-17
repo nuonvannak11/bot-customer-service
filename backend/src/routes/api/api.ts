@@ -5,8 +5,10 @@ import setting from "./settings/setting";
 import route_telegram from "./telegram/route.telegram";
 import upload from "./upload/upload";
 import route_user from "./user/index";
+import route_bot from "./bot/route";
 
 const router = Router();
+router.use("/bot", route_bot);
 router.use("/admin", checkToken, admin);
 router.use("/setting", checkToken, setting);
 router.use("/telegram",checkToken, route_telegram);

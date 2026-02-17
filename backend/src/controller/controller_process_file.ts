@@ -1,11 +1,11 @@
 import * as https from "https";
 import PQueue from "p-queue";
 import { fileTypeFromBuffer } from "file-type";
-import { eLog } from "../utils/util";
+import { eLog } from "../libs/lib";
 import { LIMIT_TELEGRAM_FILE_SIZE } from "../constants";
 import controller_telegram from "./controller_telegram";
 import FileStore, { IFileStore } from "../models/model_file_store";
-import { VirusAlert } from "../interface";
+import { ScanFileProps } from "../interface";
 import controller_redis from "./controller_redis";
 
 const CONFIG = {
@@ -32,7 +32,7 @@ class BotProcessorImg {
     private queues = new Map<string, PQueue>();
     private processingFiles = new Set<string>();
 
-    public async addTask(option: VirusAlert): Promise<void> {
+    public async addTask(option: ScanFileProps): Promise<void> {
         try {
             if (!option?.user_id || !option?.chat_id || !option?.message_id) return;
 

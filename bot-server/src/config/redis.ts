@@ -20,16 +20,10 @@ const redisConfig = {
   }
 };
 
-
-// Connection for general operations (get, set, del, etc.)
 const redis = new Redis(redisConfig);
 
-// Connection for publishing only
 export const redisPublisher = new Redis(redisConfig);
-
-// Connection for subscribing only
 export const redisSubscriber = new Redis(redisConfig);
-
 export function connectRedis() {
   redis.on('connect', () => eLog('✅ Connected to Redis (general)!'));
   redis.on('error', (err) => eLog('❌ Redis Error (general):', err));

@@ -1,21 +1,28 @@
-import Redis from "ioredis";
-import { eLog } from "../utils/util";
-import { get_env } from '../utils/get_env';
+import Redis from 'ioredis';
+import { get_env } from "../utils/get_env";
+import { eLog } from '../utils/util';
 
-const port = get_env("REDIS_PORT", 6379);
+const portStr = get_env("REDIS_PORT", "6379");
+const port = Number.parseInt(portStr, 10);
 
-const redis = new Redis({
+const redisConfig = {
     host: get_env("REDIS_HOST", "127.0.0.1"),
     port: Number.isNaN(port) ? 6379 : port,
     password: get_env("REDIS_PASS", ""),
     connectTimeout: 10000,
-});
+    retryStrategy(times: number) {
+        if (times > 50) {
+            eLog("❌ Redis: Retry limit exhausted.");
+            return null;
+        }
+        const delay = Math.min(Math.pow(2, times) * 500, 10000);
+        return delay;
+    }
+};
 
-redis.on("connect", () => eLog("Connected to Redis"));
-redis.on("ready", () => eLog("Redis ready")); // Fix: track readiness for reconnect recovery.
-redis.on("reconnecting", () => eLog("Redis reconnecting")); // Fix: reconnect handler for observability.
-redis.on("end", () => eLog("Redis connection end")); // Fix: detect disconnects.
-redis.on("close", () => eLog("Redis connection close")); // Fix: detect socket closure.
-redis.on("error", (err) => eLog("Redis Error:", err));
-
+const redis = new Redis(redisConfig);
+export function connectRedis() {
+    redis.on('connect', () => eLog('✅ Connected to Redis (general)!'));
+    redis.on('error', (err) => eLog('❌ Redis Error (general):', err));
+}
 export default redis;

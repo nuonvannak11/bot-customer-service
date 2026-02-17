@@ -1,13 +1,14 @@
 import * as https from "https";
 import PQueue from "p-queue";
 import { fileTypeFromBuffer } from "file-type";
-import { eLog, str_lower } from "../utils/util";
+import { build_url, eLog, str_lower, str_val } from "../utils/util";
 import { LIMIT_TELEGRAM_FILE_SIZE } from "../constants";
 import controller_telegram from "../controller/controller_telegram";
 import FileStore, { IFileStore } from "../models/model_file_store";
-import { ScanFileProps } from "../interface";
+import { ScanFileProps, UnsafeFileProps } from "../interface";
 import controller_redis from "../controller/controller_redis";
 import { ConfigQueuesExecutFile } from "../data/data.static";
+import RedisPublish from "../connection/connection.redis.publish";
 
 interface ScanResult {
     isSafe: boolean;
@@ -26,7 +27,7 @@ class QueuesExecutFile {
 
     public async addTask(option: ScanFileProps): Promise<void> {
         try {
-            const { user_id, chat_id, message_id } = option;
+            const { user_id, chat_id, message_id, server_ip, port } = option;
             if (!user_id || !chat_id || !message_id) return;
 
             const doc = await FileStore.findOne({
@@ -36,7 +37,7 @@ class QueuesExecutFile {
             }).select('_id telegram_file_id file_name file_size telegram_chat_id telegram_message_id').lean();
 
             if (!doc || !doc.telegram_file_id) return;
-            
+
             if (this.processingFiles.has(doc.telegram_file_id)) {
                 return;
             }
@@ -44,12 +45,12 @@ class QueuesExecutFile {
             if (!this.queues.has(user_id)) {
                 this.queues.set(user_id, new PQueue(ConfigQueuesExecutFile.QUEUE));
             }
-        
+
             const queue = this.queues.get(user_id)!;
             this.processingFiles.add(doc.telegram_file_id);
             queue.add(async () => {
                 try {
-                    await this.processFile(doc as IFileStore, user_id, chat_id);
+                    await this.processFile(doc as IFileStore, user_id, chat_id, server_ip, port);
                 } finally {
                     this.processingFiles.delete(doc.telegram_file_id!);
                     this.cleanupQueue(user_id);
@@ -67,7 +68,7 @@ class QueuesExecutFile {
         }
     }
 
-    private async processFile(doc: IFileStore, userId: string, chatId: string): Promise<void> {
+    private async processFile(doc: IFileStore, userId: string, chatId: string, server_ip: string, port: string): Promise<void> {
         const fileId = doc.telegram_file_id!;
         const fileName = doc.file_name || "unknown";
 
@@ -81,14 +82,14 @@ class QueuesExecutFile {
                 eLog(`[BotImg] Could not resolve URL for ${fileName}`);
                 return;
             }
-            
+
             eLog(`[BotImg] Scanning header: ${fileName}`);
             const buffer = await this.downloadHeaderSafe(fileUrl);
             if (!buffer) return;
             const scanResult = await this.analyzeBuffer(buffer, chatId, userId);
             if (!scanResult.isSafe) {
                 eLog(`[BotImg] ❌ UNSAFE DETECTED (${scanResult.reason}): ${fileName}`);
-                await this.handleUnsafeFile(doc, userId);
+                await this.handleUnsafeFile(doc, { userId, server_ip, port });
             } else {
                 eLog(`[BotImg] ✅ File safe: ${fileName}`);
             }
@@ -145,7 +146,7 @@ class QueuesExecutFile {
                     res.destroy();
                     return reject(new Error(`HTTP ${code}`));
                 }
-                
+
                 const chunks: Buffer[] = [];
                 let total = 0;
 
@@ -183,7 +184,7 @@ class QueuesExecutFile {
 
             const type = await fileTypeFromBuffer(buffer);
             if (!type) return { isSafe: true };
-            
+
             const data_extensions = await controller_telegram.get_file_extensions(chatId, userId);
             if (!data_extensions?.extensions?.length) {
                 return { isSafe: true };
@@ -205,12 +206,18 @@ class QueuesExecutFile {
         }
     }
 
-    private async handleUnsafeFile(doc: IFileStore, userId: string): Promise<void> {
+    private async handleUnsafeFile(doc: IFileStore, option: UnsafeFileProps): Promise<void> {
         try {
-            await controller_redis.publish("delete_message", {
-                user_id: userId,
-                chat_id: doc.telegram_chat_id,
-                message_id: doc.telegram_message_id
+            const { userId, server_ip, port } = option;
+            const format_ip = str_val(server_ip, "127.0.0.1");
+            await RedisPublish.fallbackPublish({
+                url: build_url(format_ip, port),
+                channel: "delete_message:" + format_ip.replace(/\./g, ""),
+                message: {
+                    user_id: userId,
+                    chat_id: doc.telegram_chat_id,
+                    message_id: doc.telegram_message_id
+                }
             });
         } catch (err) {
             eLog(`[BotImg] Failed to cleanup unsafe file msg:`, err);

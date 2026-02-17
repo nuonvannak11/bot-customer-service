@@ -12,7 +12,6 @@ Dedicated real-time Socket Server for `bot-customer-service` (no DB, no login/bu
   - emitting supported events to a user
   - force-logout old sessions
   - kicking all sockets for a user
-- Optional internal HTTP routes (protected by `INTERNAL_SECRET`) for emit + force-logout
 
 ## Quick start
 1. Install dependencies:
@@ -40,7 +39,6 @@ npm start
 - `JWT_ALGORITHMS` (optional): comma-separated list (defaults to `HS256`)
 - `CORS_ORIGIN` (optional): `*` or comma-separated origins (defaults to `*`)
 - `SOCKET_CONTROL_PREFIX` (optional): Redis Pub/Sub prefix (defaults to `socket:control`)
-- `INTERNAL_SECRET` (optional): Bearer token required for all `/internal/*` routes (fallbacks: `AUTH_TOKEN`, then `SECRET_KEY`)
 - `SECRET_KEY` / `SECRET_IV` (required for encrypted control payloads): AES key + iv used by `hash_data`
 - `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASS`: Redis connection (required for session enforcement)
 
@@ -64,8 +62,6 @@ On successful handshake the server:
 - joins room `user:{user_id}`
 
 ## Internal routes (API server -> socket server)
-Internal routes are optional and only enabled if `INTERNAL_SECRET`/`AUTH_TOKEN`/`SECRET_KEY` is set.
-All internal routes require `Authorization: Bearer <INTERNAL_SECRET>`.
 
 1) `POST /internal/emit`
 ```json

@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import { eLog } from "../utils/util";
+import { eLog } from "../libs/lib";
 
 export default async function cronJob() {
     try {

@@ -1,11 +1,10 @@
 import { Server as HttpServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { registerSocketEvents } from './events';
-import { createSocketAuthMiddleware } from './middleware';
-import type { ClientToServerEvents, InterServerEvents, ServerToClientEvents, SocketData } from './types/socket';
-import { SessionStore } from './sessionStore';
-import { eLog } from './utils/util';
-import { get_env } from './utils/get_env';
+import { createSocketAuthMiddleware } from '../middleware/middleware';
+import type { ClientToServerEvents, InterServerEvents, ServerToClientEvents, SocketData } from '../types/socket';
+import { eLog } from '../utils/util';
+import { get_env } from '../utils/get_env';
 import type { Algorithm } from 'jsonwebtoken';
 
 function getUserRoom(userId: string) {
@@ -33,7 +32,7 @@ function parseJwtAlgorithms(value: unknown): Algorithm[] | undefined {
 		.filter(Boolean) as Algorithm[];
 }
 
-export function initSocket(server: HttpServer, sessionStore: SessionStore) {
+export function initSocket(server: HttpServer) {
 	const corsOrigin = parseCorsOrigin(get_env('CORS_ORIGIN', '*'));
 	if (!get_env('JWT_SECRET')) {
 		throw new Error('Missing JWT_SECRET (required for socket handshake authentication)');
@@ -46,8 +45,7 @@ export function initSocket(server: HttpServer, sessionStore: SessionStore) {
 
 	io.use(
 		createSocketAuthMiddleware({
-			jwtAlgorithms,
-			sessionStore,
+			jwtAlgorithms
 		})
 	);
 

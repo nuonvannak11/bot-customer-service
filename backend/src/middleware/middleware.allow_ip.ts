@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { eLog } from "../utils/util";
+import { eLog } from "../libs/lib";
 import { getClientIP } from "../libs/get_ip";
 import { getErrorMessage } from "../helper/errorHandling";
 

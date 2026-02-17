@@ -1,11 +1,10 @@
 import { Request, Response } from "express";
 import { Bot } from "grammy";
 import { eLog, getErrorMessage } from "../utils/util";
-import { API_TELEGRAM } from "../constants";
 import { response_data } from "../libs/lib";
 import { BotEntry, BotInfo } from "../types/type";
 import { get_env } from "../utils/get_env";
-import axios, { AxiosError } from "axios";
+import axios, { AxiosError, get } from "axios";
 import controller_telegram_bot from "./controller_telegram_bot";
 import { Message } from "@grammyjs/types";
 
@@ -14,6 +13,9 @@ interface OpenBotStart {
     message: string;
     data: BotInfo | null;
 }
+
+const TELEGRAM_API = get_env("TELEGRAM_API");
+
 
 class BotTelegram {
     private bots = new Map<string, BotEntry>();
@@ -53,7 +55,7 @@ class BotTelegram {
         try {
             const WEBHOOK_URL = get_env("WEBHOOK_URL");
             const webhookUrl = `${WEBHOOK_URL}/telegram/${bot_token}`;
-            const apiUrl = `${API_TELEGRAM}/bot${bot_token}/setWebhook`;
+            const apiUrl = `${TELEGRAM_API}/bot${bot_token}/setWebhook`;
             const response = await axios.post(apiUrl, {
                 url: webhookUrl,
                 allowed_updates: [
@@ -132,19 +134,6 @@ class BotTelegram {
         await entry.bot.stop();
         this.bots.delete(user_id);
         return { status: true, message: "Bot stopped successfully" }
-    }
-
-    public async replace(user_id: string, bot_token: string) {
-        try {
-            if (this.bots.has(user_id)) {
-                await this.stop(user_id);
-            }
-            await this.start(user_id, bot_token);
-            return { status: true, message: "Bot replaced successfully" }
-        } catch (error) {
-            return { status: false, message: error }
-        }
-
     }
 
     public isRunning(user_id: string) {
@@ -227,7 +216,7 @@ class BotTelegram {
             if (!file.file_path) {
                 return response_data(res, 400, "File not found", "");
             }
-            const downloadUrl = `${API_TELEGRAM}/file/bot${entry.token}/${file.file_path}`;
+            const downloadUrl = `${TELEGRAM_API}/file/bot${entry.token}/${file.file_path}`;
             return response_data(res, 200, "Link generated successfully", downloadUrl);
         } catch (error) {
             return response_data(res, 500, "Error generating link", "");

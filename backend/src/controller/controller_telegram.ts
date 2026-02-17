@@ -1,7 +1,7 @@
 import axios from "axios";
 import mongoose from "mongoose";
 import { Request, Response } from "express";
-import { eLog } from "../utils/util";
+import { eLog } from "../libs/lib";
 import AppUser from "../models/model_user";
 import Platform from "../models/model_platform";
 import model_bot from "../models/model_bot";
@@ -14,7 +14,7 @@ import HashKey from "../helper/hash_key";
 import { ProtectController } from "./controller_protect";
 import controler_server from "./controller_server";
 import { response_data } from "../libs/lib";
-import { IManagedAssetRemoveRequest, IManagedAssetRequest, SaveTgBotRequest } from "../interface";
+import { ConfirmGroupChanelProps, IManagedAssetRemoveRequest, IManagedAssetRequest, SaveTgBotRequest } from "../interface";
 import { get_url } from "../libs/get_urls";
 import { httpAgent } from "../libs/lib";
 import { getErrorMessage } from "../helper/errorHandling";
@@ -57,12 +57,12 @@ class TelegramController extends ProtectController {
     }
 
     private async handleOpenBot(res: Response, bot_token: string, bot_token_enc: string, user_id: string): Promise<Response | void> {
-        const check_server = await controler_server.get_server_run_bot();
-        if (!check_server) {
-            return response_data(res, 500, "No have server available to start bot", null);
-        }
         const session = await mongoose.startSession();
         try {
+            const check_server = await controler_server.get_server_run_bot();
+            if (!check_server) {
+                return response_data(res, 500, "No have server available to start bot", null);
+            }
             let db_lock_success = false;
             await session.withTransaction(async () => {
                 const update_model_bot = await model_bot.updateOne(
@@ -653,6 +653,19 @@ class TelegramController extends ProtectController {
             return response_data(res, 500, "Internal server error", []);
         }
     }
+
+    public async confirmGroupChanel(option: ConfirmGroupChanelProps): Promise<void> {
+        try {
+            const { server_ip, port, user_id, confirm_key } = option;
+            if (!server_ip || !port || !user_id || !confirm_key) {
+                throw new Error("Missing required parameters");
+            }
+
+        } catch (error) {
+            eLog("Error in confirmGroupChanel:", getErrorMessage(error));
+        }
+    }
+
 }
 
 export default new TelegramController();

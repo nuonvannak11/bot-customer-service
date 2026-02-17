@@ -1,12 +1,21 @@
 import { get_env } from "../utils/get_env";
 
-export function get_url(page: string) {
+export function get_url(page: string, url?: string) {
+    let path;
     switch (page) {
         case "close_bot":
-            return get_env("SERVER_BOT_URL") + "/api/bot/stop";
+            path = "/api/bot/stop";
+            break;
         case "open_bot":
-            return get_env("SERVER_BOT_URL") + "/api/bot/start";
+            path = "/api/bot/start";
+            break;
+        case "delete_message":
+            path = "/api/bot/delete_message";
+            break;
         default:
-            return "index";
+            path = "index";
+            
     }
+    if (url) return url + path;
+    return get_env("SERVER_BOT_URL") + path;
 }

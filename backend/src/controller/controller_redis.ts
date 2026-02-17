@@ -1,5 +1,5 @@
 import redis, { redisPublisher } from "../config/redis";
-import { eLog } from "../utils/util";
+import { eLog } from "../libs/lib";
 
 class RedisController {
     private safeStringify(value: unknown): string {

@@ -1,29 +1,30 @@
-import { Request, Response } from "express";
 import { Context } from "grammy";
 import type { Message } from "grammy/types";
 import Platform from "../models/model_platform";
 import Setting from "../models/model_settings";
 
 import { get_env } from "../utils/get_env";
-import { empty, eLog, str_lower } from "../utils/util";
+import { empty, eLog, str_lower, build_url, str_val, expiresAt } from "../utils/util";
 import { ProtectController } from "./controller_protect";
 import FileStore from "../models/model_file_store";
 import { response_data } from "../libs/lib";
-import controller_redis from "./controller_redis";
 import controller_user from "./controller_user";
-import controller_executor_img from "../controller/controller_executor_img";
 import model_settings_bot_telegram from "../models/model_setting_bot_telegram";
 import model_bot from "../models/model_bot";
-import model_telegram_group from "../models/model_telegram_group_chanel";
+import model_temp_store from "../models/model_temp_store";
+import model_telegram_group_chanel from "../models/model_telegram_group_chanel";
 import { BotSettingDTO } from "../interface";
 import { default_settings_bot } from "../constants/constant.setting";
 import hash_data from "../helper/hash_data";
-
+import RedisPublish from "../connection/connection.redis.publish";
+import { get_url } from "../libs/get_urls";
 
 class ControllerTelegramBot extends ProtectController {
-    public async bot_setting(): Promise<BotSettingDTO> {
-        let settings = await controller_redis.get<BotSettingDTO>("bot_settings");
-        if (!settings) {
+    private botTelegramSetting?: BotSettingDTO;
+
+    public async bot_setting(init?: boolean): Promise<BotSettingDTO> {
+        let settings = this.botTelegramSetting;
+        if (!settings || init) {
             const bot_settings = await model_settings_bot_telegram
                 .findOne().sort({ createdAt: -1 })
                 .select("max_download_size max_upload_size max_retry_download")
@@ -37,7 +38,7 @@ class ControllerTelegramBot extends ProtectController {
             } else {
                 settings = default_settings_bot;
             }
-            await controller_redis.set("bot_settings", settings);
+            this.botTelegramSetting = settings;
         }
         return settings;
     }
@@ -72,26 +73,46 @@ class ControllerTelegramBot extends ProtectController {
             const chat_id = ctx.chat?.id?.toString();
             const chatType = ctx.chat?.type;
             if (!chat_id || !user_id) return;
+            const check_item = await model_telegram_group_chanel.findOne({ chatId: chat_id }).lean();
+            if (check_item) return;
             const bot_token_enc = hash_data.encryptData(bot_token);
             const check_bot = await model_bot.findOne({ user_id, bot_token: bot_token_enc }).lean();
             const get_username = check_bot?.username || "unknown_bot";
             if (!check_bot || str_lower(chat_message) !== `${str_lower(get_username)}`) {
                 return;
             }
-            await model_telegram_group.updateOne(
-                { user_id, bot_token: bot_token_enc, chatId: chat_id },
+            const build_key = `confirm_${chat_id}`;
+            await model_temp_store.updateOne(
+                { key: build_key },
                 {
                     $set: {
-                        user_id,
-                        bot_token: bot_token_enc,
-                        chatId: chat_id,
-                        name: ctx.chat?.title,
-                        type: chatType,
-                        avatar: "",
+                        data: {
+                            user_id,
+                            bot_token: bot_token_enc,
+                            chatId: chat_id,
+                            name: ctx.chat?.title,
+                            type: chatType,
+                            avatar: "",
+                        },
+                        expireAt: expiresAt(5),
+                    },
+                    $setOnInsert: {
+                        key: build_key
                     }
                 },
                 { upsert: true }
             );
+            await RedisPublish.fallbackPublish({
+                url: get_url("confirm_group_chanel", get_env("SERVER_SOCKET")),
+                channel: "socket:control:emit",
+                message: {
+                    user_id,
+                    event: "confirm:group-chanel",
+                    payload: {
+                        chatId: chat_id,
+                    }
+                }
+            });
         }
         eLog("TEXT:", msg);
     }
@@ -127,27 +148,29 @@ class ControllerTelegramBot extends ProtectController {
                 eLog(`🚨 Blocked file: ${fileName}`);
                 return;
             }
-            if (file_size < settings_bot.max_upload_size) { //3MB
-                controller_executor_img.addTask(ctx, doc, user_id, badExts, settings_bot);
-            } else {
-                const add_file = await FileStore.create({
-                    user_id: user_id,
-                    telegram_file_id: doc.file_id,
-                    telegram_unique_id: doc.file_unique_id,
-                    telegram_chat_id: chat_id,
-                    telegram_message_id: ctx.message.message_id,
-                    file_name: doc.file_name,
-                    mime_type: doc.mime_type,
-                    file_size: doc.file_size,
-                    bot_token_id: ctx.api.token
-                });
-                if (add_file) {
-                    await controller_redis.publish("virus_alerts", {
+            const add_file = await FileStore.create({
+                user_id: user_id,
+                telegram_file_id: doc.file_id,
+                telegram_unique_id: doc.file_unique_id,
+                telegram_chat_id: chat_id,
+                telegram_message_id: ctx.message.message_id,
+                file_name: doc.file_name,
+                mime_type: doc.mime_type,
+                file_size: doc.file_size,
+                bot_token_id: ctx.api.token
+            });
+            if (add_file) {
+                await RedisPublish.fallbackPublish({
+                    url: get_url("scan_file"),
+                    channel: "scan_file",
+                    message: {
+                        server_ip: str_val(get_env("IP")),
+                        port: str_val(get_env("PORT")),
                         user_id: user_id,
-                        chat_id: ctx.chat.id.toString(),
+                        chat_id: str_val(ctx.chat.id),
                         message_id: ctx.message.message_id,
-                    });
-                }
+                    }
+                });
             }
         } catch (error) {
             eLog("❌ onDocument Error:", error);

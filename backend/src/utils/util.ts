@@ -1,5 +1,4 @@
 
-import { get_env } from "./get_env";
 import { MAX_TIMEOUT } from "../constants";
 
 export function empty(data: any): boolean {
@@ -37,12 +36,6 @@ export function random_number(digits: number): string {
         result += Math.floor(Math.random() * 10).toString();
     }
     return result;
-}
-
-export function eLog(data: any, ...args: any[]): void {
-    if (get_env('NODE_ENV', 'development') === 'development') {
-        console.log(data, ...args);
-    }
 }
 
 export function expiresAt(minutes: number): Date {
@@ -83,6 +76,16 @@ export function str_number(value: unknown, fallback = 0): number {
     return num;
 }
 
+export function str_val(value: unknown, fallback = ""): string {
+    if (empty(value)) return fallback;
+    return String(value);
+}
+
+export function str_replace(value: string, from: string, to: string): string {
+    if (!value || !from || !to) return value as string;
+    return value.replace(new RegExp(from, 'g'), to);
+}
+
 export function format_phone(phone: unknown): string {
     if (typeof phone !== "string" || phone.trim() === "") return "";
     const trimmed = phone.trim();
@@ -94,4 +97,14 @@ export function format_phone(phone: unknown): string {
     if (!match) return trimmed;
     const local = match[2];
     return "0" + local;
+}
+
+
+export function format_payload(payload: unknown): string {
+    if (empty(payload)) return "";
+    return typeof payload === "string" ? payload : JSON.stringify(payload);
+}
+
+export function build_url(ip: string, port: string): string {
+    return `http://${ip}:${port}`;
 }

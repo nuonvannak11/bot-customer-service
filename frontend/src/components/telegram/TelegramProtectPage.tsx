@@ -232,7 +232,6 @@ export default function TelegramProtectPage({
       <div className="relative overflow-hidden rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl p-6 lg:p-8">
         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-6">
             <div className="relative group">
@@ -359,7 +358,8 @@ export default function TelegramProtectPage({
                 protects.threatLogs.map((log) => (
                   <tr
                     key={log.chatId}
-                    className="hover:bg-slate-800/50 transition-colors">
+                    className="hover:bg-slate-800/50 transition-colors"
+                  >
                     <td className="px-6 py-4 font-mono text-xs text-slate-500">
                       {log.createdAt}
                     </td>
@@ -385,7 +385,8 @@ export default function TelegramProtectPage({
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-6 py-10 text-center text-slate-500 italic">
+                    className="px-6 py-10 text-center text-slate-500 italic"
+                  >
                     {t("No records found")}
                   </td>
                 </tr>

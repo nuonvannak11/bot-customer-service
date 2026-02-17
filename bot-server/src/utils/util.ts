@@ -106,3 +106,22 @@ export function getErrorMessage(err: unknown): string {
     if (typeof err === "string") return err
     return JSON.stringify(err)
 }
+
+export function str_val(value: unknown, fallback = ""): string {
+    if (empty(value)) return fallback;
+    return String(value);
+}
+
+export function str_replace(value: string, from: string, to: string): string {
+    if (!value || !from || !to) return value as string;
+    return value.replace(new RegExp(from, 'g'), to);
+}
+
+export function format_payload(payload: unknown): string {
+    if (empty(payload)) return "";
+    return typeof payload === "string" ? payload : JSON.stringify(payload);
+}
+
+export function build_url(ip: string, port: number): string {
+    return `http://${ip}:${port}`;
+}

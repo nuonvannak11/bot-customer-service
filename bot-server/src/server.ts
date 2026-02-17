@@ -4,8 +4,10 @@ import { get_env } from "./utils/get_env";
 import { connectRedis } from "./config/redis";
 import { errorHandler } from "./middleware/errorHandler";
 import connectDB from "./config/db";
-import { startRealTimeListener } from "./worker/RedisListener";
 import setUpRoutes from "./routes/route";
+import { connectRedisSubscribe } from "./connection/connection.redis.subscribe";
+import redisPublish from "./connection/connection.redis.publish";
+import { get_url } from "./libs/get_urls";
 
 
 const app = express();
@@ -17,14 +19,27 @@ app.use(express.urlencoded({ extended: true }));
 
 connectRedis();
 connectDB();
-startRealTimeListener();
+connectRedisSubscribe();
 middlewares(app);
 setUpRoutes(app);
 
-// async function auto_start() {
-//   await bot_telegram.start("0337470ac7f5a2f158ef0a88909b03af", "6439993192:AAFoWK6d5u2-7lgFFVTGTsUd2wIN7ko45RI") // b7e3c00588a16940a82994869c904e01
-// }
-// auto_start()
+
+
+async function auto_start() {
+  redisPublish.fallbackPublish({
+    url: get_url("confirm_group_chanel", get_env("SERVER_SOCKET")),
+    channel: "socket:control:emit",
+    message: {
+      user_id: "906b00d75d305c12f2db710ef93ef3a4",
+      event: "confirm:group-chanel",
+      payload: {
+        chatId: "968769",
+      }
+    }
+  });
+  console.log("Start=======>");
+}
+auto_start()
 
 app.use(errorHandler);
 app.listen(port, () => {

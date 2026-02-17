@@ -1,5 +1,5 @@
 import model_server_data, { IServerData } from "../models/model_server_data";
-import { eLog } from "../utils/util";
+import { eLog } from "../libs/lib";
 import { request_get } from "../helper/helper.request";
 import { ProtectController } from "./controller_protect";
 

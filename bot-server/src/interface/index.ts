@@ -38,3 +38,9 @@ export interface BotSettingDTO {
   max_download_size: number;
   max_retry_download: number;
 }
+
+export interface FallbackPublish {
+  url: string;
+  channel: string,
+  message: unknown;
+}
