@@ -146,3 +146,25 @@ export interface ProtectChildProps extends Omit<
     onSave: (asset: GroupChannel) => void;
   };
 }
+
+export interface ConfrimGroupChanel {
+  data_time: string;
+  sender: {
+    sender_id: string;
+    full_name: string;
+    user_name: string;
+    type: string;
+  };
+  group_chanel: {
+    chatId: string,
+    name: string,
+    type: string,
+  }
+}
+
+export interface ConfirmGroupModalProps {
+  t: (key: string) => string;
+  event_data: ConfrimGroupChanel | null;
+  setConfirmGroupEvent: (data: ConfrimGroupChanel | null) => void;
+  onApprove: (data: ConfrimGroupChanel) => void;
+}

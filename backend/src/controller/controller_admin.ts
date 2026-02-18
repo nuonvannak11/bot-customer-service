@@ -1,12 +1,12 @@
 import { Request, Response } from "express";
 import { response_data } from "../libs/lib";
 import { ProtectController } from "./controller_protect";
-import { empty, eLog } from "../utils/util";
+import { empty } from "../utils/util";
+import { eLog } from "../libs/lib";
 import { AddServerRequest } from "../interface";
 import { GetSeverRequest } from "../interface/interface_user";
 import { addIpToWhitelist, removeIpFromWhitelist } from "../middleware/middleware.allow_ip";
 import controller_server from "./controller_server";
-import { ca } from "zod/v4/locales";
 
 class AdminController extends ProtectController {
     public async check_admin(req: Request, res: Response) {
@@ -86,16 +86,16 @@ class AdminController extends ProtectController {
         }
     }
 
-    public async handleIp(req: Request, res: Response): Promise<Response | void>{
-        try{
+    public async handleIp(req: Request, res: Response): Promise<Response | void> {
+        try {
             const result = await this.protect_post<GetSeverRequest>(req, res, true);
-            if(!result) return;
-            const { ip } = result;
-            if(!server_ip){
+            if (!result) return;
+            const { server_ip } = result;
+            if (!server_ip) {
                 return response_data(res, 400, "Invalid request", []);
             }
 
-        }catch(err){
+        } catch (err) {
             eLog("❌ handleIp error:", err);
             return response_data(res, 500, "Internal server error", []);
         }

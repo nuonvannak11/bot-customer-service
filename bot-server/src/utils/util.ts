@@ -125,3 +125,23 @@ export function format_payload(payload: unknown): string {
 export function build_url(ip: string, port: number): string {
     return `http://${ip}:${port}`;
 }
+
+export function formatDateTime(date: Date = new Date(), timeZone: string = "Asia/Phnom_Penh") {
+    const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+    }).formatToParts(date);
+    const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+    const year = get("year");
+    const month = get("month");
+    const day = get("day");
+    const hour = get("hour");
+    const minute = get("minute");
+    const dayPeriod = get("dayPeriod");
+    return `${year}-${month}-${day} ${hour}:${minute} ${dayPeriod}`;
+}

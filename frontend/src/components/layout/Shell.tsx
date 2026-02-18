@@ -5,16 +5,18 @@ import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import { UserProfileConfig } from "@/interface";
 
-export default function Shell({
-  user,
-  children,
-  defaultOpenState,
-}: {
-  user: UserProfileConfig;
+interface ShellProps {
+  option: {
+    hash_key: string;
+    user: UserProfileConfig;
+    defaultOpenState: Record<string, boolean>;
+  };
   children: React.ReactNode;
-  defaultOpenState: Record<string, boolean>;
-}) {
+}
+
+export default function Shell({ option, children }: ShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user, defaultOpenState } = option;
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 text-slate-800 dark:bg-slate-950 dark:text-slate-200">
@@ -33,7 +35,7 @@ export default function Shell({
       />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Header user={user} setSidebarOpen={setSidebarOpen} />
+        <Header hash_key={option.hash_key} user={user} setSidebarOpen={setSidebarOpen} />
         <main className="flex-1 overflow-y-auto p-2 lg:p-4 scroll-smooth">
           {children}
         </main>

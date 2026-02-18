@@ -8,6 +8,7 @@ import setUpRoutes from "./routes/route";
 import { connectRedisSubscribe } from "./connection/connection.redis.subscribe";
 import redisPublish from "./connection/connection.redis.publish";
 import { get_url } from "./libs/get_urls";
+import { formatDateTime } from "./utils/util";
 
 
 const app = express();
@@ -33,7 +34,18 @@ async function auto_start() {
       user_id: "906b00d75d305c12f2db710ef93ef3a4",
       event: "confirm:group-chanel",
       payload: {
-        chatId: "968769",
+        data_time: formatDateTime(),
+        sender: {
+          sender_id: "906b00d75d305c12f2db710ef93ef3a4",
+          full_name: "vannak",
+          user_name: "@vannak",
+          type: "user"
+        },
+        group_chanel: {
+          chatId: "353464",
+          name: "hellyihl",
+          type: "group",
+        }
       }
     }
   });

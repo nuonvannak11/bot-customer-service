@@ -4,6 +4,7 @@ import { initSocket } from './lib/socket';
 import redisSubscribeController from './controller/controller.redis.subscribe';
 import { eLog } from './utils/util';
 import { get_env } from './utils/get_env';
+import setUpRoutes from './routes/route';
 
 const PORT = get_env('PORT', 3200);
 const app = express();
@@ -12,6 +13,7 @@ app.use(express.json({ limit: '1mb' }));
 const server = http.createServer(app);
 const io = initSocket(server);
 redisSubscribeController.start(io);
+setUpRoutes(app);
 
 server.listen(PORT, () => {
 	eLog(`Server is running and listening on port ${PORT}`);

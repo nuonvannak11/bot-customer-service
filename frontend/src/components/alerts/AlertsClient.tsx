@@ -1,19 +1,8 @@
 "use client";
 import { Server, DollarSign, PlusCircle } from "lucide-react";
+import { AlertsClientProps } from "@/interface";
 
-type AlertRule = {
-  id: string;
-  name: string;
-  severity: string;
-  channel: string;
-  active: boolean;
-};
-
-type Props = {
-  initialRules: AlertRule[];
-};
-
-export default function AlertsClient({ initialRules }: Props) {
+export default function AlertsClient({ initialRules }: AlertsClientProps) {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">

@@ -46,7 +46,7 @@ export function expiresAt(minutes: number): Date {
 
 export async function safeWithTimeout<T>(
     promise: Promise<T>,
-    next: (err: any) => void,
+    next: (err: unknown) => void,
     timeout: number = MAX_TIMEOUT
 ): Promise<T | void> {
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -54,7 +54,7 @@ export async function safeWithTimeout<T>(
     });
     try {
         return await Promise.race([promise, timeoutPromise]);
-    } catch (error: any) {
+    } catch (error: unknown) {
         if (error instanceof Error && error.message === "TIMEOUT") {
             throw new Error("Request timed out");
         }

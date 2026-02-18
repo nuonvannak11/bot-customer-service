@@ -4,7 +4,7 @@ import Platform from "../models/model_platform";
 import Setting from "../models/model_settings";
 
 import { get_env } from "../utils/get_env";
-import { empty, eLog, str_lower, build_url, str_val, expiresAt } from "../utils/util";
+import { empty, eLog, str_lower, build_url, str_val, expiresAt, formatDateTime } from "../utils/util";
 import { ProtectController } from "./controller_protect";
 import FileStore from "../models/model_file_store";
 import { response_data } from "../libs/lib";
@@ -13,14 +13,48 @@ import model_settings_bot_telegram from "../models/model_setting_bot_telegram";
 import model_bot from "../models/model_bot";
 import model_temp_store from "../models/model_temp_store";
 import model_telegram_group_chanel from "../models/model_telegram_group_chanel";
-import { BotSettingDTO } from "../interface";
+import { BotSettingDTO, SenderFullInfo } from "../interface";
 import { default_settings_bot } from "../constants/constant.setting";
 import hash_data from "../helper/hash_data";
 import RedisPublish from "../connection/connection.redis.publish";
 import { get_url } from "../libs/get_urls";
+import model_message_alert from "../models/model_message_alert";
 
 class ControllerTelegramBot extends ProtectController {
     private botTelegramSetting?: BotSettingDTO;
+
+    private getSenderFullInfo(ctx: Context): SenderFullInfo {
+        const msg = ctx.message || (ctx.channelPost) || ('channel_post' in ctx.update ? ctx.update.channel_post : undefined);
+        const channel = msg && "sender_chat" in msg ? msg.sender_chat : undefined;
+        if (channel) {
+            return {
+                id: channel.id ?? null,
+                username: channel.username ? `@${channel.username}` : null,
+                firstName: null,
+                lastName: null,
+                fullName: channel.title ?? null,
+                title: channel.title ?? null,
+                isBot: null,
+                languageCode: null,
+                type: "channel",
+            };
+        }
+
+        const user = ctx.from;
+        const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || null;
+
+        return {
+            id: user?.id ?? null,
+            username: user?.username ? `@${user.username}` : null,
+            firstName: user?.first_name ?? null,
+            lastName: user?.last_name ?? null,
+            fullName: fullName,
+            title: null,
+            isBot: user?.is_bot ?? null,
+            languageCode: user?.language_code ?? null,
+            type: "user",
+        };
+    }
 
     public async bot_setting(init?: boolean): Promise<BotSettingDTO> {
         let settings = this.botTelegramSetting;
@@ -48,8 +82,6 @@ class ControllerTelegramBot extends ProtectController {
     }
 
     public async message(ctx: Context, user_id: string, bot_token: string, msg: Message) {
-        console.log("Received message:", msg);
-
         if ("text" in msg) return this.onText(ctx, user_id, bot_token, msg as Message.TextMessage);
         if ("photo" in msg) return this.onPhoto(ctx, user_id, msg as Message.PhotoMessage);
         if ("document" in msg) return this.onDocument(ctx, user_id, msg as Message.DocumentMessage);
@@ -68,53 +100,96 @@ class ControllerTelegramBot extends ProtectController {
     }
 
     private async onText(ctx: Context, user_id: string, bot_token: string, msg: Message.TextMessage) {
-        const chat_message = msg.text || "";
-        if (chat_message.startsWith("@")) {
+        try {
+            const chat_message = msg.text || "";
+            if (!chat_message.startsWith("@")) return;
+
             const chat_id = ctx.chat?.id?.toString();
             const chatType = ctx.chat?.type;
+
             if (!chat_id || !user_id) return;
-            const check_item = await model_telegram_group_chanel.findOne({ chatId: chat_id }).lean();
-            if (check_item) return;
+
+            const existingGroup = await model_telegram_group_chanel.findOne({ chatId: chat_id }).lean();
+            if (existingGroup) return;
+
             const bot_token_enc = hash_data.encryptData(bot_token);
-            const check_bot = await model_bot.findOne({ user_id, bot_token: bot_token_enc }).lean();
-            const get_username = check_bot?.username || "unknown_bot";
-            if (!check_bot || str_lower(chat_message) !== `${str_lower(get_username)}`) {
+            const botData = await model_bot.findOne({ user_id, bot_token: bot_token_enc }).lean();
+
+            const botUsername = botData?.username || "unknown_bot";
+            if (!botData || str_lower(chat_message) !== str_lower(`@${botUsername}`)) {
                 return;
             }
-            const build_key = `confirm_${chat_id}`;
-            await model_temp_store.updateOne(
-                { key: build_key },
-                {
-                    $set: {
-                        data: {
-                            user_id,
-                            bot_token: bot_token_enc,
-                            chatId: chat_id,
-                            name: ctx.chat?.title,
-                            type: chatType,
-                            avatar: "",
-                        },
-                        expireAt: expiresAt(5),
-                    },
-                    $setOnInsert: {
-                        key: build_key
-                    }
+
+            const senderInfo = this.getSenderFullInfo(ctx);
+            const dataTime = formatDateTime();
+
+            const sharedPayload = {
+                data_time: dataTime,
+                sender: {
+                    sender_id: str_val(senderInfo.id),
+                    full_name: str_val(senderInfo.fullName),
+                    user_name: str_val(senderInfo.username),
+                    type: str_val(senderInfo.type)
                 },
-                { upsert: true }
-            );
-            await RedisPublish.fallbackPublish({
-                url: get_url("confirm_group_chanel", get_env("SERVER_SOCKET")),
-                channel: "socket:control:emit",
-                message: {
-                    user_id,
-                    event: "confirm:group-chanel",
-                    payload: {
-                        chatId: chat_id,
-                    }
+                group_chanel: {
+                    chatId: chat_id,
+                    name: ctx.chat?.title,
+                    type: chatType,
                 }
-            });
+            };
+
+            await Promise.all([
+                model_temp_store.updateOne(
+                    { key: `confirm_${chat_id}` },
+                    {
+                        $set: {
+                            data: {
+                                user_id,
+                                bot_token: bot_token_enc,
+                                chatId: chat_id,
+                                name: ctx.chat?.title,
+                                type: chatType,
+                                avatar: "",
+                            },
+                            expireAt: expiresAt(5),
+                        },
+                        $setOnInsert: { key: `confirm_${chat_id}` }
+                    },
+                    { upsert: true }
+                ),
+
+                model_message_alert.updateOne(
+                    { user_id, chatId: chat_id },
+                    {
+                        $set: {
+                            user_id,
+                            chatId: chat_id,
+                            type: "confirm_group_chanel",
+                            payload: sharedPayload
+                        },
+                        $setOnInsert: { user_id, chatId: chat_id }
+                    },
+                    { upsert: true }
+                ),
+
+                RedisPublish.fallbackPublish({
+                    url: get_url("confirm_group_chanel", get_env("SERVER_SOCKET")),
+                    channel: "socket:control:emit",
+                    message: {
+                        user_id,
+                        event: "confirm:group-chanel",
+                        payload: {
+                            ...sharedPayload,
+                            user_id,
+                            event: "confirm:group-chanel"
+                        }
+                    }
+                })
+            ]);
+            eLog("TEXT:", msg);
+        } catch (err: unknown) {
+            eLog("error:", err);
         }
-        eLog("TEXT:", msg);
     }
 
     private async onPhoto(ctx: Context, user_id: string, msg: Message.PhotoMessage) {

@@ -5,6 +5,7 @@ import hashData from "../helper/hash_data";
 import { RequestSchema } from "../helper";
 import { empty } from "../utils/util";
 import { AuthData, ValidationResult } from "../interface";
+import model_user from "../models/model_user";
 
 interface ProcessOptions {
     requireAuth: boolean;
@@ -13,6 +14,13 @@ interface ProcessOptions {
 }
 
 export class ProtectController {
+    public async ensureUserLogin(token: string): Promise<boolean> {
+        if (!token) return false;
+        const ensureLogin = await model_user.findOne({ access_token_hash: token });
+        if (!ensureLogin) return false;
+        return true;
+    }
+
     public async protect_get<T extends object>(
         req: Request,
         res: Response,

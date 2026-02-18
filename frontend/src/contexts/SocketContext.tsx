@@ -1,8 +1,8 @@
 "use client";
 
+import { SocketManagerProvider } from "@/sockets/socketManager";
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
-import { SocketPayload } from "@/interface/index";
 
 type SocketContextType = {
   socket: Socket | null;
@@ -10,7 +10,7 @@ type SocketContextType = {
 };
 
 interface SocketProviderProps {
-  option: SocketPayload;
+  token: string;
   children: React.ReactNode;
 }
 
@@ -19,23 +19,22 @@ const SocketContext = createContext<SocketContextType>({
   connected: false,
 });
 
-export function SocketProvider({ option, children }: SocketProviderProps) {
+export function SocketProvider({ token, children }: SocketProviderProps) {
   const socketRef = useRef<Socket | null>(null);
   const [socketState, setSocketState] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    if (!option?.socket_url || !option?.token) return;
+    if (!token) return;
 
-    const socket = io(option.socket_url, {
+    const socket = io("http://localhost:3200", {
       transports: ["websocket"],
       autoConnect: true,
       reconnection: true,
-      auth: { token: option.token },
+      auth: { token },
     });
 
     socketRef.current = socket;
-
     queueMicrotask(() => setSocketState(socket));
 
     const onConnect = () => setConnected(true);
@@ -53,11 +52,13 @@ export function SocketProvider({ option, children }: SocketProviderProps) {
       setConnected(false);
       queueMicrotask(() => setSocketState(null));
     };
-  }, [option?.socket_url, option?.token]);
+  }, [token]);
 
   return (
     <SocketContext.Provider value={{ socket: socketState, connected }}>
-      {children}
+      <SocketManagerProvider>
+        {children}
+      </SocketManagerProvider>
     </SocketContext.Provider>
   );
 }

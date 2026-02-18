@@ -27,9 +27,9 @@ export interface SaveUserProfile {
   token: string;
   user_id: string;
   session_id: string;
-  isAvatarUpdated: string,
-  avatar: string,
-  fullName: string,
+  isAvatarUpdated: string;
+  avatar: string;
+  fullName: string;
   username: string;
   email: string;
   phone: string;
@@ -80,9 +80,9 @@ export interface IManagedAssetRemoveRequest {
 export interface ScanFileProps {
   port: string;
   server_ip: string;
-  user_id: string,
-  chat_id: string,
-  message_id: number,
+  user_id: string;
+  chat_id: string;
+  message_id: number;
 }
 
 export interface AddServerRequest {
@@ -93,7 +93,7 @@ export interface AddServerRequest {
 
 export interface FallbackPublish {
   url: string;
-  channel: string,
+  channel: string;
   message: unknown;
 }
 
@@ -108,4 +108,35 @@ export interface ConfirmGroupChanelProps {
   port: string;
   user_id: string;
   confirm_key: string;
+}
+
+export interface TelegramGetChatMemberResponse {
+  ok: boolean;
+  result: {
+    user: {
+      id: number;
+      is_bot: boolean;
+      first_name: string;
+      username: string;
+    };
+    status: string;
+    can_be_edited: boolean;
+    can_manage_chat: boolean;
+    can_delete_messages: boolean;
+    can_manage_video_chats: boolean;
+    can_restrict_members: boolean;
+    can_promote_members: boolean;
+    can_change_info: boolean;
+    can_invite_users: boolean;
+    can_post_messages: boolean;
+    can_edit_messages: boolean;
+    can_pin_messages: boolean;
+  };
+}
+
+export interface GetBotRoleRequest {
+  user_id: string;
+  token: string;
+  bot_token: string;
+  chat_id: string;
 }

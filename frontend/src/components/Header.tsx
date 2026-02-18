@@ -13,9 +13,11 @@ const NotificationDropdown = dynamicNoSSR(
 const ThemeToggle = dynamicNoSSR(() => import("./toggle/ThemeToggle"));
 
 export default function Header({
+  hash_key,
   user,
   setSidebarOpen,
 }: {
+  hash_key: string;
   user: UserProfileConfig;
   setSidebarOpen: (v: boolean) => void;
 }) {
@@ -45,7 +47,7 @@ export default function Header({
         </div>
         <LanguageDropdown />
         <ThemeToggle />
-        <NotificationDropdown />
+        <NotificationDropdown hash_key={hash_key} notification={user} />
         <ProfileDropdown user={user} />
       </div>
     </header>

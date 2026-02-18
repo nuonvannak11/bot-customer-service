@@ -1,3 +1,5 @@
+import { ConfrimGroupChanel } from "./interface.telegram";
+
 export interface TelegramBotSettingsConfig {
   botUsername: string;
   botToken: string;
@@ -7,7 +9,7 @@ export interface TelegramBotSettingsConfig {
   notifyEnabled: boolean;
   silentMode: boolean;
   exceptionLinks: string[];
-  exceptionFiles:string[];
+  exceptionFiles: string[];
 }
 
 export interface CheckAuthResponse {
@@ -51,9 +53,9 @@ export interface ParseJWTPayload {
   session_id: string;
 }
 
-export interface EnsureUserLoginProp { 
-  user: CheckAuthResponse, 
-  token: string ,
+export interface EnsureUserLoginProp {
+  user: CheckAuthResponse,
+  token: string,
   cookiesObj: Record<string, string>
 };
 
@@ -66,4 +68,26 @@ export interface JWTPayload {
   token: string;
   user_id?: string;
   [key: string]: unknown;
+}
+
+export interface AlertRule {
+  id: string;
+  name: string;
+  severity: string;
+  channel: string;
+  active: boolean;
+};
+
+export interface AlertsClientProps {
+  initialRules: AlertRule[];
+};
+
+export interface SocketState {
+  notifications: any[];
+  lastScanResult: any | null;
+  confirmGroupEvent: ConfrimGroupChanel | null;
+
+  addNotification: (data: any) => void;
+  setLastScanResult: (data: any) => void;
+  setConfirmGroupEvent: (data: ConfrimGroupChanel | null) => void;
 }

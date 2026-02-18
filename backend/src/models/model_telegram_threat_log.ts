@@ -38,6 +38,6 @@ const ThreatLogSchema = new Schema(
 );
 
 ThreatLogSchema.index({ bot_token: 1, chatId: 1, createdAt: -1 });
-ThreatLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 60 }); // will delete in 60day
+ThreatLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 60 });
 
 export default mongoose.model<IThreatLog>("telegram_threat_logs", ThreatLogSchema);

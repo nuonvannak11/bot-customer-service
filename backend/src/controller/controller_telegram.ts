@@ -14,11 +14,14 @@ import HashKey from "../helper/hash_key";
 import { ProtectController } from "./controller_protect";
 import controler_server from "./controller_server";
 import { response_data } from "../libs/lib";
-import { ConfirmGroupChanelProps, IManagedAssetRemoveRequest, IManagedAssetRequest, SaveTgBotRequest } from "../interface";
+import { ConfirmGroupChanelProps, GetBotRoleRequest, IManagedAssetRemoveRequest, IManagedAssetRequest, SaveTgBotRequest, TelegramGetChatMemberResponse } from "../interface";
 import { get_url } from "../libs/get_urls";
 import { httpAgent } from "../libs/lib";
 import { getErrorMessage } from "../helper/errorHandling";
 import { DEFAULT_ASSET_CONFIG } from "../data/data.static";
+import { request_post } from "../helper/helper.request";
+import { get_env } from "../utils/get_env";
+import { str_number } from "../utils/util";
 
 interface OpenCloseBotRequest {
     token: string;
@@ -666,9 +669,53 @@ class TelegramController extends ProtectController {
         }
     }
 
-}
+    public async getBotRole(option: { chat_id: string, bot_token: string }): Promise<TelegramGetChatMemberResponse | null> {
+        try {
+            const { chat_id, bot_token } = option;
+            if (!chat_id || !bot_token) return null;
+            const get_botId = await model_bot.findOne({ bot_token }).select("bot_id").lean();
+            if (!get_botId) return null;
+            const response = await request_post<TelegramGetChatMemberResponse>({
+                url: `${get_env("TELEGRAM_API")}/bot<${bot_token}>/getChatMember`,
+                headers: { "Content-Type": "application/json" },
+                data: {
+                    "chat_id": str_number(chat_id),
+                    "user_id": str_number(get_botId)
+                }
+            });
+            if (!response.success) return null;
+            return response.data;
+        } catch (err: unknown) {
+            eLog("❌ getBotRole error:", getErrorMessage(err));
+            return null;
+        }
+    }
 
-export default new TelegramController();
+    public async requestGetBotRole(req: Request, res: Response): Promise<Response | void> {
+        try {
+            const result = await this.protect_get<GetBotRoleRequest>(req, res);
+            if (!result) return;
+            const { user_id, token, chat_id, bot_token } = result;
+            if (!user_id || !token || !chat_id || !bot_token) {
+                return response_data(res, 400, "Invalid request", []);
+            }
+            if (!this.ensureUserLogin(token)) {
+                return response_data(res, 401, "Unauthorized user", []);
+            }
+            const response = await this.getBotRole({ chat_id, bot_token });
+            if (!response) {
+                return response_data(res, 404, "Bot not found", []);
+            }
+            const format_response = hash_data.encryptData(JSON.stringify(response));
+            return response_data(res, 200, "Success", format_response);
+        } catch (err: unknown) {
+            eLog("❌ getBotRole error:", getErrorMessage(err));
+            return response_data(res, 500, "Internal server error", []);
+        }
+    }
+}
+const telegramController = new TelegramController();
+export default telegramController;
 
 // const threatLogs = [
 //     {

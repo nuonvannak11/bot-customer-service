@@ -44,3 +44,15 @@ export interface FallbackPublish {
   channel: string,
   message: unknown;
 }
+
+export interface SenderFullInfo {
+  id: number | null;
+  username: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  fullName: string | null;
+  title: string | null;    
+  isBot: boolean | null;
+  languageCode: string | null;
+  type: "user" | "channel";
+}
