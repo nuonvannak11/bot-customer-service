@@ -48,7 +48,6 @@ export async function rate_limit(key: string, limit: number, windowSeconds: numb
                 throw err;
             }
         }
-
         const [current, ttl] = result;
         return {
             allowed: current <= limit,

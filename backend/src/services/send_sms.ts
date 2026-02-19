@@ -13,17 +13,11 @@ interface SendResult {
 }
 
 class SendSMS {
-    private secretkey: string;
-    private privatekey: string;
-    private apiUrl: string;
+    private secretkey: string = get_env("SMS_SECRET_KEY");
+    private privatekey: string = get_env("SMS_PRIVATE_KEY");
+    private apiUrl: string = get_env("SMS_API_URL");
 
-    constructor() {
-        this.secretkey = get_env("SMS_SECRET_KEY");
-        this.privatekey = get_env("SMS_PRIVATE_KEY");
-        this.apiUrl = get_env("SMS_API_URL");
-    }
-
-    async send_msg(phone: string, message: string): Promise<SendResult> {
+    public async send_msg(phone: string, message: string): Promise<SendResult> {
         try {
             if (empty(this.secretkey) || empty(this.privatekey) || empty(this.apiUrl)) {
                 return { code: 500, message: "SMS service is not configured properly." };
@@ -63,5 +57,5 @@ class SendSMS {
         }
     }
 }
-
-export default SendSMS;
+const SMS = new SendSMS();
+export default SMS;

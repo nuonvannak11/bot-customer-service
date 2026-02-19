@@ -1,11 +1,10 @@
 import { Request, Response } from "express";
-import { response_data, check_header, checkJwtToken, ensureHashKey } from "../libs/lib";
-import HashKey from "../helper/hash_key";
-import hashData from "../helper/hash_data";
+import { response_data, check_header, ensureHashKey } from "../libs/lib";
+import jwtService from "../libs/jwt";
+import cryptoService from "../libs/crypto";
 import { RequestSchema } from "../helper";
-import { empty } from "../utils/util";
+import { empty, str_lower } from "../utils/util";
 import { AuthData, ValidationResult } from "../interface";
-import model_user from "../models/model_user";
 
 interface ProcessOptions {
     requireAuth: boolean;
@@ -14,28 +13,15 @@ interface ProcessOptions {
 }
 
 export class ProtectController {
-    public async ensureUserLogin(token: string): Promise<boolean> {
-        if (!token) return false;
-        const ensureLogin = await model_user.findOne({ access_token_hash: token });
-        if (!ensureLogin) return false;
-        return true;
-    }
-
-    public async protect_get<T extends object>(
-        req: Request,
-        res: Response,
-        requireQuery: boolean = false,
-        requireAuth: boolean = true
-    ): Promise<T | false> {
-        return this.processRequest<T>(req, res, { requireAuth, requireBody: false, requireQuery });
-    }
-
-    public async protect_post<T extends object>(
-        req: Request,
-        res: Response,
-        check_token: boolean = false
-    ): Promise<T | false> {
-        return this.processRequest<T>(req, res, { requireAuth: check_token, requireBody: true, requireQuery: false });
+    private hasDangerousKeys(obj: unknown): boolean {
+        if (typeof obj !== "object" || obj === null) return false;
+        for (const [key, value] of Object.entries(obj)) {
+            if (key.startsWith("$") || key.includes(".")) return true;
+            if (typeof value === "object" && value !== null) {
+                if (this.hasDangerousKeys(value)) return true;
+            }
+        }
+        return false;
     }
 
     private async processRequest<T extends object>(
@@ -53,12 +39,12 @@ export class ProtectController {
         let queryData: Partial<T> = {};
 
         if (options.requireAuth) {
-            const token = await this.extractToken(req);
-            if (!token) {
+            const ensureToken = this.extractToken(req);
+            if (!ensureToken) {
                 response_data(res, 401, "Unauthorized", []);
                 return false;
             }
-            authData = token;
+            authData = ensureToken;
         }
         const hasQuery = !empty(req.query);
         if (options.requireQuery || hasQuery) {
@@ -68,7 +54,6 @@ export class ProtectController {
             }
             queryData = req.query as Partial<T>;
         }
-
         const hasBody = !empty(req.body);
         if (options.requireBody || hasBody) {
             if (options.requireBody && !hasBody) {
@@ -94,7 +79,7 @@ export class ProtectController {
         const parsed = RequestSchema.safeParse(req.body);
         if (!parsed.success) return { success: false, error: { code: 400, message: "Invalid request" } };
 
-        const decrypted = hashData.decryptData(parsed.data.payload);
+        const decrypted = cryptoService.decrypt(parsed.data.payload);
         if (!decrypted) return { success: false, error: { code: 400, message: "Invalid payload" } };
 
         let parsedData: T;
@@ -103,39 +88,39 @@ export class ProtectController {
         } catch {
             return { success: false, error: { code: 400, message: "Invalid JSON format" } };
         }
-
         if (ensureHashKey(parsedData)) {
-            if (!HashKey.decrypt(parsedData.hash_key)) {
+            if (!cryptoService.decrypt(parsedData.hash_key)) {
                 return { success: false, error: { code: 400, message: "Invalid hash key" } };
             }
         }
-
         return { success: true, data: parsedData };
     }
 
-    public async extractToken(req: Request): Promise<AuthData | null> {
+    public extractToken(req: Request): AuthData | null {
         const header = req.headers.authorization;
         if (!header || typeof header !== "string") return null;
         const [scheme, token] = header.trim().split(/\s+/);
-        if (scheme?.toLowerCase() !== "bearer" || !token) return null;
-
-        const verify = await checkJwtToken(token);
-        if (!verify?.status || !verify?.data) return null;
-        return {
-            user_id: verify.data.user_id,
-            session_id: verify.data.session_id,
-            token
-        };
+        if (str_lower(scheme) !== "bearer" || !token) return null;
+        const verify = jwtService.verifyToken<AuthData>(token);
+        if (!verify) return null;
+        const { user_id, session_id } = verify;
+        return { user_id, session_id, token };
     }
 
-    private hasDangerousKeys(obj: unknown): boolean {
-        if (typeof obj !== "object" || obj === null) return false;
-        for (const [key, value] of Object.entries(obj)) {
-            if (key.startsWith("$") || key.includes(".")) return true;
-            if (typeof value === "object" && value !== null) {
-                if (this.hasDangerousKeys(value)) return true;
-            }
-        }
-        return false;
+    public async protect_get<T extends object>(
+        req: Request,
+        res: Response,
+        requireQuery: boolean = false,
+        requireAuth: boolean = true
+    ): Promise<T | false> {
+        return this.processRequest<T>(req, res, { requireAuth, requireBody: false, requireQuery });
+    }
+
+    public async protect_post<T extends object>(
+        req: Request,
+        res: Response,
+        check_token: boolean = false
+    ): Promise<T | false> {
+        return this.processRequest<T>(req, res, { requireAuth: check_token, requireBody: true, requireQuery: false });
     }
 }

@@ -4,7 +4,9 @@ export const AppUserSchema = new mongoose.Schema<IUser>(
     {
         user_id: { type: String, required: true, unique: true },
         email: { type: String, unique: true, sparse: true },
+        email_hash: { type: String, unique: true, sparse: true },
         phone: { type: String, unique: true, sparse: true },
+        phone_hash: { type: String, unique: true, sparse: true },
         name: { type: String, required: true },
         bio: { type: String, default: "" },
         point: { type: Number, default: 0 },
@@ -12,7 +14,7 @@ export const AppUserSchema = new mongoose.Schema<IUser>(
         password: { type: String, select: false },
         phone_verified: { type: Boolean, default: false },
         google_id: { type: String, unique: true, sparse: true },
-        access_token_hash: { type: String, select: false },
+        google_id_hash: { type: String, unique: true, sparse: true },
         refresh_token_hash: { type: String, select: false },
         plan: {
             type: String,

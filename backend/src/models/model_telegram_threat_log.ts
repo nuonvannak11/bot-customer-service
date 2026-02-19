@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IThreatLog extends Document {
     user_id: string;
-    bot_token: string;
+    bot_token_hash: string;
     chatId: string;
     chatType: string;
     offenderId?: number;
@@ -18,7 +18,7 @@ export interface IThreatLog extends Document {
 const ThreatLogSchema = new Schema(
     {
         user_id: { type: String, required: true },
-        bot_token: { type: String, required: true },
+        bot_token_hash: { type: String, required: true },
 
         chatId: { type: String, required: true },
         chatType: { type: String, required: true },
@@ -37,7 +37,7 @@ const ThreatLogSchema = new Schema(
     { timestamps: true }
 );
 
-ThreatLogSchema.index({ bot_token: 1, chatId: 1, createdAt: -1 });
+ThreatLogSchema.index({ bot_token_hash: 1, chatId: 1, createdAt: -1 });
 ThreatLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 60 });
 
 export default mongoose.model<IThreatLog>("telegram_threat_logs", ThreatLogSchema);

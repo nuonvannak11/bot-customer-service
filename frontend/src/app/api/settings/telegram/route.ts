@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import controller_telegram from "@/controller/controller_telegram";
-import { withTimeout } from "@/helper/use_timeout";
+import { withTimeout } from "@/helper/helper";
 export async function POST(req: NextRequest) {
     try {
         return await withTimeout(controller_telegram.save_setting_bot(req), 15);

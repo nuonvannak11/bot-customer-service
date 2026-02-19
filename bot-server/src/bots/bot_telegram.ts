@@ -251,7 +251,6 @@ class BotTelegram {
                 return response_data(res, 400, "Missing user_id or bot_token", null);
             }
             const result = await this.start(user_id, bot_token);
-            console.log(user_id, bot_token, result);
             if (!result.status) {
                 return response_data(res, 400, result.message, result.data);
             }

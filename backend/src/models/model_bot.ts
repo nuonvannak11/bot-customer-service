@@ -14,6 +14,7 @@ export interface IBot extends Document {
     avatar?: string;
     user_id: string;
     bot_token: string;
+    bot_token_hash: string;
 
     createdAt: Date;
     updatedAt: Date;
@@ -33,7 +34,8 @@ const BotSchema = new Schema(
         avatar: { type: String, default: null },
 
         user_id: { type: String, required: true, index: true },
-        bot_token: { type: String, required: true, unique: true, select: false }
+        bot_token: { type: String, required: true, unique: true, select: false },
+        bot_token_hash:{ type: String, required: true, unique: true, select: false }
     },
     { timestamps: true }
 );

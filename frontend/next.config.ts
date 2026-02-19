@@ -6,6 +6,12 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "buckets.onecontrol.store",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "api.dicebear.com",
+        pathname: "/**",
       },
     ],
   },

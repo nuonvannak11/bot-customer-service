@@ -1,13 +1,14 @@
 import { redirect } from "next/navigation";
 import controller_user from "@/controller/controller_user";
+import jwtService from "@/libs/jwt";
 import { CheckAuthResponse } from "@/interface";
 import { getServerToken } from "@/libs/lib";
-import check_jwt from "./check_jwt";
+
 
 export async function valid_token(): Promise<string | null> {
     const token = await getServerToken();
     if (!token) return null;
-    const ensureToken = check_jwt.verifyToken(token);
+    const ensureToken = jwtService.verifyToken(token);
     if (!ensureToken) return null;
     return token;
 }

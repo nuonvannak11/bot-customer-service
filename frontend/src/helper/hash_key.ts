@@ -36,3 +36,4 @@ class HashKey {
 const hashKey = new HashKey();
 export default hashKey;
 
+

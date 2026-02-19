@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import axios, { Method, AxiosError } from "axios";
 import { z } from "zod";
 import { eLog, response_data } from "@/libs/lib";
-import HashData from "@/helper/hash_data";
+import cryptoService from "@/libs/crypto";
 import { make_schema } from "@/helper/helper";
 import { ProtectController } from "./controller_protector";
 import { request_get, request_post } from "@/libs/request_server";
@@ -77,7 +77,8 @@ class TelegramController extends ProtectController {
     private decryptPayload<T>(encrypted: string | null | undefined): T | null {
         if (!encrypted) return null;
         try {
-            const decoded = HashData.decryptData(encrypted);
+            const decoded = cryptoService.decrypt(encrypted);
+            if (!decoded) return null;
             return JSON.parse(decoded) as T;
         } catch (error) {
             eLog("[Decrypt Error]", error);
@@ -86,7 +87,7 @@ class TelegramController extends ProtectController {
     }
 
     private encryptPayload(data: unknown): string {
-        return HashData.encryptData(JSON.stringify(data));
+        return cryptoService.encrypt(JSON.stringify(data)) ?? "";
     }
 
     private pickTelegramSettings(raw: Record<string, unknown>) {

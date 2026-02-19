@@ -24,6 +24,7 @@ const PlatformSchema = new mongoose.Schema<IPlatform>({
                 {
                     bot_username: String,
                     bot_token_enc: { type: String, required: true, select: false },
+                    bot_token_hash: { type: String, required: true, select: false },
                 }
             ],
             default: [],

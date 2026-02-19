@@ -23,6 +23,8 @@ export default function TelegramClient({ data }: { data: any }) {
               <Image 
                 src="https://api.dicebear.com/9.x/bottts/svg?seed=NexusBot" 
                 alt="Bot" 
+                width={28} 
+                height={28} 
                 className="w-full h-full rounded-full" 
               />
             </div>

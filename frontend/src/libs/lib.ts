@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { empty, strlower } from "@/utils/util";
 import { cookies } from "next/headers";
 import { GroupChannel, PreparedData, ProtectData } from "@/interface/interface.telegram";
-import check_jwt from "@/helper/check_jwt";
+import jwtService from "./jwt";
 import { redirect } from "next/navigation";
 import controller_user from "@/controller/controller_user";
 import { CheckAuthResponse, EnsureUserLoginProp } from "@/interface";
@@ -111,7 +111,7 @@ export async function getServerToken(cookiesObj?: Record<string, string>): Promi
 
 export async function ensureValidToken(cookiesObj?: Record<string, string>): Promise<string | null> {
     const candidate = await getServerToken(cookiesObj);
-    return candidate && check_jwt.verifyToken(candidate) ? candidate : null;
+    return candidate && jwtService.verifyToken(candidate) ? candidate : null;
 }
 
 export async function ensureUserLogin(): Promise<EnsureUserLoginProp> {

@@ -9,8 +9,12 @@ router.get("/get_user_profile", async (req: Request, res: Response, next: NextFu
     return await safeWithTimeout(userController.get_user_profile(req, res), next);
 });
 
+router.get("/check-refresh-token", async (req: Request, res: Response, next: NextFunction) => {
+    return await safeWithTimeout(userController.checkRefreshToken(req, res), next);
+});
+
 router.get("/check_auth", async (req: Request, res: Response, next: NextFunction) => {
-    return await safeWithTimeout(userController.check_auth(req, res), next);
+    return await safeWithTimeout(userController.checkAccessToken(req, res), next);
 });
 
 router.post("/login", async (req: Request, res: Response, next: NextFunction) => {

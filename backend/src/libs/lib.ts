@@ -1,7 +1,5 @@
 import { Request, Response } from "express";
 import http from "http";
-import check_jwt from "../helper/check_jwt";
-import { JWTPayload } from "../interface/index";
 import { get_env } from "../utils/get_env";
 
 export function eLog(data: any, ...args: any[]): void {
@@ -24,18 +22,6 @@ export const response_data = (res: Response, code: number, message: string, data
         message: message,
         data: data
     });
-}
-
-
-export async function checkJwtToken(token?: string): Promise<{ status: boolean; data: JWTPayload | null }> {
-    if (!token) {
-        return { status: false, data: null };
-    }
-    const verify = check_jwt.verifyToken(token, { ignoreExpiration: false });
-    if (!verify.status) {
-        return { status: false, data: null };
-    }
-    return { status: true, data: verify.decoded as JWTPayload };
 }
 
 export function ensureHashKey(data: unknown): data is { hash_key: string } {

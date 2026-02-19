@@ -106,30 +106,26 @@ export default function NotificationDropdown({
   };
 
   const handleSubmit = async <Payload, Response>(
-    type: string,
+    endpoint: string,
     payload: Payload,
-  ) => {
+  ): Promise<{ message: string; data: Response }> => {
     try {
       setLoading(true);
       const result = await request_sweet_alert(
         { title: t("Processing"), text: t("Deleting asset...") },
         async () => {
-          const { message, data } = await performApiCall<Payload, Response>(
-            "/api/telegram/approve-group-channel",
-            payload,
-          );
-          return message;
+          return await performApiCall<Payload, Response>(endpoint, payload);
         },
         (err) => {
           throw err;
         },
       );
-      if (result)
-        toast.success(result, { position: "top-right", duration: 1500 });
+      return result;
     } catch (err) {
       toast.error(getErrorMessage(err) || "An error occurred", {
         position: "top-right",
       });
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -137,10 +133,12 @@ export default function NotificationDropdown({
 
   const handleSubmitApprove = async (data: ConfrimGroupChanel) => {
     setConfirmGroupEvent(null);
-    await handleSubmit<ConfrimGroupChanel, string>(
-      "approve_telegram_group",
+    const result = await handleSubmit<ConfrimGroupChanel, string>(
+      "/api/telegram/approve-group-channel",
       data,
     );
+    if (result)
+      toast.success(result.message, { position: "top-right", duration: 1500 });
   };
 
   return (
@@ -155,8 +153,7 @@ export default function NotificationDropdown({
         <DropdownMenu.Trigger asChild>
           <button
             suppressHydrationWarning={true}
-            className="relative cursor-pointer p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors outline-none focus:ring-2 focus:ring-indigo-500/20"
-          >
+            className="relative cursor-pointer p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors outline-none focus:ring-2 focus:ring-indigo-500/20">
             <Bell size={20} />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
           </button>
@@ -171,8 +168,7 @@ export default function NotificationDropdown({
             }}
             className="notif-content z-50 w-72 bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 shadow-xl p-2 origin-top-right will-change-transform"
             sideOffset={8}
-            align="end"
-          >
+            align="end">
             <div className="px-3 py-2 border-b border-gray-100 dark:border-slate-800 mb-1">
               <h3 className="font-semibold text-sm text-slate-900 dark:text-white">
                 {t("Notifications")}
@@ -183,13 +179,11 @@ export default function NotificationDropdown({
               {notifications.map((item) => (
                 <DropdownMenu.Item
                   key={item.id}
-                  className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer outline-none transition-colors"
-                >
+                  className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer outline-none transition-colors">
                   <div
                     className={clsx(
                       "mt-0.5 p-1.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700",
-                    )}
-                  >
+                    )}>
                     {getIcon(item.type)}
                   </div>
                   <div className="flex-1">

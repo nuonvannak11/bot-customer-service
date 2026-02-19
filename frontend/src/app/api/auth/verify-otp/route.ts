@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import controller_user from "@/controller/controller_user";
-import { withTimeout } from "@/helper/use_timeout";
+import { withTimeout } from "@/helper/helper";
 export async function POST(req: NextRequest) {
     try {
         return await withTimeout(controller_user.verify_otp(req), 15);

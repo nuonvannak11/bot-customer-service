@@ -1,6 +1,7 @@
 export interface TelegramBot {
     bot_username?: string;
     bot_token_enc: string;
+    bot_token_hash: string;
 }
 
 export interface TelegramUser {

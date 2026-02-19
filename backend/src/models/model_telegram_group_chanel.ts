@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IGroup extends Document {
     user_id: string;
-    bot_token: string;
+    bot_token_hash: string;
     chatId: string;
     name: string;
     type: string;
@@ -13,7 +13,7 @@ export interface IGroup extends Document {
 
 const GroupSchema = new Schema({
     user_id: { type: String, required: true },
-    bot_token: { type: String, required: true},
+    bot_token_hash: { type: String, required: true},
     chatId: { type: String, required: true },
     name: { type: String, required: true },
     type: { type: String, required: true },
@@ -22,6 +22,6 @@ const GroupSchema = new Schema({
     createdAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 
-GroupSchema.index({ user_id: 1, bot_token: 1, chatId: 1 }, { unique: true });
+GroupSchema.index({ user_id: 1, bot_token_hash: 1, chatId: 1 }, { unique: true });
 
 export default mongoose.model<IGroup>("telegram_group_chanel", GroupSchema);

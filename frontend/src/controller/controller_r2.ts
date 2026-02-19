@@ -1,6 +1,6 @@
 import FormData from "form-data";
 import axios from "axios";
-import hash_data from "@/helper/hash_data";
+import cryptoService from "@/libs/crypto";
 import { eLog, get_env } from "@/libs/lib";
 
 class ControllerR2 {
@@ -12,8 +12,8 @@ class ControllerR2 {
             const buffer = Buffer.from(arrayBuffer);
             const formData = new FormData();
             formData.append("file", buffer, file.name);
-            formData.append("path", hash_data.encryptData(path));
-            formData.append("name", hash_data.encryptData(name));
+            formData.append("path", cryptoService.encrypt(path));
+            formData.append("name", cryptoService.encrypt(name));
 
             const response = await axios.post(
                 `${apiUrl}/api/upload/r2/save`,

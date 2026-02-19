@@ -20,6 +20,7 @@ const SettingSchema = new mongoose.Schema<ISetting>({
                 type: [
                     {
                         bot_token: { type: String, default: "" },
+                        bot_token_hash:{type: String, default: ""},
                         process: { type: Boolean, default: false },
                         enable_web_hook: { type: Boolean, default: false },
                         push_notifications: { type: Boolean, default: false },

@@ -2,40 +2,36 @@ import axios from "axios";
 import mongoose from "mongoose";
 import { Request, Response } from "express";
 import { eLog } from "../libs/lib";
-import AppUser from "../models/model_user";
+import cryptoService from "../libs/crypto";
 import Platform from "../models/model_platform";
 import model_bot from "../models/model_bot";
+import model_server from "../models/model_server_data";
 import ThreatLogModel from "../models/model_telegram_threat_log";
 import model_setting from "../models/model_settings";
+import controler_server from "./controller_server";
 import GroupModel, { IGroup } from '../models/model_telegram_group_chanel';
 import ManagedAssetModel, { IManagedAsset } from '../models/model_managed_asset';
-import hash_data from "../helper/hash_data";
-import HashKey from "../helper/hash_key";
 import { ProtectController } from "./controller_protect";
-import controler_server from "./controller_server";
 import { response_data } from "../libs/lib";
-import { ConfirmGroupChanelProps, GetBotRoleRequest, IManagedAssetRemoveRequest, IManagedAssetRequest, SaveTgBotRequest, TelegramGetChatMemberResponse } from "../interface";
 import { get_url } from "../libs/get_urls";
 import { httpAgent } from "../libs/lib";
 import { getErrorMessage } from "../helper/errorHandling";
 import { DEFAULT_ASSET_CONFIG } from "../data/data.static";
 import { request_post } from "../helper/helper.request";
 import { get_env } from "../utils/get_env";
-import { str_number } from "../utils/util";
+import { build_url, str_number, str_val } from "../utils/util";
+import { IManagedAssetRemoveRequest, IManagedAssetRequest } from "../interface";
+import {
+    GetBotRoleRequest,
+    OpenCloseBotRequest,
+    SaveTgBotRequest,
+    GetBotSettingRequest,
+    ConfirmGroupChanelProps,
+    TelegramGetChatMemberResponse,
+    HandleOpenCloseBotProps,
+    OpenCloseBotResponse,
+} from "../interface/interface.telegram";
 
-interface OpenCloseBotRequest {
-    token: string;
-    bot_token: string;
-    user_id: string;
-    hash_key: string;
-    method: string;
-}
-
-interface GetBotSettingRequest {
-    token: string;
-    user_id: string;
-    session_id: string;
-}
 
 const req_bot = axios.create({
     httpAgent,
@@ -59,8 +55,10 @@ class TelegramController extends ProtectController {
         };
     }
 
-    private async handleOpenBot(res: Response, bot_token: string, bot_token_enc: string, user_id: string): Promise<Response | void> {
+    private async handleOpenBot(props: HandleOpenCloseBotProps): Promise<Response | void> {
+        const { res, bot_token, bot_token_enc, bot_token_hash, user_id, url } = props;
         const session = await mongoose.startSession();
+
         try {
             const check_server = await controler_server.get_server_run_bot();
             if (!check_server) {
@@ -71,12 +69,13 @@ class TelegramController extends ProtectController {
                 const update_model_bot = await model_bot.updateOne(
                     {
                         user_id,
-                        bot_token: bot_token_enc,
+                        bot_token_hash,
                         is_process: false,
                         is_opening: { $ne: true }
                     },
                     {
                         $set: {
+                            bot_token: bot_token_enc,
                             is_opening: true,
                             updated_at: new Date()
                         }
@@ -93,17 +92,16 @@ class TelegramController extends ProtectController {
             let api_success = false;
             let api_data = null;
             try {
-                const response = await req_bot.post(
-                    get_url("open_bot"),
-                    { bot_token, user_id }
-                );
-                const { code, message, data } = response.data;
-                if (code === 200) {
-                    api_success = true;
-                    api_data = data;
-                } else {
-                    throw new Error(message || "External API refused connection");
+                const response = await request_post<OpenCloseBotResponse>({
+                    url,
+                    headers: { "Content-Type": "application/json" },
+                    data: { bot_token, user_id }
+                });
+                if (!response.success) {
+                    throw new Error("External API refused connection");
                 }
+                api_success = true;
+                api_data = response.data;
             } catch (api_err) {
                 eLog("❌ API Start Failed, reverting DB...", api_err);
             }
@@ -111,19 +109,19 @@ class TelegramController extends ProtectController {
             await session.withTransaction(async () => {
                 if (api_success) {
                     await model_bot.updateOne(
-                        { user_id, bot_token: bot_token_enc },
+                        { user_id, bot_token_hash },
                         {
                             $set: {
                                 is_process: true,
                                 is_opening: false,
-                                bot_id: api_data.id,
-                                is_bot: api_data.is_bot ?? true,
+                                bot_id: api_data?.id,
+                                is_bot: api_data?.is_bot ?? true,
                                 server_ip: check_server.ip ?? "",
-                                first_name: api_data.first_name || '',
-                                username: `@${api_data.username}`,
-                                can_join_groups: api_data.can_join_groups ?? false,
-                                can_read_all_group_messages: api_data.can_read_all_group_messages ?? false,
-                                supports_inline_queries: api_data.supports_inline_queries ?? false,
+                                first_name: api_data?.first_name || '',
+                                username: `@${api_data?.username}`,
+                                can_join_groups: api_data?.can_join_groups ?? false,
+                                can_read_all_group_messages: api_data?.can_read_all_group_messages ?? false,
+                                supports_inline_queries: api_data?.supports_inline_queries ?? false,
                                 updated_at: new Date()
                             }
                         },
@@ -143,7 +141,7 @@ class TelegramController extends ProtectController {
                         { user_id, "telegram.bot.bot_token_enc": bot_token_enc },
                         {
                             $set: {
-                                "telegram.bot.$.bot_username": `@${api_data.username}`,
+                                "telegram.bot.$.bot_username": `@${api_data?.username}`,
                                 "telegram.bot.$.updated_at": new Date()
                             }
                         },
@@ -152,35 +150,42 @@ class TelegramController extends ProtectController {
 
                 } else {
                     await model_bot.updateOne(
-                        { user_id, bot_token: bot_token_enc },
+                        { user_id, bot_token_hash },
                         { $set: { is_opening: false } },
                         { session }
                     );
                 }
             });
             if (api_success) {
-                const format_data = hash_data.encryptData(JSON.stringify(api_data));
-                return response_data(res, 200, "Bot started successfully", format_data);
+                const encrypted = cryptoService.encryptObject(api_data);
+                return response_data(res, 200, "Bot started successfully", encrypted);
             } else {
                 return response_data(res, 500, "Failed to start bot (External API Error)", null);
             }
         } catch (err) {
-            eLog("❌ Critical System Error:", err);
+            eLog("❌ Critical System Error:", getErrorMessage(err));
             return response_data(res, 500, getErrorMessage(err) || "System error starting bot", null);
         } finally {
             await session.endSession();
         }
     }
 
-    private async handleCloseBot(res: Response, bot_token: string, bot_token_enc: string, user_id: string): Promise<Response | void> {
+    private async handleCloseBot(props: HandleOpenCloseBotProps): Promise<Response | void> {
+        const { res, bot_token, bot_token_enc, bot_token_hash, user_id, url } = props;
         const session = await mongoose.startSession();
         try {
             let db_lock_success = false;
             await session.withTransaction(async () => {
                 const update_bot = await model_bot.updateOne(
-                    { user_id, bot_token: bot_token_enc, is_process: true, is_closing: { $ne: true } },
+                    {
+                        user_id,
+                        bot_token_hash,
+                        is_process: true,
+                        is_closing: { $ne: true }
+                    },
                     {
                         $set: {
+                            bot_token: bot_token_enc,
                             is_closing: true,
                             updated_at: new Date()
                         }
@@ -215,14 +220,16 @@ class TelegramController extends ProtectController {
             let api_data = null;
 
             try {
-                const response = await req_bot.post(get_url("close_bot"), { bot_token, user_id });
-                const { code, message, data } = response.data;
-                if (code === 200) {
-                    api_success = true;
-                    api_data = data;
-                } else {
-                    throw new Error(message || "External API returned error");
+                const response = await request_post<OpenCloseBotResponse>({
+                    url,
+                    headers: { "Content-Type": "application/json" },
+                    data: { bot_token, user_id }
+                });
+                if (!response.success) {
+                    throw new Error("External API refused connection");
                 }
+                api_success = true;
+                api_data = response.data;
             } catch (api_err) {
                 eLog("❌ External API failed, reverting DB...", api_err);
             }
@@ -230,7 +237,7 @@ class TelegramController extends ProtectController {
             await session.withTransaction(async () => {
                 if (api_success) {
                     await model_bot.updateOne(
-                        { user_id, bot_token: bot_token_enc },
+                        { user_id, bot_token_hash },
                         { $set: { is_process: false, is_closing: false, updated_at: new Date() } },
                         { session }
                     );
@@ -241,7 +248,7 @@ class TelegramController extends ProtectController {
                     );
                 } else {
                     await model_bot.updateOne(
-                        { user_id, bot_token: bot_token_enc },
+                        { user_id, bot_token_hash },
                         { $set: { is_closing: false } },
                         { session }
                     );
@@ -253,8 +260,8 @@ class TelegramController extends ProtectController {
                 }
             });
             if (api_success) {
-                const format_data = hash_data.encryptData(JSON.stringify(api_data));
-                return response_data(res, 200, "Bot closed successfully", format_data);
+                const encrypted = cryptoService.encryptObject(api_data);
+                return response_data(res, 200, "Bot closed successfully", encrypted);
             } else {
                 return response_data(res, 500, "Failed to close bot (External API Error)", null);
             }
@@ -290,24 +297,20 @@ class TelegramController extends ProtectController {
         try {
             const result = await this.protect_get<GetBotSettingRequest>(req, res);
             if (!result) return;
-            const { user_id, token } = result;
-            if (!user_id || !token) return response_data(res, 400, "Invalid request", []);
+            const { user_id } = result;
+            if (!user_id) return response_data(res, 400, "Invalid request", []);
 
-            const check_user = await AppUser.findOne({ user_id, access_token_hash: token }).lean();
-            if (!check_user) {
-                return response_data(res, 401, "Unauthorized user", []);
-            }
             const settings = await model_setting.findOne({ user_id }).lean();
-            const platform = await Platform.findOne({ user_id }).select("+telegram.bot.bot_token_enc").lean();
+            const platform = await Platform.findOne({ user_id }).select("+telegram.bot.bot_token_hash").lean();
             const platFormList = platform?.telegram?.bot ?? [];
 
             const webHook = platform?.telegram?.web_hook ?? "";
             const botList = settings?.telegram?.bot ?? [];
             const activeBot = botList.find(b => b.process === true) || botList[0] || null;
-            const botUsername = platFormList.find(b => b.bot_token_enc === activeBot?.bot_token)?.bot_username ?? "";
+            const botUsername = platFormList.find(b => b.bot_token_hash === activeBot?.bot_token_hash)?.bot_username ?? "";
             const collection = {
                 botUsername,
-                botToken: hash_data.decryptData(activeBot?.bot_token ?? "") ?? "",
+                botToken:cryptoService.decrypt(activeBot?.bot_token ?? "") ?? "",
                 is_process: activeBot?.process ?? false,
                 webhookUrl: webHook,
                 webhookEnabled: activeBot?.enable_web_hook ?? false,
@@ -316,7 +319,7 @@ class TelegramController extends ProtectController {
                 exceptionLinks: settings?.user?.exceptionLinks ?? [],
                 exceptionFiles: settings?.user?.exceptionFiles ?? [],
             };
-            const encrypted = hash_data.encryptData(JSON.stringify(collection));
+            const encrypted = cryptoService.encryptObject(collection);
             return response_data(res, 200, "Success", encrypted);
         } catch (err) {
             eLog(err);
@@ -327,16 +330,17 @@ class TelegramController extends ProtectController {
     public async save_bot(req: Request, res: Response) {
         const result = await this.protect_post<SaveTgBotRequest>(req, res, true);
         if (!result) return;
-
         const { exceptionFiles, exceptionLinks, user_id, botToken, webhookUrl, webhookEnabled, notifyEnabled, silentMode } = result;
 
         if (!user_id || !botToken) return response_data(res, 400, "Invalid request", []);
         if (!this.validateTelegramToken(botToken)) return response_data(res, 400, "Invalid bot token", []);
-        const bot_token_enc = hash_data.encryptData(botToken);
+        const bot_token_enc = cryptoService.encrypt(botToken);
+        const bot_token_hash = cryptoService.hash(botToken);
+        if (!bot_token_enc || !bot_token_hash) return response_data(res, 400, "Invalid bot token", []);
         const existingBot = await model_bot.findOne({
-            bot_token: bot_token_enc,
+            bot_token_hash,
             user_id: { $ne: user_id }
-        });
+        }).select("bot_token_hash").lean();
 
         if (existingBot) {
             return response_data(res, 400, "Bot token already in use by another account", []);
@@ -345,12 +349,12 @@ class TelegramController extends ProtectController {
         try {
             session.startTransaction();
 
-            const platform = (await Platform.findOne({ user_id }).select("+telegram.bot.bot_token_enc").session(session)) || new Platform({ user_id });
+            const platform = (await Platform.findOne({ user_id }).select("+telegram.bot.bot_token_hash").session(session)) || new Platform({ user_id });
             const settings = (await model_setting.findOne({ user_id }).session(session)) || new model_setting({ user_id });
 
-            let bot = await model_bot.findOne({ user_id, bot_token: bot_token_enc }).session(session);
+            let bot = await model_bot.findOne({ user_id, bot_token_hash }).session(session);
             if (!bot) {
-                bot = new model_bot({ user_id, bot_token: bot_token_enc });
+                bot = new model_bot({ user_id, bot_token: bot_token_enc, bot_token_hash});
             }
             platform.telegram ||= { web_hook: "", bot: [], user: [] };
             settings.telegram ||= { bot: [], user: [] };
@@ -358,8 +362,8 @@ class TelegramController extends ProtectController {
             const botList = platform.telegram.bot;
             const botSettingList = settings.telegram.bot;
 
-            const botIndex = botList.findIndex(b => b.bot_token_enc === bot_token_enc);
-            const settingIndex = botSettingList.findIndex(b => b.bot_token === bot_token_enc);
+            const botIndex = botList.findIndex(b => b.bot_token_hash === bot_token_hash);
+            const settingIndex = botSettingList.findIndex(b => b.bot_token_hash === bot_token_hash);
 
             if (botIndex === -1 && botList.length >= 3) {
                 await session.abortTransaction();
@@ -371,11 +375,12 @@ class TelegramController extends ProtectController {
 
 
             if (botIndex === -1) {
-                botList.push({ bot_token_enc });
+                botList.push({ bot_token_enc, bot_token_hash });
             }
 
             const newSettingObj = {
                 bot_token: bot_token_enc,
+                bot_token_hash,
                 enable_web_hook: Boolean(webhookEnabled),
                 push_notifications: Boolean(notifyEnabled),
                 silent_mode: Boolean(silentMode),
@@ -389,11 +394,11 @@ class TelegramController extends ProtectController {
 
             bot.user_id = user_id;
             bot.bot_token = bot_token_enc;
+            bot.bot_token_hash = bot_token_hash;
 
             await bot.save({ session });
             await platform.save({ session });
             await settings.save({ session });
-
             await session.commitTransaction();
 
             const collection = {
@@ -405,10 +410,8 @@ class TelegramController extends ProtectController {
                 silentMode: Boolean(silentMode),
                 exceptionLinks,
             };
-
-            const encryptedCollections = hash_data.encryptData(JSON.stringify(collection));
-            return response_data(res, 200, "Telegram bot updated", encryptedCollections);
-
+            const encrypted = cryptoService.encryptObject(collection);
+            return response_data(res, 200, "Telegram bot updated", encrypted);
         } catch (err) {
             eLog("Error saving bot:", err);
             if (session.inTransaction()) {
@@ -424,12 +427,9 @@ class TelegramController extends ProtectController {
         try {
             const result = await this.protect_post<OpenCloseBotRequest>(req, res, true);
             if (!result) return;
-            const { bot_token, user_id, hash_key, token, method } = result;
-            if (!bot_token || !user_id || !hash_key || !token || !method) {
+            const { bot_token, user_id, method } = result;
+            if (!bot_token || !user_id || !method) {
                 return response_data(res, 400, "Missing required fields", null);
-            }
-            if (!HashKey.decrypt(hash_key)) {
-                return response_data(res, 400, "Invalid hash key", null);
             }
             if (!this.validateTelegramToken(bot_token)) {
                 return response_data(res, 400, "Invalid bot token format", null);
@@ -437,36 +437,51 @@ class TelegramController extends ProtectController {
             if (!['open', 'close'].includes(method)) {
                 return response_data(res, 400, "Invalid method. Use 'open' or 'close'", null);
             }
-            const check_user = await AppUser.findOne({ user_id, access_token_hash: token });
-            if (!check_user) {
-                return response_data(res, 401, "Unauthorized user", null);
+            const bot_token_enc = cryptoService.encrypt(bot_token);
+            const bot_token_hash = cryptoService.hash(bot_token);
+            if (!bot_token_enc || !bot_token_hash) {
+                return response_data(res, 400, "Invalid bot token", null);
             }
-            const bot_token_enc = hash_data.encryptData(bot_token);
             const [settings, find_bot] = await Promise.all([
-                model_setting.findOne({ user_id }),
-                model_bot.findOne({ user_id, bot_token: bot_token_enc })
+                model_setting.findOne({ user_id }).lean(),
+                model_bot.findOne({ user_id, bot_token_hash }).select("server_ip").lean()
             ]);
+            if (!find_bot) {
+                return response_data(res, 404, "Bot not found", null);
+            }
+            const { server_ip } = find_bot;
+            if (!server_ip) {
+                return response_data(res, 404, "Bot not found", null);
+            }
+            const check_server = await model_server.findOne({ ip: server_ip }).select("port").lean();
+            if (!check_server) {
+                return response_data(res, 404, "Server not found", null);
+            }
+            const port = check_server.port;
+            if (!port) return response_data(res, 404, "Server not found", null);
+            const base_url = build_url(server_ip, str_val(port));
+
             if (!settings) {
                 return response_data(res, 404, "User settings not found", null);
             }
 
             const botSettingList = settings?.telegram?.bot || [];
-            const botSetting = botSettingList.find(b => b.bot_token === bot_token_enc);
-
-            if (!botSetting || !find_bot) {
-                return response_data(res, 404, "Bot not found", null);
+            const botSetting = botSettingList.find(b => b.bot_token_hash === bot_token_hash);
+            if (!botSetting) {
+                return response_data(res, 404, "Bot setting not found", null);
             }
-
             if (method === 'open') {
                 if (botSetting.process) {
                     return response_data(res, 200, "Bot is already running", null);
                 }
-                return await this.handleOpenBot(res, bot_token, bot_token_enc, user_id);
+                const url = base_url + get_url("open_bot");
+                return await this.handleOpenBot({ res, bot_token, bot_token_hash, bot_token_enc, user_id, url });
             } else {
                 if (botSetting.process === false) {
                     return response_data(res, 200, "Bot is already closed", null);
                 }
-                return await this.handleCloseBot(res, bot_token, bot_token_enc, user_id);
+                const url = base_url + get_url("close_bot");
+                return await this.handleCloseBot({ res, bot_token, bot_token_hash, bot_token_enc, user_id, url });
             }
         } catch (err) {
             eLog("❌ open_close_bot error:", err);
@@ -504,25 +519,21 @@ class TelegramController extends ProtectController {
         try {
             const result = await this.protect_get<GetBotSettingRequest>(req, res);
             if (!result) return;
-            const { user_id, token } = result;
-            if (!user_id || !token) {
+            const { user_id } = result;
+            if (!user_id) {
                 return response_data(res, 400, "Invalid request parameters", []);
             }
-            const check_user = await AppUser.findOne({ user_id, access_token_hash: token }).lean();
-            if (!check_user) {
-                return response_data(res, 401, "Unauthorized user", []);
-            }
             const [botResult, settings] = await Promise.all([
-                model_bot.findOne({ user_id }, { bot_token: 1 }).lean(),
+                model_bot.findOne({ user_id }, { bot_token_hash: 1 }).lean(),
                 model_setting.findOne({ user_id }).lean()
             ]);
-            if (!botResult?.bot_token) {
+            if (!botResult?.bot_token_hash) {
                 return response_data(res, 404, "Bot token not found", []);
             }
-            const { bot_token } = botResult;
+            const { bot_token_hash } = botResult;
             const [existingAssets, allGroups] = await Promise.all([
-                ManagedAssetModel.find({ user_id, bot_token }).lean(),
-                GroupModel.find({ user_id, bot_token }).lean()
+                ManagedAssetModel.find({ user_id, bot_token_hash }).lean(),
+                GroupModel.find({ user_id, bot_token_hash }).lean()
             ]);
 
             const managedChatIds = new Set(existingAssets.map(asset => asset.chatId));
@@ -531,7 +542,7 @@ class TelegramController extends ProtectController {
                 .map(group => (this.buildItemGroup(group)));
             const finalCollection = [...existingAssets, ...unmanagedAssets];
             const threatLogs = await ThreatLogModel
-                .find({ bot_token })
+                .find({ bot_token_hash })
                 .sort({ createdAt: -1 })
                 .limit(5)
                 .select("chatId offenderName threatType content action createdAt").lean();
@@ -557,20 +568,15 @@ class TelegramController extends ProtectController {
             if (!user_id || !token || !asset) {
                 return response_data(res, 400, "Invalid request parameters", []);
             }
-            const [user, bot] = await Promise.all([
-                AppUser.findOne({ user_id, access_token_hash: token }).lean(),
-                model_bot.findOne({ user_id }, { bot_token: 1 }).lean()
-            ]);
-
-            if (!user) return response_data(res, 401, "Unauthorized access", []);
-            if (!bot?.bot_token) return response_data(res, 404, "Bot token not found", []);
+            const bot = await model_bot.findOne({ user_id }, { bot_token_hash: 1 }).lean();
+            if (!bot?.bot_token_hash) return response_data(res, 404, "Bot token not found", []);
 
             const updatePayload = { ...asset, allowScan: true };
             const savedAsset = await ManagedAssetModel.findOneAndUpdate(
                 {
                     user_id,
                     chatId: updatePayload.chatId,
-                    bot_token: bot.bot_token
+                    bot_token_hash: bot.bot_token_hash
                 },
                 { $set: updatePayload },
                 {
@@ -595,26 +601,22 @@ class TelegramController extends ProtectController {
         try {
             const result = await this.protect_post<IManagedAssetRemoveRequest>(req, res, true);
             if (!result) return;
-            const { user_id, token, chatId } = result;
-
-            if (!user_id || !token || !chatId) {
+            const { user_id, chatId } = result;
+            if (!user_id || !chatId) {
                 return response_data(res, 400, "Invalid request: Missing required fields", []);
             }
-
-            const [user, bot, asset] = await Promise.all([
-                AppUser.findOne({ user_id, access_token_hash: token }).lean(),
-                model_bot.findOne({ user_id }, { bot_token: 1 }).lean(),
+            const [bot, asset] = await Promise.all([
+                model_bot.findOne({ user_id }, { bot_token_hash: 1 }).lean(),
                 ManagedAssetModel.findOne({ user_id, chatId }).lean()
             ]);
 
-            if (!user) return response_data(res, 401, "Unauthorized access", []);
-            if (!bot?.bot_token) return response_data(res, 404, "Bot not found configuration", []);
+            if (!bot?.bot_token_hash) return response_data(res, 404, "Bot not found configuration", []);
             if (!asset) return response_data(res, 404, "Asset not found", []);
 
             const deleteResult = await ManagedAssetModel.deleteOne({
                 user_id,
                 chatId,
-                bot_token: bot.bot_token
+                bot_token_hash: bot.bot_token_hash
             });
             if (deleteResult.deletedCount > 0) {
                 return response_data(res, 200, "Protection removed successfully", this.buildItemGroup(asset));
@@ -635,15 +637,10 @@ class TelegramController extends ProtectController {
             if (!user_id || !token || !asset) {
                 return response_data(res, 400, "Invalid request", []);
             }
-            const [user, bot] = await Promise.all([
-                AppUser.findOne({ user_id, access_token_hash: token }).lean(),
-                model_bot.findOne({ user_id }, { bot_token: 1 }).lean()
-            ]);
-
-            if (!user) return response_data(res, 401, "Unauthorized access", []);
+            const bot = await model_bot.findOne({ user_id }, { bot_token_hash: 1 }).lean();
             if (!bot?.bot_token) return response_data(res, 404, "Bot token not found", []);
             const update_result = await ManagedAssetModel.updateOne(
-                { user_id, chatId: asset.chatId, bot_token: bot.bot_token },
+                { user_id, chatId: asset.chatId, bot_token_hash: bot.bot_token_hash },
                 { $set: { ...asset } },
                 { upsert: true }
             );
@@ -673,7 +670,8 @@ class TelegramController extends ProtectController {
         try {
             const { chat_id, bot_token } = option;
             if (!chat_id || !bot_token) return null;
-            const get_botId = await model_bot.findOne({ bot_token }).select("bot_id").lean();
+            const bot_token_hash = cryptoService.hash(bot_token);
+            const get_botId = await model_bot.findOne({ bot_token_hash }).select("bot_id").lean();
             if (!get_botId) return null;
             const response = await request_post<TelegramGetChatMemberResponse>({
                 url: `${get_env("TELEGRAM_API")}/bot<${bot_token}>/getChatMember`,
@@ -693,20 +691,17 @@ class TelegramController extends ProtectController {
 
     public async requestGetBotRole(req: Request, res: Response): Promise<Response | void> {
         try {
-            const result = await this.protect_get<GetBotRoleRequest>(req, res);
+            const result = await this.protect_get<GetBotRoleRequest>(req, res, true);
             if (!result) return;
             const { user_id, token, chat_id, bot_token } = result;
             if (!user_id || !token || !chat_id || !bot_token) {
                 return response_data(res, 400, "Invalid request", []);
             }
-            if (!this.ensureUserLogin(token)) {
-                return response_data(res, 401, "Unauthorized user", []);
-            }
             const response = await this.getBotRole({ chat_id, bot_token });
             if (!response) {
                 return response_data(res, 404, "Bot not found", []);
             }
-            const format_response = hash_data.encryptData(JSON.stringify(response));
+            const format_response = cryptoService.encryptObject(response);
             return response_data(res, 200, "Success", format_response);
         } catch (err: unknown) {
             eLog("❌ getBotRole error:", getErrorMessage(err));

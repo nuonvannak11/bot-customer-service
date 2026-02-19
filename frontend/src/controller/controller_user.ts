@@ -3,7 +3,7 @@ import axios, { AxiosError } from "axios";
 import { z } from "zod";
 import { get_env, eLog, check_header } from "@/libs/lib";
 import { response_data } from "@/libs/lib";
-import HashData from "@/helper/hash_data";
+import cryptoService from "@/libs/crypto";
 import { empty } from "@/utils/util";
 import { SAFE_TEXT, EMAIL_REGEX, REQUEST_TIMEOUT_MS } from "@/constants";
 import { ApiResponse, AuthResponse, LoginResponse, OTPResponse } from "@/types/type";
@@ -25,7 +25,8 @@ class UserController extends ProtectController {
     private decryptPayload<T>(encrypted: string | null | undefined): T | null {
         if (!encrypted) return null;
         try {
-            const decoded = HashData.decryptData(encrypted);
+            const decoded = cryptoService.decrypt(encrypted);
+            if (!decoded) return null;
             return JSON.parse(decoded) as T;
         } catch (error) {
             eLog("[Decrypt Error]", error);
@@ -85,7 +86,7 @@ class UserController extends ProtectController {
                 return response_data(400, 400, "Invalid data", []);
             }
             const { phone, password, hash_key } = validData;
-            const payload = HashData.encryptData(JSON.stringify({ phone, password, hash_key }));
+            const payload = cryptoService.encryptObject({ phone, password, hash_key });
             const response = await request_post<LoginResponse>({
                 url: get_url("login"),
                 data: { payload },
@@ -121,7 +122,7 @@ class UserController extends ProtectController {
                 return response_data(400, 400, "Invalid data", []);
             }
             const { phone, password, username, hash_key } = validData;
-            const payload = HashData.encryptData(JSON.stringify({ phone, password, username, hash_key }));
+            const payload = cryptoService.encryptObject({ phone, password, username, hash_key });
             const response = await request_post<ApiResponse<string>>({
                 url: get_url("register"),
                 data: { payload },
@@ -149,7 +150,7 @@ class UserController extends ProtectController {
                 return response_data(400, 400, "Invalid data", []);
             }
             const { phone, code, hash_key } = validData;
-            const payload = HashData.encryptData(JSON.stringify({ phone, code, hash_key }));
+            const payload = cryptoService.encryptObject({ phone, code, hash_key });
             const response = await request_post<OTPResponse<string>>({
                 url: get_url("verify_phone"),
                 data: { payload },
@@ -188,7 +189,7 @@ class UserController extends ProtectController {
                 return response_data(400, 400, "Invalid data", []);
             }
             const { phone, hash_key } = validData;
-            const payload = HashData.encryptData(JSON.stringify({ phone, hash_key }));
+            const payload = cryptoService.encryptObject({ phone, hash_key });
             const response = await request_post<ApiResponse<string>>({
                 url: get_url("resend_code"),
                 data: { payload },
@@ -283,7 +284,7 @@ class UserController extends ProtectController {
                 }
                 data.avatar = upload_avatar ?? undefined;
             }
-            const payload = HashData.encryptData(JSON.stringify(data));
+            const payload = cryptoService.encryptObject(data);
             const response = await request_patch<ApiResponse<string>>({
                 url: get_url("update_user_profile"),
                 data: { payload },

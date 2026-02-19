@@ -51,7 +51,7 @@ async function auto_start() {
   });
   console.log("Start=======>");
 }
-auto_start()
+// auto_start()
 
 app.use(errorHandler);
 app.listen(port, () => {

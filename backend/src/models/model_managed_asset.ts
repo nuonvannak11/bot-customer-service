@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 export interface IManagedAsset extends mongoose.Document {
     user_id: string;
-    bot_token: string;
+    bot_token_hash: string;
     chatId: string;
     name: string;
     avatar: string;
@@ -53,7 +53,7 @@ const configSchema = new mongoose.Schema(
 const managedAssetSchema = new mongoose.Schema(
     {
         user_id: { type: String, required: true },
-        bot_token: { type: String, required: true },
+        bot_token_hash: { type: String, required: true },
         chatId: { type: String, required: true, },
         name: { type: String, required: true },
         avatar: { type: String, default: "" },

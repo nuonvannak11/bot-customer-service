@@ -2,8 +2,8 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { eLog, response_data } from "@/libs/lib";
 import { check_header } from "@/libs/lib";
-import HashKey from "@/helper/hash_key";
-import check_jwt from "@/helper/check_jwt";
+import jwtService from "@/libs/jwt";
+import cryptoService from "@/libs/crypto";
 import { rate_limit } from "@/helper/ratelimit";
 import { fileTypeFromBuffer } from "file-type";
 import { ParseJWTPayload, ProtectFileOptions } from "@/interface";
@@ -149,7 +149,7 @@ export class ProtectController {
 
     public parse_token(token: string): ParseJWTPayload | null {
         if (!token) return null;
-        const ensureToken = check_jwt.verifyToken(token);
+        const ensureToken = jwtService.verifyToken<ParseJWTPayload>(token);
         if (!ensureToken) return null;
         return ensureToken as ParseJWTPayload;
     }
@@ -186,7 +186,7 @@ export class ProtectController {
                 return { ok: false, response: response_data(400, 400, "Invalid dangerous keys", []) };
             }
             const hash_key = safeData.hash_key;
-            const ensureKey = HashKey.decrypt(hash_key);
+            const ensureKey = cryptoService.decrypt(hash_key);
             if (!ensureKey) {
                 return { ok: false, response: response_data(400, 400, "Invalid hash key", []) };
             }

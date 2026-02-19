@@ -1,5 +1,6 @@
 interface TelegramBot {
     bot_token?: string;
+    bot_token_hash?: string;
     process?: boolean;
     enable_web_hook?: boolean;
     push_notifications?: boolean;
