@@ -82,3 +82,11 @@ export interface UnsafeFileProps {
   server_ip: string;
   port: string;
 }
+
+export interface UploadAvatarRequest {
+    user_id: string;  
+    session_id: string; 
+    name:string;
+    path:string;
+    file?: Express.Multer.File;
+}

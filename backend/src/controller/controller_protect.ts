@@ -17,7 +17,9 @@ export class ProtectController {
         if (typeof obj !== "object" || obj === null) return false;
         for (const [key, value] of Object.entries(obj)) {
             if (key.startsWith("$") || key.includes(".")) return true;
-            if (typeof value === "object" && value !== null) {
+            // SECURITY/CRASH FIX: Ignore Express/Multer file buffers!
+            // Without this, the recursive loop will crash when it hits a file buffer.
+            if (typeof value === "object" && value !== null && !Buffer.isBuffer(value)) {
                 if (this.hasDangerousKeys(value)) return true;
             }
         }
@@ -46,6 +48,7 @@ export class ProtectController {
             }
             authData = ensureToken;
         }
+
         const hasQuery = !empty(req.query);
         if (options.requireQuery || hasQuery) {
             if (options.requireQuery && !hasQuery) {
@@ -54,24 +57,33 @@ export class ProtectController {
             }
             queryData = req.query as Partial<T>;
         }
-        const hasBody = !empty(req.body);
+
+        const isMultipart = req.is("multipart/form-data");
+        const hasBody = !empty(req.body) || req.file || req.files;
+
         if (options.requireBody || hasBody) {
             if (options.requireBody && !hasBody) {
-                response_data(res, 400, "Request body required", []);
+                response_data(res, 400, "Request body or file required", []);
                 return false;
             }
-            const bodyResult = this.parseAndValidateBody<T>(req);
-            if (!bodyResult.success) {
-                response_data(res, bodyResult.error!.code, bodyResult.error!.message, []);
-                return false;
+            if (isMultipart) {
+                bodyData = { ...req.body, file: req.file, files: req.files } as Partial<T>;
+            } else {
+                const bodyResult = this.parseAndValidateBody<T>(req);
+                if (!bodyResult.success) {
+                    response_data(res, bodyResult.error!.code, bodyResult.error!.message, []);
+                    return false;
+                }
+                bodyData = bodyResult.data!;
             }
-            bodyData = bodyResult.data!;
         }
+
         const finalData = { ...authData, ...queryData, ...bodyData };
         if (this.hasDangerousKeys(finalData)) {
             response_data(res, 400, "Invalid request payload", []);
             return false;
         }
+
         return finalData as T;
     }
 

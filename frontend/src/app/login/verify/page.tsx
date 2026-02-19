@@ -1,4 +1,4 @@
-import { get_key } from "@/libs/generate_key";
+import cryptoService from "@/libs/crypto";
 import VerifyPhone from "@/components/VerifyPhone";
 import { mask_phone } from "@/libs/lib";
 import { redirectPages } from "@/helper/helper.redirect";
@@ -14,7 +14,7 @@ export default async function LoginRegisterPage({ searchParams }: PageProps) {
 
   return (
     <VerifyPhone
-      hash_key={get_key()}
+      hash_key={cryptoService.random_key()}
       phone_mask={mask_phone(phone_number as string)}
       phone={phone_number as string}
     />

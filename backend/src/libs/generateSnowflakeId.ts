@@ -1,7 +1,7 @@
 let lastTimestamp = 0n;
 let sequence = 0n;
 const EPOCH = 1704067200000n;
-export function generate_id(): string {
+export function nextId(): string {
     let timestamp = BigInt(Date.now());
     if (timestamp === lastTimestamp) {
         sequence = (sequence + 1n) & 0xfffn;

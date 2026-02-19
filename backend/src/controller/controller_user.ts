@@ -24,7 +24,7 @@ import {
     VerifyPhoneRequest
 } from "../interface/interface_user";
 import { SaveUserProfile } from "../interface";
-import { generate_id } from "../libs/generate_id";
+import { nextId } from "../libs/generateSnowflakeId";
 import { getErrorMessage } from "../helper/errorHandling";
 
 
@@ -33,7 +33,6 @@ const googleOAuthClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 class UserController extends ProtectController {
     private readonly phoneRegex = PHONE_REGEX;
-    private readonly emailRegex = EMAIL_REGEX;
 
     private async ensureRefreshToken(user_id: string, refresh_token: string): Promise<boolean> {
         if (!user_id || !refresh_token) return false;
@@ -252,7 +251,7 @@ class UserController extends ProtectController {
             }
 
             const { name, passwordHash } = record.tempData;
-            const newUserId = generate_id();
+            const newUserId = nextId();
             const sessionId = cryptoService.sessionId();
             const refreshToken = jwtService.signRefreshToken({
                 user_id: str_val(newUserId),
@@ -370,7 +369,7 @@ class UserController extends ProtectController {
             let finalRefreshToken = ensureUser?.refresh_token_hash;
 
             if (!ensureUser) {
-                const newUserId = generate_id();
+                const newUserId = nextId();
                 finalRefreshToken = jwtService.signRefreshToken({
                     user_id: str_val(newUserId),
                     session_id: sessionId,

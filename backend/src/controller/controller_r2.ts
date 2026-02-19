@@ -1,13 +1,13 @@
 import { Request, Response } from "express";
 import { PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import sharp from "sharp";
-import { get_env } from "../utils/get_env";
-import { empty, str_lower, eLog } from "../utils/util";
 import r2 from "../config/r2";
+import { get_env } from "../utils/get_env";
+import { empty, str_lower } from "../utils/util";
+import { eLog } from "../libs/lib";
 import { ProtectController } from "./controller_protect";
-import { check_header, response_data } from "../libs/lib";
-import AppUser from "../models/model_user";
-import hash_data from "../helper/hash_data";
+import { response_data } from "../libs/lib";
+import { UploadAvatarRequest } from "../interface";
 
 class R2Controller extends ProtectController {
     private bucket = get_env("R2_BUCKET");
@@ -29,7 +29,7 @@ class R2Controller extends ProtectController {
         return { success: true, extension: str_lower(extension), size, mimetype };
     }
 
-    async compress_img(file: Express.Multer.File, name: string): Promise<{ success: true; buffer: Buffer; fileName: string; mimetype: string } | { success: false }> {
+    public async compress_img(file: Express.Multer.File, name: string): Promise<{ success: true; buffer: Buffer; fileName: string; mimetype: string } | { success: false }> {
         try {
             const compress = await sharp(file.buffer)
                 .rotate()
@@ -50,7 +50,7 @@ class R2Controller extends ProtectController {
         }
     }
 
-    async uploadFile(file: Express.Multer.File, path: string, name: string): Promise<{ success: boolean; message?: string; url?: string; }> {
+    public async uploadFile(file: Express.Multer.File, path: string, name: string): Promise<{ success: boolean; message?: string; url?: string; }> {
         const check_file = this.valid_file(file);
         if (!check_file.success) {
             return { success: false, message: check_file.error };
@@ -84,11 +84,11 @@ class R2Controller extends ProtectController {
             return { success: true, message: "File uploaded successfully", url: fileUrl };
         } catch (error: unknown) {
             eLog("Error uploading file to R2:", error);
-            return { success: false, message: "Failed to upload file"};
+            return { success: false, message: "Failed to upload file" };
         }
     }
 
-    async deleteFile(file_path_name: string): Promise<{ success: boolean, message?: string }> {
+    public async deleteFile(file_path_name: string): Promise<{ success: boolean, message?: string }> {
         if (empty(file_path_name)) {
             return { success: false, message: "File name cannot be empty." };
         }
@@ -105,71 +105,35 @@ class R2Controller extends ProtectController {
         }
     }
 
-    async upload(req: Request, res: Response) {
-        const is_header = check_header(req);
-        if (!is_header) {
-            return response_data(res, 403, "Forbidden", []);
-        }
-        const check_token = await this.extractToken(req);
-        if (!check_token) {
-            return response_data(res, 401, "Unauthorized", []);
-        }
-        const check_user = await AppUser.findOne({ user_id: check_token.user_id });
-        if (!check_user) {
-            return response_data(res, 401, "Unauthorized", []);
-        }
-
-        const file_name = req.body.name;
-        const file_path = req.body.path;
-        const format_name = hash_data.decryptData(file_name);
-        const format_path = hash_data.decryptData(file_path);
-        if (!format_name || !format_path) {
+    public async upload(req: Request, res: Response): Promise<Response | void> {
+        const result = await this.protect_post<UploadAvatarRequest>(req, res, true);
+        if (!result) return;
+        const { name, path, file } = result;
+        if (!name || !path) {
             return response_data(res, 400, "Invalid request", []);
         }
-        const file = req.file;
         if (!file) {
             return response_data(res, 400, "Invalid request", []);
         }
-        const upload_file = await this.uploadFile(file, format_path, format_name);
+        const upload_file = await this.uploadFile(file, path, name);
         if (!upload_file.success) {
             return response_data(res, 500, upload_file.message || "Internal server error", []);
         }
         return response_data(res, 200, "Success", upload_file.url);
     }
 
-    async delete(req: Request, res: Response) {
+    public async delete(req: Request, res: Response) {
         try {
-            const is_header = check_header(req);
-            if (!is_header) {
-                return response_data(res, 403, "Forbidden", []);
-            }
-
-            const check_token = await this.extractToken(req);
-            if (!check_token) {
-                return response_data(res, 401, "Unauthorized", []);
-            }
-
-            const check_user = await AppUser.findOne({ user_id: check_token.user_id });
-            if (!check_user) {
-                return response_data(res, 401, "Unauthorized", []);
-            }
-
-            const { file_path } = req.body;
-
+            const results = await this.protect_post<{ file_path: string }>(req, res, true);
+            if (!results) return;
+            const { file_path } = results;
             if (empty(file_path)) {
                 return response_data(res, 400, "Missing file path identifier", []);
             }
-
-            const decrypted_key = hash_data.decryptData(file_path);
-
-            if (empty(decrypted_key)) {
-                return response_data(res, 400, "Invalid or corrupted file path", []);
-            }
-
-            const result = await this.deleteFile(decrypted_key);
-
-            if (!result.success) {
-                return response_data(res, 500, result.message || "Failed to delete file", []);
+            const result = await this.deleteFile(file_path);
+            const { success, message } = result;
+            if (!success) {
+                return response_data(res, 500, message || "Failed to delete file", []);
             }
             return response_data(res, 200, "File deleted successfully", []);
         } catch (error: unknown) {

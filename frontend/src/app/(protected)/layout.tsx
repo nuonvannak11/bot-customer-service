@@ -2,7 +2,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ensureUserLogin } from "@/libs/lib";
 import Shell from "@/components/layout/Shell";
 import { SocketProvider } from "@/contexts/SocketContext";
-import { get_key } from "@/libs/generate_key";
+import cryptoService from "@/libs/crypto";
 
 export default async function ProtectedLayout({
   children,
@@ -20,7 +20,7 @@ export default async function ProtectedLayout({
     <AuthProvider user={collection}>
       <SocketProvider token={token}>
         <Shell
-          option={{ hash_key: get_key(), user: collection, defaultOpenState: defaultOpenState }}
+          option={{ hash_key: cryptoService.random_key(), user: collection, defaultOpenState: defaultOpenState }}
         >
           {children}
         </Shell>
