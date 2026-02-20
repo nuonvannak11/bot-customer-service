@@ -5,7 +5,7 @@ import jwtService from "@/libs/jwt";
 import { cryptoService } from "@/libs/crypto";
 import { RateLimiter } from "@/helper/ratelimit";
 import { fileTypeFromBuffer } from "file-type";
-import { ParseJWTPayload, ProtectFileOptions } from "@/interface";
+import { ParseJWTPayload, ParseTokenProps, ProtectFileOptions } from "@/interface";
 import { dangerousKeys, default_extensions_img } from "@/constants";
 
 type ProtectSuccess<TData> = { ok: true; data: TData; form: FormData | null; };
@@ -26,6 +26,10 @@ const isZodObject = (value: unknown): value is z.ZodObject<z.ZodRawShape> => {
 };
 
 export class ProtectController {
+    public expireAt(days: number): number {
+        return 60 * 60 * 24 * days;
+    }
+
     private async get_body(req: NextRequest) {
         try {
             const contentType = req.headers.get("content-type") || "";
@@ -112,8 +116,13 @@ export class ProtectController {
         return req.cookies.get("access_token")?.value || null;
     }
 
-    public async parse_token(token: string):Promise<ParseJWTPayload | null> {
-        return token ? (await jwtService.verifyToken<ParseJWTPayload>(token) || null) : null;
+    public async parse_token(token: string): Promise<ParseTokenProps | null> {
+        if (!token) return null;
+        const ensureToken = await jwtService.verifyToken<ParseJWTPayload>(token);
+        if (!ensureToken) return null;
+        const newToken = ensureToken?.newToken;
+        const pickToken = newToken ? newToken : token;
+        return { ...ensureToken.data, token: pickToken };
     }
 
     public async protect<T extends ShapeRecord | z.ZodObject<z.ZodRawShape>>(req: NextRequest, json_protector: T, ratlimit?: number, check_token?: false, time_limit?: number): Promise<ProtectResult<ProtectDataFor<T>>>;
@@ -132,9 +141,11 @@ export class ProtectController {
             let token = null;
             if (check_token) {
                 token = this.extractToken(req);
-                if (!token || !await this.parse_token(token)) {
+                const parseToken = await this.parse_token(token || "");
+                if (!parseToken) {
                     return { ok: false, response: response_data(401, 401, "Unauthorized", []) };
                 }
+                token = parseToken.token;
             }
             const { body, form } = await this.get_body(req);
             const baseSchema = isZodObject(json_protector) ? json_protector : z.object(json_protector);
@@ -174,9 +185,22 @@ export class ProtectController {
             return { ok: false, response: response_data(403, 403, "Forbidden", []) };
         }
         const token = this.extractToken(req);
-        if (!token || !await this.parse_token(token)) {
+        const parseToken = await this.parse_token(token || "");
+        if (!parseToken) {
             return { ok: false, response: response_data(401, 401, "Unauthorized", []) };
         }
-        return { ok: true, data: { token }, form: null };
+        
+        const response = response_data(200, 200, "OK", { token: parseToken.token });
+        // Set new token in response cookies if it was refreshed
+        if (parseToken.token !== token) {
+            response.cookies.set("access_token", parseToken.token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                path: "/",
+                sameSite: "strict",
+                maxAge: this.expireAt(1),
+            });
+        }
+        return { ok: true, data: { token: parseToken.token }, form: null };
     }
 }

@@ -54,6 +54,15 @@ export interface ParseJWTPayload {
   session_id: string;
 }
 
+export interface ParseTokenProps extends ParseJWTPayload {
+  token: string;
+}
+
+export interface ParseVerifyToken {
+  data: ParseJWTPayload;
+  newToken?: string;
+}
+
 export interface EnsureUserLoginProp {
   user: CheckAuthResponse,
   token: string,
@@ -102,7 +111,7 @@ export interface SetTokenCookies {
 }
 
 export interface ApiResponse<T = unknown> {
-    code: number;
-    message: string;
-    data: T;
+  code: number;
+  message: string;
+  data: T;
 }

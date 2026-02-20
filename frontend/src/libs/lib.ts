@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
-import { empty, strlower } from "@/utils/util";
+import { empty, getErrorMessage, strlower } from "@/utils/util";
 import { cookies } from "next/headers";
 import { GroupChannel, PreparedData, ProtectData } from "@/interface/interface.telegram";
 import jwtService from "./jwt";
@@ -47,6 +47,24 @@ export function check_header(request: NextRequest) {
         }
     }
     return true;
+}
+
+export async function set_access_token(access_token: string, maxAge: number): Promise<boolean> {
+    try {
+        const cookieStore = await cookies();
+        const isProduction = get_env("NODE_ENV") === "production";
+        cookieStore.set("access_token", access_token, {
+            httpOnly: true,
+            secure: isProduction,
+            path: "/",
+            sameSite: "strict",
+            maxAge,
+        });
+        return true;
+    } catch (err: unknown) {
+        eLog("❌ [set_access_token] Error:", getErrorMessage(err));
+        return false;
+    }
 }
 
 export function get_env(key: string, defaultValue: string = ''): string {

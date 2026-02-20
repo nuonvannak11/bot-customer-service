@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect, useRef, ChangeEvent } from "react";
 import gsap from "gsap";
 import {
@@ -12,13 +11,15 @@ import {
   FileText,
   Camera,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "react-hot-toast";
-
 import SettingsInput from "@/components/SettingsInput";
 import Toggle from "@/components/ui/ToggleCheckBox";
 import { UserProfileConfig } from "@/interface";
+import { getErrorMessage } from "@/utils/util";
+import { useTranslation } from "react-i18next";
 
 export default function ProfileClient({
   hash_key,
@@ -35,7 +36,6 @@ export default function ProfileClient({
     handleFileChange,
     submitForm,
   } = useProfileForm(profile, hash_key);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
@@ -54,7 +54,8 @@ export default function ProfileClient({
               <div
                 role="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="relative h-32 w-32 cursor-pointer overflow-hidden rounded-full border border-slate-800 bg-slate-950 p-1 shadow-[0_0_40px_rgba(6,182,212,0.6)]">
+                className="relative h-32 w-32 cursor-pointer overflow-hidden rounded-full border border-slate-800 bg-slate-950 p-1 shadow-[0_0_40px_rgba(6,182,212,0.6)]"
+              >
                 <Image
                   src={previewUrl ?? formData.avatar}
                   alt="Profile"
@@ -70,7 +71,8 @@ export default function ProfileClient({
                   e.stopPropagation();
                   fileInputRef.current?.click();
                 }}
-                className="absolute bottom-1 right-1 rounded-full bg-cyan-500 p-2 text-slate-950 shadow-lg transition-colors hover:bg-cyan-400">
+                className="absolute bottom-1 right-1 rounded-full bg-cyan-500 p-2 text-slate-950 shadow-lg transition-colors hover:bg-cyan-400"
+              >
                 <Camera size={16} />
               </button>
               <input
@@ -175,7 +177,8 @@ export default function ProfileClient({
           <button
             onClick={submitForm}
             disabled={isLoading}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 px-6 py-3 font-semibold text-white shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all hover:from-cyan-500 hover:to-blue-500 hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50">
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-cyan-600 to-blue-600 px-6 py-3 font-semibold text-white shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all hover:from-cyan-500 hover:to-blue-500 hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+          >
             {isLoading ? (
               <>
                 <Loader2 className="animate-spin" size={20} />
@@ -234,7 +237,7 @@ const RewardCard = ({ points }: { points: number }) => {
         ref={glowRef}
         className="absolute inset-0 rounded-xl bg-amber-500/10 opacity-20"
       />
-      <div className="absolute -inset-full top-0 block h-full w-1/2 -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-20 group-hover:animate-shine" />
+      <div className="absolute -inset-full top-0 block h-full w-1/2 -skew-x-12 bg-linear-to-r from-transparent to-white opacity-20 group-hover:animate-shine" />
 
       <div className="relative z-10 flex h-12 w-12 items-center justify-center transition-transform duration-300 group-hover:scale-110">
         <div className="absolute inset-0 blur-xl rounded-full bg-amber-500/20 transition-colors duration-300 group-hover:bg-amber-500/40" />
@@ -268,6 +271,7 @@ const useProfileForm = (profile: UserProfileConfig, hash_key: string) => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     return () => {
@@ -288,6 +292,12 @@ const useProfileForm = (profile: UserProfileConfig, hash_key: string) => {
   };
 
   const submitForm = async () => {
+    if(JSON.stringify(formData) === JSON.stringify(profile)){
+      toast(t("You have not made any changes"), {
+        icon: <AlertTriangle size={18} className="text-amber-500" />,
+      });
+      return;
+    }
     const toastId = toast.loading("Saving configuration...");
     setIsLoading(true);
 
@@ -296,12 +306,12 @@ const useProfileForm = (profile: UserProfileConfig, hash_key: string) => {
       if (selectedFile) payload.append("updateAvatar", selectedFile);
 
       payload.append("isAvatarUpdated", (!!selectedFile).toString());
-      payload.append("avatar", previewUrl || formData.avatar); // Optimistic UI or fallback
+      payload.append("avatar", previewUrl || formData.avatar);
       payload.append("hash_key", hash_key);
 
       Object.entries(formData).forEach(([key, value]) => {
         if (key === "emailNotifications" || key === "twoFactor") {
-          payload.append(key, value ? "1" : "0");
+          payload.append(key, String(value));
         } else if (typeof value === "string") {
           payload.append(key, value);
         }
@@ -313,7 +323,6 @@ const useProfileForm = (profile: UserProfileConfig, hash_key: string) => {
       });
 
       const data = await res.json();
-
       if (!res.ok) throw new Error(data?.message || "Failed to save");
 
       if (data?.code === 200) {
@@ -321,20 +330,16 @@ const useProfileForm = (profile: UserProfileConfig, hash_key: string) => {
         setFormData((prev) => ({
           ...prev,
           ...rest,
-          twoFactor: twoFactor === "1",
-          emailNotifications: emailNotifications === "1",
+          twoFactor: twoFactor === "true",
+          emailNotifications: emailNotifications === "true",
         }));
-        setSelectedFile(null); // Reset file selection after upload
+        setSelectedFile(null);
         toast.success("Update successful!", { id: toastId });
       } else {
         throw new Error(data?.message || "Server error");
       }
     } catch (error: unknown) {
-      let message = "Failed to save";
-      if (error instanceof Error) {
-        message = error.message;
-      }
-      toast.error(message, { id: toastId });
+      toast.error(getErrorMessage(error), { id: toastId });
     } finally {
       setIsLoading(false);
     }

@@ -11,7 +11,14 @@ import { cryptoService } from "../libs/crypto";
 import { eLog } from "../libs/lib";
 import { PHONE_REGEX, GOOGLE_TOKEN_REGEX } from "../constants";
 import { get_env } from "../libs/get_env";
-import { empty, random_number, expiresAt, str_number, format_phone, str_val } from "../utils/util";
+import {
+    empty,
+    random_number,
+    expiresAt,
+    str_number,
+    format_phone,
+    str_val,
+} from "../utils/util";
 import { make_schema } from "../helper";
 import { response_data } from "../libs/lib";
 import { ProtectController } from "./controller_protect";
@@ -21,12 +28,11 @@ import {
     LoginRequest,
     RegisterRequest,
     ResendCodeRequest,
-    VerifyPhoneRequest
+    VerifyPhoneRequest,
 } from "../interface/interface_user";
 import { SaveUserProfile } from "../interface";
 import { nextId } from "../libs/generateSnowflakeId";
 import { getErrorMessage } from "../helper/index";
-
 
 const GOOGLE_CLIENT_ID = get_env("GOOGLE_CLIENT_ID");
 const googleOAuthClient = new OAuth2Client(GOOGLE_CLIENT_ID);
@@ -39,24 +45,33 @@ class UserController extends ProtectController {
     private access_token(user_id: string) {
         return jwtService.signAccessToken({
             user_id: str_val(user_id),
-            session_id: this.sess_id()
-        })
+            session_id: this.sess_id(),
+        });
     }
     private refresh_token(user_id: string) {
         return jwtService.signRefreshToken({
             user_id: str_val(user_id),
-            session_id: this.sess_id()
-        })
+            session_id: this.sess_id(),
+        });
     }
 
-    private async ensureRefreshToken(user_id: string, refresh_token_hash: string): Promise<boolean> {
+    private async ensureRefreshToken(
+        user_id: string,
+        refresh_token_hash: string,
+    ): Promise<boolean> {
         if (!user_id || !refresh_token_hash) return false;
-        const checkAccessToken = await AppUser.findOne({ user_id, refresh_token_hash }).lean();
+        const checkAccessToken = await AppUser.findOne({
+            user_id,
+            refresh_token_hash,
+        }).lean();
         if (!checkAccessToken) return false;
         return true;
     }
 
-    public async checkAccessToken(req: Request, res: Response): Promise<Response | void> {
+    public async checkAccessToken(
+        req: Request,
+        res: Response,
+    ): Promise<Response | void> {
         try {
             const results = await this.protect_get<TokenData>(req, res);
             if (!results) return;
@@ -67,17 +82,38 @@ class UserController extends ProtectController {
                 return;
             }
             const settings = await model_settings.findOne({ user_id }).lean();
-            const { emailNotifications, twoFactor } = settings?.user || { emailNotifications: false, twoFactor: false };
+            const { emailNotifications, twoFactor } = settings?.user || {
+                emailNotifications: false,
+                twoFactor: false,
+            };
             const { email, phone, name, avatar, bio, point } = user;
-            const collection = { avatar, fullName: name, username: name, email, phone, bio, points: point, emailNotifications, twoFactor };
-            return response_data(res, 200, "Success", cryptoService.encryptObject(collection));
+            const collection = {
+                avatar,
+                fullName: name,
+                username: name,
+                email,
+                phone,
+                bio,
+                points: point,
+                emailNotifications,
+                twoFactor,
+            };
+            return response_data(
+                res,
+                200,
+                "Success",
+                cryptoService.encryptObject(collection),
+            );
         } catch (error) {
             eLog("Check auth error:", error);
             response_data(res, 500, "Internal server error", []);
         }
     }
 
-    public async checkRefreshToken(req: Request, res: Response): Promise<Response | void> {
+    public async checkRefreshToken(
+        req: Request,
+        res: Response,
+    ): Promise<Response | void> {
         try {
             const result = await this.protect_get<TokenData>(req, res);
             if (!result) return;
@@ -118,14 +154,27 @@ class UserController extends ProtectController {
                 response_data(res, 400, "Invalid phone number format", []);
                 return;
             }
-            const ensureUser = await AppUser.findOne({ phone_hash }).select("_id user_id password phone_verified refresh_token_hash").lean();
+            const ensureUser = await AppUser.findOne({ phone_hash })
+                .select("_id user_id password phone_verified refresh_token_hash")
+                .lean();
             if (!ensureUser) {
                 response_data(res, 401, "User not found", []);
                 return;
             }
-            const { _id, user_id, password: hash_password, phone_verified, refresh_token_hash } = ensureUser;
+            const {
+                _id,
+                user_id,
+                password: hash_password,
+                phone_verified,
+                refresh_token_hash,
+            } = ensureUser;
             if (!phone_verified) {
-                response_data(res, 403, "Please verify your phone number before login.", []);
+                response_data(
+                    res,
+                    403,
+                    "Please verify your phone number before login.",
+                    [],
+                );
                 return;
             }
             const isMatch = await bcrypt.compare(password, hash_password || "");
@@ -135,13 +184,15 @@ class UserController extends ProtectController {
             }
 
             let finalToken = refresh_token_hash;
-            const isTokenValid = finalToken ? jwtService.verifyToken(finalToken) : false;
+            const isTokenValid = finalToken
+                ? jwtService.verifyToken(finalToken)
+                : false;
 
             if (!isTokenValid) {
                 finalToken = this.refresh_token(user_id);
                 await AppUser.updateOne(
                     { _id: _id },
-                    { $set: { refresh_token_hash: finalToken } }
+                    { $set: { refresh_token_hash: finalToken } },
                 );
             }
             const encrypted = cryptoService.encryptObject({
@@ -180,11 +231,13 @@ class UserController extends ProtectController {
             }
             const formatPhone = format_phone(phone);
             const phone_hash = cryptoService.hash(formatPhone);
-            if (!phone_hash){
+            if (!phone_hash) {
                 response_data(res, 400, "Invalid phone number format", []);
                 return;
             }
-            const existingUser = await AppUser.findOne({ phone_hash }).select("phone").lean();
+            const existingUser = await AppUser.findOne({ phone_hash })
+                .select("phone")
+                .lean();
             if (existingUser) {
                 response_data(res, 400, "Phone number already exists", []);
                 return;
@@ -209,9 +262,14 @@ class UserController extends ProtectController {
                         },
                     },
                 },
-                { upsert: true, new: true }
+                { upsert: true, new: true },
             );
-            response_data(res, 200, "Verification code sent. Please verify your phone.", formatPhone);
+            response_data(
+                res,
+                200,
+                "Verification code sent. Please verify your phone.",
+                formatPhone,
+            );
             return;
         } catch (error) {
             eLog("Register error:", error);
@@ -250,7 +308,12 @@ class UserController extends ProtectController {
                 return;
             }
             if (new Date() > record.expiresAt) {
-                response_data(res, 400, "Verification code expired. Please request a new code.", []);
+                response_data(
+                    res,
+                    400,
+                    "Verification code expired. Please request a new code.",
+                    [],
+                );
                 return;
             }
             if (str_number(record.code) !== str_number(code)) {
@@ -273,11 +336,14 @@ class UserController extends ProtectController {
                 phone_hash,
                 password: passwordHash,
                 phone_verified: true,
-                refresh_token_hash: refreshToken
+                refresh_token_hash: refreshToken,
             });
             await newUser.save();
             await PhoneVerify.deleteOne({ phone: formatPhone });
-            const encrypted = cryptoService.encryptObject({ refreshToken, accessToken });
+            const encrypted = cryptoService.encryptObject({
+                refreshToken,
+                accessToken,
+            });
             response_data(res, 200, "User registered successfully", encrypted);
             return;
         } catch (error) {
@@ -298,7 +364,10 @@ class UserController extends ProtectController {
                 return;
             }
             const formatPhone = format_phone(phone);
-            if (!formatPhone || (this.phoneRegex && !this.phoneRegex.test(formatPhone))) {
+            if (
+                !formatPhone ||
+                (this.phoneRegex && !this.phoneRegex.test(formatPhone))
+            ) {
                 response_data(res, 400, "Invalid phone number format", []);
                 return;
             }
@@ -347,7 +416,7 @@ class UserController extends ProtectController {
             }
             const ticket = await googleOAuthClient.verifyIdToken({
                 idToken: google_token,
-                audience: GOOGLE_CLIENT_ID
+                audience: GOOGLE_CLIENT_ID,
             });
             const payload = ticket.getPayload();
             if (!payload) {
@@ -366,7 +435,9 @@ class UserController extends ProtectController {
                 return;
             }
 
-            let ensureUser = await AppUser.findOne({ email_hash }).select("+refresh_token_hash").lean();
+            let ensureUser = await AppUser.findOne({ email_hash })
+                .select("+refresh_token_hash")
+                .lean();
             let finalRefreshToken = ensureUser?.refresh_token_hash;
 
             if (!ensureUser) {
@@ -380,11 +451,13 @@ class UserController extends ProtectController {
                     google_id_hash,
                     email: cryptoService.encrypt(email) ?? "",
                     email_hash,
-                    refresh_token_hash: finalRefreshToken
+                    refresh_token_hash: finalRefreshToken,
                 });
                 ensureUser = created.toObject();
             } else {
-                const isTokenValid = finalRefreshToken ? jwtService.verifyToken(finalRefreshToken) : false;
+                const isTokenValid = finalRefreshToken
+                    ? jwtService.verifyToken(finalRefreshToken)
+                    : false;
                 if (!isTokenValid) {
                     finalRefreshToken = this.refresh_token(ensureUser.user_id);
                     await AppUser.updateOne(
@@ -395,7 +468,7 @@ class UserController extends ProtectController {
                                 name,
                                 avatar: picture,
                             },
-                        }
+                        },
                     );
                 }
             }
@@ -423,9 +496,23 @@ class UserController extends ProtectController {
                 return;
             }
             const settings = await model_settings.findOne({ user_id }).lean();
-            const { emailNotifications, twoFactor } = settings?.user || { emailNotifications: false, twoFactor: false };
+            const { emailNotifications, twoFactor } = settings?.user || {
+                emailNotifications: false,
+                twoFactor: false,
+            };
             const { email, phone, name, avatar, bio, point } = user;
-            const collection = { avatar, fullName: name, username: name, email, phone, bio, points: point, emailNotifications, twoFactor };
+            const format_phone = cryptoService.decrypt(phone || "");
+            const collection = {
+                avatar,
+                fullName: name,
+                username: name,
+                email,
+                phone: format_phone,
+                bio,
+                points: point,
+                emailNotifications,
+                twoFactor,
+            };
             const encrypted = cryptoService.encryptObject(collection);
             return response_data(res, 200, "Success", encrypted);
         } catch (err) {
@@ -434,11 +521,23 @@ class UserController extends ProtectController {
         }
     }
 
-    public async update_profile(req: Request, res: Response): Promise<Response | void> {
+    public async update_profile(
+        req: Request,
+        res: Response,
+    ): Promise<Response | void> {
         try {
             const result = await this.protect_post<SaveUserProfile>(req, res, true);
             if (!result) return;
-            const { user_id, avatar, username, email, phone, bio, emailNotifications, twoFactor } = result;
+            const {
+                user_id,
+                avatar,
+                username,
+                email,
+                phone,
+                bio,
+                emailNotifications,
+                twoFactor,
+            } = result;
             const session = await mongoose.startSession();
             session.startTransaction();
             try {
@@ -448,7 +547,9 @@ class UserController extends ProtectController {
                     return response_data(res, 401, "Unauthorized", []);
                 }
 
-                const settings = (await model_settings.findOne({ user_id }).session(session)) || new model_settings({ user_id });
+                const settings =
+                    (await model_settings.findOne({ user_id }).session(session)) ||
+                    new model_settings({ user_id });
                 settings.user ||= { emailNotifications: false, twoFactor: false };
                 settings.user.emailNotifications = emailNotifications;
                 settings.user.twoFactor = twoFactor;
@@ -463,7 +564,9 @@ class UserController extends ProtectController {
                 await settings.save({ session });
                 await session.commitTransaction();
 
-                const collection = make_schema(result).omit(["user_id", "session_id", "token", "hash_key"]).get();
+                const collection = make_schema(result)
+                    .omit(["user_id", "session_id", "token", "hash_key"])
+                    .get();
                 const format_data = cryptoService.encryptObject(collection);
                 return response_data(res, 200, "Success", format_data);
             } catch (err: unknown) {
@@ -480,4 +583,4 @@ class UserController extends ProtectController {
     }
 }
 
-export default new UserController;
+export default new UserController();
