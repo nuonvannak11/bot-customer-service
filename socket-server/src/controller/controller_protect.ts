@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { z } from "zod";
 import { eLog, empty } from "../utils/util";
-import hash_data from "../helper/hash_data";
+import { cryptoService } from "../lib/crypto";
 
 interface ValidationResult<T> {
     success: boolean;
@@ -22,7 +22,7 @@ export class ProtectController {
     public decodeString(value: unknown, encrypted: boolean = false): string | null {
         if (typeof value !== 'string') return null;
         try {
-            const raw = encrypted ? hash_data.decryptData(value) : value;
+            const raw = encrypted ? cryptoService.decrypt(value) : value;
             if (raw == null || empty(raw)) return null;
             return raw.trim();
         } catch (error) {

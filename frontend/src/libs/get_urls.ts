@@ -36,6 +36,8 @@ export function get_url(name: string) {
             return get_env("BACKEND_URL") + "/auth/logout";
         case "update_user_profile":
             return get_env("BACKEND_URL") + "/api/user/profile/update";
+        case "refresh_token":
+            return get_env("BACKEND_URL") + "/auth/refresh_token";
         default:
             throw new Error(`Unknown backend url key: ${name}`);
     }

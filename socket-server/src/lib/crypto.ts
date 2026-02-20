@@ -1,6 +1,7 @@
 import crypto from "crypto";
-import { eLog, get_env } from "@/libs/lib";
-import { empty } from "@/utils/util";
+import { get_env } from "../utils/get_env";
+import { eLog } from "../utils/util";
+import { empty } from "../utils/util";
 
 class CryptoService {
     private readonly ALGORITHM = "aes-256-gcm";
@@ -74,6 +75,10 @@ class CryptoService {
 
     public random_key(): string {
         return this.encrypt(crypto.randomBytes(32).toString("base64url")) || "";
+    }
+
+    public sessionId(): string {
+        return crypto.randomBytes(8).toString("hex");
     }
 }
 

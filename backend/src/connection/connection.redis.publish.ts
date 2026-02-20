@@ -1,7 +1,7 @@
 import redis from "../config/redis";
 import {empty, format_payload, str_lower, str_val } from "../utils/util";
 import { eLog } from "../libs/lib";
-import { getErrorMessage } from "../helper/errorHandling";
+import { getErrorMessage } from "../helper/index";
 import { FallbackPublish } from "../interface";
 import { request_post } from "../helper/helper.request";
 

@@ -1,6 +1,10 @@
 import { Request, Response } from "express";
 import http from "http";
-import { get_env } from "../utils/get_env";
+import { get_env } from "./get_env";
+import { IpManager } from "../middleware/ip_manager";
+import { getClientIP } from "./get_ip";
+import { str_lower } from "../utils/util";
+import { ALLOWED_UAS } from "../constants";
 
 export function eLog(data: any, ...args: any[]): void {
     if (get_env('NODE_ENV', 'development') === 'development') {
@@ -9,11 +13,15 @@ export function eLog(data: any, ...args: any[]): void {
 }
 
 export function check_header(request: Request): boolean {
-    const ua = request.get("user-agent");
-    if (!ua) return false;
-    const allow_ua = ["axios", "fetch", "node-fetch"];
-    const lowerUA = ua.toLowerCase();
-    return allow_ua.some(keyword => lowerUA.includes(keyword));
+    const ua = str_lower(request.get("user-agent") ?? "");
+    if (!ua || !ALLOWED_UAS.some(keyword => ua.includes(keyword))) {
+        return false;
+    }
+    const ip = getClientIP(request);
+    if (!ip || !IpManager.isAllowed(ip)) {
+        return false;
+    }
+    return true;
 }
 
 export const response_data = (res: Response, code: number, message: string, data: any) => {

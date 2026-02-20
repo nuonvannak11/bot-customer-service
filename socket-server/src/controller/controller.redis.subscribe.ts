@@ -1,9 +1,9 @@
 import redis from '../config/redis';
 import type { IoServer } from '../lib/socket';
-import hash_data from '../helper/hash_data';
 import { empty, eLog } from '../utils/util';
 import { get_env } from '../utils/get_env';
 import userController from './controller_user';
+import { cryptoService } from '../lib/crypto';
 
 type SocketControlChannels = {
 	emit: string;
@@ -133,7 +133,7 @@ class RedisSubscribeController {
 	private decodeString(value: unknown, encrypted: boolean): string | null {
 		if (typeof value !== 'string') return null;
 		try {
-			const raw = encrypted ? hash_data.decryptData(value) : value;
+			const raw = encrypted ? cryptoService.decrypt(value) : value;
 			if (raw == null || empty(raw)) return null;
 			return raw.trim();
 		} catch (error) {
@@ -148,7 +148,7 @@ class RedisSubscribeController {
 		}
 		if (typeof value !== 'string') return null;
 		try {
-			const raw = hash_data.decryptData(value);
+			const raw = cryptoService.decrypt(value);
 			if (raw == null) return null;
 			return raw;
 		} catch (error) {

@@ -5,7 +5,7 @@ import { empty } from "../utils/util";
 import { eLog } from "../libs/lib";
 import { AddServerRequest } from "../interface";
 import { GetSeverRequest } from "../interface/interface_user";
-import { addIpToWhitelist, removeIpFromWhitelist } from "../middleware/middleware.allow_ip";
+import { addIpToWhitelist, removeIpFromWhitelist } from "../middleware/ip_manager";
 import controller_server from "./controller_server";
 
 class AdminController extends ProtectController {

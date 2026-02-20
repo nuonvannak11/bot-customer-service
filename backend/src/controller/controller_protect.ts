@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
 import { response_data, check_header, ensureHashKey } from "../libs/lib";
 import jwtService from "../libs/jwt";
-import cryptoService from "../libs/crypto";
-import { RequestSchema } from "../helper";
+import { cryptoService } from "../libs/crypto";
 import { empty, str_lower } from "../utils/util";
 import { AuthData, ValidationResult } from "../interface";
+import { RequestSchema } from "../schema";
 
 interface ProcessOptions {
     requireAuth: boolean;
@@ -17,8 +17,6 @@ export class ProtectController {
         if (typeof obj !== "object" || obj === null) return false;
         for (const [key, value] of Object.entries(obj)) {
             if (key.startsWith("$") || key.includes(".")) return true;
-            // SECURITY/CRASH FIX: Ignore Express/Multer file buffers!
-            // Without this, the recursive loop will crash when it hits a file buffer.
             if (typeof value === "object" && value !== null && !Buffer.isBuffer(value)) {
                 if (this.hasDangerousKeys(value)) return true;
             }
@@ -90,7 +88,6 @@ export class ProtectController {
     private parseAndValidateBody<T extends object>(req: Request): ValidationResult<T> {
         const parsed = RequestSchema.safeParse(req.body);
         if (!parsed.success) return { success: false, error: { code: 400, message: "Invalid request" } };
-
         const decrypted = cryptoService.decrypt(parsed.data.payload);
         if (!decrypted) return { success: false, error: { code: 400, message: "Invalid payload" } };
 
@@ -109,7 +106,7 @@ export class ProtectController {
     }
 
     public extractToken(req: Request): AuthData | null {
-        const header = req.headers.authorization;
+        const header = req.headers.authorization || req.headers.Authorization;
         if (!header || typeof header !== "string") return null;
         const [scheme, token] = header.trim().split(/\s+/);
         if (str_lower(scheme) !== "bearer" || !token) return null;

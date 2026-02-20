@@ -1,5 +1,5 @@
 import Redis from 'ioredis';
-import { get_env } from "../utils/get_env";
+import { get_env } from "../libs/get_env";
 import { eLog } from "../libs/lib";
 
 const portStr = get_env("REDIS_PORT", "6379");

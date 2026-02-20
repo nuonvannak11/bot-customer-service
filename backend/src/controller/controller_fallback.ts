@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { ConfirmGroupChanelSchema, ScanFileSchema } from "../schema";
-import { getErrorMessage } from "../helper/errorHandling";
+import { getErrorMessage } from "../helper/index";
 import processor from "../controller/controller_process_file";
 import controller_telegram from "./controller_telegram";
 import { eLog } from "../libs/lib";

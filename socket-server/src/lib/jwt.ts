@@ -1,12 +1,12 @@
 import jwt, { SignOptions, VerifyOptions, JwtPayload } from "jsonwebtoken";
-import { get_env } from "./get_env";
-import { eLog } from "./lib";
+import { get_env } from "../utils/get_env";
+import { eLog } from "../utils/util";
 import { empty } from "../utils/util";
 
 class JWTService {
     private JWT_SECRET = get_env("JWT_SECRET");
-    private ACCESS_EXPIRES = get_env("JWT_ACCESS_EXPIRES", "15m");
-    private REFRESH_EXPIRES = get_env("JWT_REFRESH_EXPIRES", "30d");
+    private ACCESS_EXPIRES = get_env("JWT_ACCESS_EXPIRES") || "15m";
+    private REFRESH_EXPIRES = get_env("JWT_REFRESH_EXPIRES") || "30d";
 
     constructor() {
         if (!this.JWT_SECRET) {

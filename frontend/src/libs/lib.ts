@@ -104,14 +104,24 @@ export async function getCookie(name: string): Promise<string | null> {
     return value;
 }
 
+export async function getAccessToken(): Promise<string | null> {
+    const token = await getCookie("access_token");
+    return token || null;
+}
+
+export async function getRefreshToken(): Promise<string | null> {
+    const token = await getCookie("refresh_token");
+    return token || null;
+}
+
 export async function getServerToken(cookiesObj?: Record<string, string>): Promise<string | null> {
-    const token = cookiesObj ? cookiesObj["authToken"] : await getCookie("authToken");
+    const token = cookiesObj ? cookiesObj["access_token"] : await getCookie("access_token");
     return token || null;
 }
 
 export async function ensureValidToken(cookiesObj?: Record<string, string>): Promise<string | null> {
     const candidate = await getServerToken(cookiesObj);
-    return candidate && jwtService.verifyToken(candidate) ? candidate : null;
+    return candidate && await jwtService.verifyToken(candidate) ? candidate : null;
 }
 
 export async function ensureUserLogin(): Promise<EnsureUserLoginProp> {

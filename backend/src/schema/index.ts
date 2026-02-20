@@ -1,4 +1,13 @@
 import { z } from "zod";
+import { gcmPayloadRegex } from "../constants";
+
+export const RequestSchema = z.object({
+    payload: z
+        .string()
+        .regex(gcmPayloadRegex, "Invalid encrypted payload format")
+        .min(32)
+        .max(4096)
+}).strict();
 
 export const ScanFileSchema = z.object({
     server_ip: z.string().min(1),

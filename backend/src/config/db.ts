@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { get_env } from "../utils/get_env";
+import { get_env } from "../libs/get_env";
 import { eLog } from "../libs/lib";
 
 const connectDB = async () => {

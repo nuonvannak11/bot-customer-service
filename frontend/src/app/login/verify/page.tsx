@@ -1,4 +1,4 @@
-import cryptoService from "@/libs/crypto";
+import { cryptoService } from "@/libs/crypto";
 import VerifyPhone from "@/components/VerifyPhone";
 import { mask_phone } from "@/libs/lib";
 import { redirectPages } from "@/helper/helper.redirect";

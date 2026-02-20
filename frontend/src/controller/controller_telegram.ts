@@ -1,50 +1,20 @@
 import { NextRequest } from "next/server";
-import axios, { Method, AxiosError } from "axios";
-import { z } from "zod";
+import axios, { AxiosError } from "axios";
 import { eLog, response_data } from "@/libs/lib";
-import cryptoService from "@/libs/crypto";
 import { make_schema } from "@/helper/helper";
+import { get_url } from "@/libs/get_urls";
 import { ProtectController } from "./controller_protector";
 import { request_get, request_post } from "@/libs/request_server";
 import { REQUEST_TIMEOUT_BOT_CLOSE_OPEN_MS, REQUEST_TIMEOUT_MS } from "@/constants";
+import { ACTION_CONFIG, TELEGRAM_SETTING_KEYS } from "@/constants/telegram";
 import { validateDomains } from "@/helper/helper.domain";
-import { get_url } from "@/libs/get_urls";
-import { ProtectData } from "@/interface/interface.telegram";
-import { ProtectRequestSchema, telegramPayloadSchema } from "@/schema/zod.telegram";
+import { ProtectData, ApiResponse } from "@/interface/interface.telegram";
+import { ProtectRequestSchema, telegramPayloadSchema, botActionSchema } from "@/schema/zod.telegram";
 import { TelegramBotSettingsConfig } from "@/interface";
 import { getErrorMessage } from "@/utils/util";
+import { BotAction, ProtectAction } from "@/types/type.telegram";
+import { cryptoService } from "@/libs/crypto";
 
-interface ApiResponse<T = unknown> {
-    code: number;
-    message: string;
-    data: T;
-}
-
-const TELEGRAM_SETTING_KEYS = [
-    "botUsername",
-    "botToken",
-    "is_process",
-    "webhookUrl",
-    "webhookEnabled",
-    "notifyEnabled",
-    "silentMode",
-    "exceptionLinks",
-] as const;
-
-const botActionSchema = z.object({
-    hash_key: z.string().min(10).max(100).regex(/^[A-Za-z0-9+/=]+$/, "Invalid hash format"),
-    bot_token: z.string().min(10).max(100),
-    method: z.enum(["open", "close"]).optional(),
-});
-
-type BotAction = "open" | "close";
-type ProtectAction = "add" | "update" | "delete";
-
-const ACTION_CONFIG: Record<ProtectAction, { method: Method; endpoint: string }> = {
-    add: { method: "POST", endpoint: "save_protect_settings" },
-    update: { method: "PUT", endpoint: "update_protect_settings" },
-    delete: { method: "DELETE", endpoint: "delete_protect_settings" },
-};
 
 class TelegramController extends ProtectController {
     private handleError(err: unknown) {
@@ -65,13 +35,6 @@ class TelegramController extends ProtectController {
         }
         const message = getErrorMessage(err) || "Internal Server Error";
         return response_data(500, 500, message, []);
-    }
-
-    private getHeaders(token: string) {
-        return {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-        };
     }
 
     private decryptPayload<T>(encrypted: string | null | undefined): T | null {
@@ -269,8 +232,9 @@ class TelegramController extends ProtectController {
                 timeout: REQUEST_TIMEOUT_MS,
                 validateStatus: () => true,
             });
-            if (response.status !== 200) {
-                return response_data(response.status, response.status, response.statusText || "Request failed", []);
+            const { status, statusText } = response;
+            if (status !== 200) {
+                return response_data(status, status, statusText || "Request failed", []);
             };
             const { code, message, data } = response.data;
             return response_data(code, code, message, data);
@@ -282,5 +246,4 @@ class TelegramController extends ProtectController {
 
 }
 const telegramController = new TelegramController();
-
 export default telegramController;

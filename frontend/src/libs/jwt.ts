@@ -1,6 +1,12 @@
 import jwt, { SignOptions, VerifyOptions, JwtPayload } from "jsonwebtoken";
-import { get_env, eLog } from "@/libs/lib";
-import { empty } from "@/utils/util";
+import { get_env, eLog, getRefreshToken } from "@/libs/lib";
+import { empty, getErrorMessage } from "@/utils/util";
+import { request_get } from "@/libs/request_server";
+import { get_url } from "@/libs/get_urls";
+import { ApiResponse } from "@/interface/index";
+import { REQUEST_TIMEOUT_MS } from "@/constants";
+import { NextResponse } from "next/server";
+
 
 class JWTService {
     private JWT_SECRET = get_env("JWT_SECRET");
@@ -25,13 +31,42 @@ class JWTService {
         return this.signToken(payload, this.REFRESH_EXPIRES);
     }
 
-    public verifyToken<T extends JwtPayload>(token: string, options?: VerifyOptions): T | null {
+    public async verifyToken<T extends JwtPayload>(token: string, options?: VerifyOptions): Promise<{ data: T; newToken?: string } | null> {
         if (empty(token)) return null;
         try {
-            return jwt.verify(token, this.JWT_SECRET, options) as T;
+            const decoded = jwt.verify(token, this.JWT_SECRET, options) as T;
+            return { data: decoded };
         } catch (error: unknown) {
-            eLog(`Token verification failed: ${error}`);
-            return null;
+            try {
+                const err = getErrorMessage(error);
+                if (err === "jwt expired") {
+                    const refresh_token = await getRefreshToken();
+                    console.log("refresh_token====", refresh_token)
+                    if (!refresh_token) return null;
+                    const response = await request_get<ApiResponse<string>>({
+                        url: get_url("refresh_token"),
+                        timeout: REQUEST_TIMEOUT_MS,
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${refresh_token}`,
+                        },
+                    });
+                    if (!response.success) return null;
+                    const { code, message, data } = response.data;
+                    console.log("data====", data)
+                    if (code !== 200) {
+                        eLog("[refresh_token] Error:", message);
+                        return null;
+                    }
+                    const decoded = jwt.verify(data, this.JWT_SECRET, options) as T;
+                    return { data: decoded, newToken: data };
+                }
+                eLog(`Token verification failed: ${error}`);
+                return null;
+            } catch (err) {
+                eLog(`Token verification failed: ${err}`);
+                return null;
+            }
         }
     }
 

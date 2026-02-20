@@ -1,8 +1,9 @@
 import type { Algorithm } from 'jsonwebtoken';
 import type { Socket } from 'socket.io';
-import checkJwt from '../helper/check_jwt';
-import sessionStore from '../controller/controller.session.store';
 import type { SocketData } from '../types/socket';
+import sessionStore from '../controller/controller.session.store';
+import jwtService from '../lib/jwt';
+
 
 type JwtAuthPayload = {
 	user_id: string;
@@ -42,7 +43,7 @@ export function createSocketAuthMiddleware(options: { jwtAlgorithms?: Algorithm[
 			const token = readHandshakeToken(socket);
 			if (!token) return next(new Error('UNAUTHORIZED'));
 
-			const verified = checkJwt.verifyToken(token, jwtAlgorithms ? { algorithms: jwtAlgorithms } : undefined);
+			const verified = jwtService.verifyToken(token, jwtAlgorithms ? { algorithms: jwtAlgorithms } : undefined);
 			if (!verified?.status) return next(new Error('TOKEN_INVALID'));
 
 			const decoded: unknown = verified.decoded;
@@ -51,7 +52,7 @@ export function createSocketAuthMiddleware(options: { jwtAlgorithms?: Algorithm[
 			const userId = decoded.user_id.trim();
 			const sessionId = decoded.session_id.trim();
 			if (!userId || !sessionId) return next(new Error('TOKEN_INVALID'));
-
+			console.log('token===', token);
 			try {
 				const sessionCheck = await sessionStore.assertOrAdopt(userId, sessionId);
 				if (!sessionCheck.ok) return next(new Error(sessionCheck.reason));

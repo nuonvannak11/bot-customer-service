@@ -1,4 +1,4 @@
-import { get_env } from "../utils/get_env";
+import { get_env } from "./get_env";
 
 export function get_url(page: string, url?: string) {
     let path;
@@ -17,8 +17,6 @@ export function get_url(page: string, url?: string) {
             break;
         default:
             path = "index";
-
-            
     }
     if (url) return url + path;
     return get_env("SERVER_BOT_URL") + path;

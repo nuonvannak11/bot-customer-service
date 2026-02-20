@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
-import { get_env } from "../utils/get_env";
+import { get_env } from "../libs/get_env";
     
 
 export async function transcribe(filePath: string): Promise<string> {

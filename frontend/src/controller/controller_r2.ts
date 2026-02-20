@@ -1,6 +1,6 @@
 import FormData from "form-data";
 import axios from "axios";
-import cryptoService from "@/libs/crypto";
+import { cryptoService } from "@/libs/crypto";
 import { eLog, get_env } from "@/libs/lib";
 
 class ControllerR2 {
@@ -35,9 +35,7 @@ class ControllerR2 {
             return null;
         }
     }
-
     async delete() {
-
     }
 }
 

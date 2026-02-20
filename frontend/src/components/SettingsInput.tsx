@@ -24,6 +24,7 @@ interface SettingsInputProps {
   defaultShowPassword?: boolean;
   onChange?: (val: string) => void;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  autoComplete?: string;
 }
 
 const SettingsInput = forwardRef<HTMLInputElement, SettingsInputProps>(
@@ -39,6 +40,7 @@ const SettingsInput = forwardRef<HTMLInputElement, SettingsInputProps>(
       disabled = false,
       customStyle,
       className,
+      autoComplete,
       ...props
     },
     ref,
@@ -71,12 +73,13 @@ const SettingsInput = forwardRef<HTMLInputElement, SettingsInputProps>(
             disabled={disabled}
             onChange={(e) => onChange?.(e.target.value)}
             onKeyDown={onKeyDown}
+            autoComplete={autoComplete ?? "off"}
             className={cn(
               customStyle ?? INPUT_STYLES,
               hasLeftContent ? "pl-10" : "pl-4",
               isPasswordType ? "pr-10" : "pr-4",
               disabled &&
-                "cursor-not-allowed opacity-60 bg-gray-100 dark:bg-slate-900",
+              "cursor-not-allowed opacity-60 bg-gray-100 dark:bg-slate-900",
             )}
             {...props}
           />

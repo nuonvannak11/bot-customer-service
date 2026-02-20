@@ -1,25 +1,22 @@
 import { NextRequest } from "next/server";
 import axios, { AxiosError } from "axios";
 import { z } from "zod";
-import { get_env, eLog, check_header } from "@/libs/lib";
-import { response_data } from "@/libs/lib";
-import cryptoService from "@/libs/crypto";
+import { get_env, eLog, check_header, response_data } from "@/libs/lib";
 import { empty } from "@/utils/util";
-import { SAFE_TEXT, EMAIL_REGEX, REQUEST_TIMEOUT_MS } from "@/constants";
-import { ApiResponse, AuthResponse, LoginResponse, OTPResponse } from "@/types/type";
+import { EMAIL_REGEX, REQUEST_TIMEOUT_MS, SAFE_USER_NAME } from "@/constants";
+import { ApiResponse, AuthResponse, DataLogin } from "@/types/type";
 import { CheckAuthResponse, UserProfileConfig } from "@/interface";
-import controller_r2 from "./controller_r2";
 import { ProtectController } from "./controller_protector";
 import { request_get, request_patch, request_post } from "@/libs/request_server";
 import { get_url } from "@/libs/get_urls";
 import { JSON_PROTECTOR, SchemaUpdateUserProfile } from "@/schema/zod.user";
+import { cryptoService } from "@/libs/crypto";
+import { setTokenCookie } from "@/helper/helper";
+import controller_r2 from "./controller_r2";
 
 class UserController extends ProtectController {
-    private getHeaders(token: string) {
-        return {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-        };
+    private expireAt(days: number): number {
+        return 60 * 60 * 24 * days;
     }
 
     private decryptPayload<T>(encrypted: string | null | undefined): T | null {
@@ -87,24 +84,27 @@ class UserController extends ProtectController {
             }
             const { phone, password, hash_key } = validData;
             const payload = cryptoService.encryptObject({ phone, password, hash_key });
-            const response = await request_post<LoginResponse>({
+            const response = await request_post<AuthResponse<string>>({
                 url: get_url("login"),
                 data: { payload },
                 timeout: 10_000,
                 headers: { "Content-Type": "application/json" },
             });
-            if (!response.success) {
-                return response_data(400, 400, response.error, []);
+            if (!response.success) return response_data(400, 400, response.error, []);
+            const { code, message, data } = response.data;
+            if (code !== 200) return response_data(code, code, message, []);
+            const decrypted = cryptoService.decryptObject<DataLogin>(data);
+            if (!decrypted) {
+                return response_data(400, 400, "Failed to decrypt payload", []);
             }
-            const { code, message, token } = response.data;
-            const res = response_data(code, code, message, token);
-            res.cookies.set("authToken", token, {
-                httpOnly: true,
-                secure: get_env("NODE_ENV") === "production",
-                path: "/",
-                sameSite: "strict",
-                maxAge: 60 * 60 * 24 * 7,
-            });
+            const { refreshToken, accessToken } = decrypted;
+            const res = response_data(code, code, message, decrypted);
+            const secure = get_env("NODE_ENV") === "production";
+            const collection = (name: string, value: string, maxAge: number) => {
+                return { res, name, value, maxAge, secure }
+            }
+            setTokenCookie(collection("refresh_token", refreshToken, this.expireAt(7)));
+            setTokenCookie(collection("access_token", accessToken, this.expireAt(1)));
             return res;
         } catch (err: unknown) {
             eLog("Login Proxy Error:", err);
@@ -114,7 +114,10 @@ class UserController extends ProtectController {
 
     public async register(req: NextRequest) {
         try {
-            const Schema = z.object(JSON_PROTECTOR).extend({ username: z.string().min(1, "Username is required").max(20, "Username is too long").regex(SAFE_TEXT, "Invalid characters!") }).strict();
+            const Schema = z
+                .object(JSON_PROTECTOR)
+                .extend({ username: z.string().min(1, "Username is required").max(30, "Username is too long").regex(SAFE_USER_NAME, "Invalid characters!") })
+                .strict();
             const results = await this.protect(req, Schema.shape, 10, false, 120);
             if (!results.ok) return results.response;
             const validData = results.data;
@@ -142,7 +145,11 @@ class UserController extends ProtectController {
 
     public async verify_otp(req: NextRequest) {
         try {
-            const Schema = z.object(JSON_PROTECTOR).extend({ code: z.string().min(1, "Code is required").max(7, "Code is too long") }).omit({ password: true }).strict();
+            const Schema = z
+                .object(JSON_PROTECTOR)
+                .extend({ code: z.string().min(1, "Code is required").max(7, "Code is too long") })
+                .omit({ password: true })
+                .strict();
             const results = await this.protect(req, Schema.shape, 5, false, 120);
             if (!results.ok) return results.response;
             const validData = results.data;
@@ -151,7 +158,7 @@ class UserController extends ProtectController {
             }
             const { phone, code, hash_key } = validData;
             const payload = cryptoService.encryptObject({ phone, code, hash_key });
-            const response = await request_post<OTPResponse<string>>({
+            const response = await request_post<AuthResponse<string>>({
                 url: get_url("verify_phone"),
                 data: { payload },
                 headers: { "Content-Type": "application/json" },
@@ -160,18 +167,22 @@ class UserController extends ProtectController {
             if (!response.success) {
                 return response_data(400, 400, response.error, []);
             }
-            const { code: codeResponse, message, token } = response.data;
-            if (codeResponse !== 200) {
-                return response_data(codeResponse, codeResponse, message, [])
+            const { code: code_res, message, data } = response.data;
+            if (code_res !== 200) {
+                return response_data(code_res, code_res, message, [])
             }
-            const res = response_data(codeResponse, codeResponse, message, token);
-            res.cookies.set("authToken", token, {
-                httpOnly: true,
-                secure: get_env("NODE_ENV") === "production",
-                path: "/",
-                sameSite: "strict",
-                maxAge: 60 * 60 * 24 * 7,
-            });
+            const decrypted = cryptoService.decryptObject<DataLogin>(data);
+            if (!decrypted) {
+                return response_data(400, 400, "Failed to decrypt payload", []);
+            }
+            const { refreshToken, accessToken } = decrypted;
+            const res = response_data(code_res, code_res, message, data);
+            const secure = get_env("NODE_ENV") === "production";
+            const collection = (name: string, value: string, maxAge: number) => {
+                return { res, name, value, maxAge, secure }
+            }
+            setTokenCookie(collection("refresh_token", refreshToken, this.expireAt(7)));
+            setTokenCookie(collection("access_token", accessToken, this.expireAt(1)));
             return res;
         } catch (err: unknown) {
             eLog("Login Proxy Error:", err);
@@ -222,7 +233,8 @@ class UserController extends ProtectController {
             if (!header) {
                 return response_data(403, 403, "Forbidden", []);
             }
-            req.cookies.delete("authToken");
+            req.cookies.delete("access_token");
+            req.cookies.delete("refresh_token");
             return response_data(200, 200, "Logout successfully", []);
         } catch (err: unknown) {
             eLog("Login Proxy Error:", err);
@@ -271,7 +283,7 @@ class UserController extends ProtectController {
                 if (!updateAvatar.ok) {
                     return response_data(400, 400, updateAvatar.error || "Invalid file", []);
                 }
-                const parseToken = this.parse_token(token);
+                const parseToken = await this.parse_token(token);
                 if (!parseToken) {
                     return response_data(401, 401, "Unauthorized", []);
                 }

@@ -1,7 +1,7 @@
 import redis from "../config/redis";
 import { eLog } from "../libs/lib";
 import processor from "../controller/controller_process_file";
-import { getErrorMessage } from "../helper/errorHandling";
+import { getErrorMessage } from "../helper/index";
 import controller_telegram from "../controller/controller_telegram";
 
 export async function startSubscribe() {
@@ -21,7 +21,6 @@ export async function startSubscribe() {
         redis.on("message", async (channel, message) => {
             try {
                 const data = JSON.parse(message);
-                eLog("data====>", data);
                 if (channel === "scan_file") {
                     await processor.addTask(data);
                 }

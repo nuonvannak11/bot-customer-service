@@ -1,11 +1,12 @@
 import { Suspense } from "react";
-import cryptoService from "@/libs/crypto";
+import { cryptoService } from "@/libs/crypto";
+import { defaultTelegramConfig } from "@/data/data.default";
+import { ensureToken } from "@/hooks/use-redirect";
 import SettingsClient from "@/components/settings/SettingsClient";
 import TelegramSettingsClient from "@/components/settings/TelegramSettingsClient";
 import BotSettingsSkeleton from "@/components/skeleton/BotSettingsSkeleton";
-import { ensureToken } from "@/hooks/use-redirect";
 import controller_telegram from "@/controller/controller_telegram";
-import { defaultTelegramConfig } from "@/data/data.default";
+
 
 async function TelegramSettings() {
   const token = await ensureToken();

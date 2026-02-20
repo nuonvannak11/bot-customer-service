@@ -10,8 +10,9 @@ export type AuthResponse<T = unknown> = {
   data: T;
 };
 
-export type LoginResponse = AuthResponse & {
-  token: string;
+export type DataLogin = {
+  refreshToken: string;
+  accessToken: string;
 }
 
 export type ResponseData = {

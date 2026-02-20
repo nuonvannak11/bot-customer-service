@@ -5,7 +5,6 @@ Dedicated real-time Socket Server for `bot-customer-service` (no DB, no login/bu
 ## Features
 - Express HTTP server (optional internal routes)
 - Socket.IO initialization
-- JWT authentication in Socket.IO handshake (`src/helper/check_jwt.ts`)
 - Per-user room auto-join: `user:{user_id}`
 - Single-login enforcement via Redis (stores active `session_id` per `user_id`)
 - Redis Pub/Sub control channels for:

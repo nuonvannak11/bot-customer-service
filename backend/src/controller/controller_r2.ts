@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import sharp from "sharp";
 import r2 from "../config/r2";
-import { get_env } from "../utils/get_env";
+import { get_env } from "../libs/get_env";
 import { empty, str_lower } from "../utils/util";
 import { eLog } from "../libs/lib";
 import { ProtectController } from "./controller_protect";

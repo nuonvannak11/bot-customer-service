@@ -7,10 +7,10 @@ import PhoneVerify from "../models/model_phone_verify";
 import model_settings from "../models/model_settings";
 import send_sms from "../services/send_sms";
 import jwtService from "../libs/jwt";
-import cryptoService from "../libs/crypto";
+import { cryptoService } from "../libs/crypto";
 import { eLog } from "../libs/lib";
-import { PHONE_REGEX, EMAIL_REGEX, GOOGLE_TOKEN_REGEX } from "../constants";
-import { get_env } from "../utils/get_env";
+import { PHONE_REGEX, GOOGLE_TOKEN_REGEX } from "../constants";
+import { get_env } from "../libs/get_env";
 import { empty, random_number, expiresAt, str_number, format_phone, str_val } from "../utils/util";
 import { make_schema } from "../helper";
 import { response_data } from "../libs/lib";
@@ -25,7 +25,7 @@ import {
 } from "../interface/interface_user";
 import { SaveUserProfile } from "../interface";
 import { nextId } from "../libs/generateSnowflakeId";
-import { getErrorMessage } from "../helper/errorHandling";
+import { getErrorMessage } from "../helper/index";
 
 
 const GOOGLE_CLIENT_ID = get_env("GOOGLE_CLIENT_ID");
@@ -33,10 +33,25 @@ const googleOAuthClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 class UserController extends ProtectController {
     private readonly phoneRegex = PHONE_REGEX;
+    private sess_id(): string {
+        return cryptoService.sessionId();
+    }
+    private access_token(user_id: string) {
+        return jwtService.signAccessToken({
+            user_id: str_val(user_id),
+            session_id: this.sess_id()
+        })
+    }
+    private refresh_token(user_id: string) {
+        return jwtService.signRefreshToken({
+            user_id: str_val(user_id),
+            session_id: this.sess_id()
+        })
+    }
 
-    private async ensureRefreshToken(user_id: string, refresh_token: string): Promise<boolean> {
-        if (!user_id || !refresh_token) return false;
-        const checkAccessToken = await AppUser.findOne({ user_id, refresh_token_hash: refresh_token }).lean();
+    private async ensureRefreshToken(user_id: string, refresh_token_hash: string): Promise<boolean> {
+        if (!user_id || !refresh_token_hash) return false;
+        const checkAccessToken = await AppUser.findOne({ user_id, refresh_token_hash }).lean();
         if (!checkAccessToken) return false;
         return true;
     }
@@ -84,7 +99,6 @@ class UserController extends ProtectController {
         try {
             const results = await this.protect_post<LoginRequest>(req, res);
             if (!results) return;
-
             const { phone, password } = results;
             if (empty(phone)) {
                 response_data(res, 400, "Phone is required", []);
@@ -104,43 +118,36 @@ class UserController extends ProtectController {
                 response_data(res, 400, "Invalid phone number format", []);
                 return;
             }
-            const ensureUser = await AppUser.findOne({ phone_hash }).select("+password +refresh_token_hash");
+            const ensureUser = await AppUser.findOne({ phone_hash }).select("_id user_id password phone_verified refresh_token_hash").lean();
             if (!ensureUser) {
-                response_data(res, 401, "Invalid phone number or password", []);
+                response_data(res, 401, "User not found", []);
                 return;
             }
-            if (!ensureUser.phone_verified) {
+            const { _id, user_id, password: hash_password, phone_verified, refresh_token_hash } = ensureUser;
+            if (!phone_verified) {
                 response_data(res, 403, "Please verify your phone number before login.", []);
                 return;
             }
-
-            const isMatch = await bcrypt.compare(password, ensureUser.password || "");
+            const isMatch = await bcrypt.compare(password, hash_password || "");
             if (!isMatch) {
-                response_data(res, 401, "Invalid phone number or password", []);
+                response_data(res, 401, "Invalid password not match", []);
                 return;
             }
 
-            let finalToken = ensureUser.refresh_token_hash;
+            let finalToken = refresh_token_hash;
             const isTokenValid = finalToken ? jwtService.verifyToken(finalToken) : false;
 
             if (!isTokenValid) {
-                finalToken = jwtService.signRefreshToken({
-                    user_id: str_val(ensureUser.user_id),
-                    session_id: cryptoService.sessionId(),
-                });
+                finalToken = this.refresh_token(user_id);
                 await AppUser.updateOne(
-                    { _id: ensureUser._id },
+                    { _id: _id },
                     { $set: { refresh_token_hash: finalToken } }
                 );
             }
-            const collections = {
+            const encrypted = cryptoService.encryptObject({
                 refreshToken: finalToken,
-                accessToken: jwtService.signAccessToken({
-                    user_id: str_val(ensureUser.user_id),
-                    session_id: cryptoService.sessionId()
-                }),
-            }
-            const encrypted = cryptoService.encryptObject(collections);
+                accessToken: this.access_token(user_id),
+            });
             response_data(res, 200, "User login successfully", encrypted);
             return;
         } catch (error) {
@@ -172,7 +179,12 @@ class UserController extends ProtectController {
                 return;
             }
             const formatPhone = format_phone(phone);
-            const existingUser = await AppUser.findOne({ phone: formatPhone }).select("phone").lean();
+            const phone_hash = cryptoService.hash(formatPhone);
+            if (!phone_hash){
+                response_data(res, 400, "Invalid phone number format", []);
+                return;
+            }
+            const existingUser = await AppUser.findOne({ phone_hash }).select("phone").lean();
             if (existingUser) {
                 response_data(res, 400, "Phone number already exists", []);
                 return;
@@ -252,15 +264,8 @@ class UserController extends ProtectController {
 
             const { name, passwordHash } = record.tempData;
             const newUserId = nextId();
-            const sessionId = cryptoService.sessionId();
-            const refreshToken = jwtService.signRefreshToken({
-                user_id: str_val(newUserId),
-                session_id: sessionId,
-            });
-            const accessToken = jwtService.signAccessToken({
-                user_id: str_val(newUserId),
-                session_id: sessionId,
-            });
+            const refreshToken = this.refresh_token(newUserId);
+            const accessToken = this.access_token(newUserId);
             const newUser = new AppUser({
                 user_id: newUserId,
                 name,
@@ -272,11 +277,8 @@ class UserController extends ProtectController {
             });
             await newUser.save();
             await PhoneVerify.deleteOne({ phone: formatPhone });
-            const collections = {
-                refreshToken,
-                accessToken,
-            };
-            response_data(res, 200, "User registered successfully", cryptoService.encryptObject(collections));
+            const encrypted = cryptoService.encryptObject({ refreshToken, accessToken });
+            response_data(res, 200, "User registered successfully", encrypted);
             return;
         } catch (error) {
             eLog("❌ Verify phone error:", error);
@@ -357,7 +359,6 @@ class UserController extends ProtectController {
                 response_data(res, 400, "Invalid Google token payload", []);
                 return;
             }
-            const sessionId = cryptoService.sessionId();
             const email_hash = cryptoService.hash(email);
             const google_id_hash = cryptoService.hash(google_id);
             if (!email_hash || !google_id_hash) {
@@ -370,10 +371,7 @@ class UserController extends ProtectController {
 
             if (!ensureUser) {
                 const newUserId = nextId();
-                finalRefreshToken = jwtService.signRefreshToken({
-                    user_id: str_val(newUserId),
-                    session_id: sessionId,
-                });
+                finalRefreshToken = this.refresh_token(newUserId);
                 const created = await AppUser.create({
                     user_id: newUserId,
                     name,
@@ -388,10 +386,7 @@ class UserController extends ProtectController {
             } else {
                 const isTokenValid = finalRefreshToken ? jwtService.verifyToken(finalRefreshToken) : false;
                 if (!isTokenValid) {
-                    finalRefreshToken = jwtService.signRefreshToken({
-                        user_id: str_val(ensureUser.user_id),
-                        session_id: sessionId,
-                    });
+                    finalRefreshToken = this.refresh_token(ensureUser.user_id);
                     await AppUser.updateOne(
                         { _id: ensureUser._id },
                         {
@@ -404,15 +399,11 @@ class UserController extends ProtectController {
                     );
                 }
             }
-            const accessToken = jwtService.signAccessToken({
-                user_id: String(ensureUser.user_id),
-                session_id: sessionId,
-            });
-            const collections = {
+            const collections = cryptoService.encryptObject({
                 refreshToken: finalRefreshToken,
-                accessToken
-            };
-            response_data(res, 200, "Google login successful", cryptoService.encryptObject(collections));
+                accessToken: this.access_token(ensureUser.user_id),
+            });
+            response_data(res, 200, "Google login successful", collections);
             return;
         } catch (err) {
             eLog("❌ Google login error:", err);

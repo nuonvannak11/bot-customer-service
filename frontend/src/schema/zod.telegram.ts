@@ -1,19 +1,8 @@
 import { z } from "zod";
+import { hashKeySchema } from "./zod";
 
-const hashKeySchema = z
-    .string()
-    .min(10)
-    .max(100)
-    .regex(/^[A-Za-z0-9+/=]+$/, "Invalid hash format");
-
-const chatIdSchema = z
-    .union([z.string(), z.number()])
-    .transform((value) => String(value).trim())
-    .refine((value) => value.length > 0, "chatId is required");
-
-const DeleteAssetSchema = z.object({
-    chatId: chatIdSchema,
-});
+const chatIdSchema = z.union([z.string(), z.number()]).transform((value) => String(value).trim()).refine((value) => value.length > 0, "chatId is required");
+const DeleteAssetSchema = z.object({ chatId: chatIdSchema });
 
 export const ProtectActionSchema = z.enum(["add", "update", "delete"]);
 
@@ -70,7 +59,6 @@ export const ProtectRequestSchema = z.object({
             });
         }
     }
-
     if (value.asset_key === "add" || value.asset_key === "update") {
         const parsedGroupAsset = GroupChannelSchema.safeParse(value.asset);
         if (!parsedGroupAsset.success) {
@@ -94,4 +82,10 @@ export const telegramPayloadSchema = z.object({
     exceptionLinks: z.array(z.string()).optional(),
     exceptionFiles: z.array(z.string()).optional(),
     botUsername: z.string().optional(),
+});
+
+export const botActionSchema = z.object({
+    hash_key: hashKeySchema,
+    bot_token: z.string().min(10).max(100),
+    method: z.enum(["open", "close"]).optional(),
 });

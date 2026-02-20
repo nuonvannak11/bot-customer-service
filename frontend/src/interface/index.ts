@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { ConfrimGroupChanel } from "./interface.telegram";
 
 export interface TelegramBotSettingsConfig {
@@ -90,4 +91,18 @@ export interface SocketState {
   addNotification: (data: any) => void;
   setLastScanResult: (data: any) => void;
   setConfirmGroupEvent: (data: ConfrimGroupChanel | null) => void;
+}
+
+export interface SetTokenCookies {
+  res: NextResponse;
+  name: string;
+  value: string;
+  maxAge: number;
+  secure: boolean;
+}
+
+export interface ApiResponse<T = unknown> {
+    code: number;
+    message: string;
+    data: T;
 }

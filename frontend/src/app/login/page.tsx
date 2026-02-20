@@ -1,4 +1,4 @@
-import cryptoService from "@/libs/crypto";
+import { cryptoService } from "@/libs/crypto";
 import LoginRegister from "@/components/LoginRegister";
 import { redirectPages } from "@/helper/helper.redirect";
 

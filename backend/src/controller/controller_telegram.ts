@@ -2,7 +2,7 @@ import axios from "axios";
 import mongoose from "mongoose";
 import { Request, Response } from "express";
 import { eLog } from "../libs/lib";
-import cryptoService from "../libs/crypto";
+import { cryptoService } from "../libs/crypto";
 import Platform from "../models/model_platform";
 import model_bot from "../models/model_bot";
 import model_server from "../models/model_server_data";
@@ -15,10 +15,10 @@ import { ProtectController } from "./controller_protect";
 import { response_data } from "../libs/lib";
 import { get_url } from "../libs/get_urls";
 import { httpAgent } from "../libs/lib";
-import { getErrorMessage } from "../helper/errorHandling";
+import { getErrorMessage } from "../helper/index";
 import { DEFAULT_ASSET_CONFIG } from "../data/data.static";
 import { request_post } from "../helper/helper.request";
-import { get_env } from "../utils/get_env";
+import { get_env } from "../libs/get_env";
 import { build_url, str_number, str_val } from "../utils/util";
 import { IManagedAssetRemoveRequest, IManagedAssetRequest } from "../interface";
 import {
@@ -310,7 +310,7 @@ class TelegramController extends ProtectController {
             const botUsername = platFormList.find(b => b.bot_token_hash === activeBot?.bot_token_hash)?.bot_username ?? "";
             const collection = {
                 botUsername,
-                botToken:cryptoService.decrypt(activeBot?.bot_token ?? "") ?? "",
+                botToken: cryptoService.decrypt(activeBot?.bot_token ?? "") ?? "",
                 is_process: activeBot?.process ?? false,
                 webhookUrl: webHook,
                 webhookEnabled: activeBot?.enable_web_hook ?? false,
@@ -354,7 +354,7 @@ class TelegramController extends ProtectController {
 
             let bot = await model_bot.findOne({ user_id, bot_token_hash }).session(session);
             if (!bot) {
-                bot = new model_bot({ user_id, bot_token: bot_token_enc, bot_token_hash});
+                bot = new model_bot({ user_id, bot_token: bot_token_enc, bot_token_hash });
             }
             platform.telegram ||= { web_hook: "", bot: [], user: [] };
             settings.telegram ||= { bot: [], user: [] };

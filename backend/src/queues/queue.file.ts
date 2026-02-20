@@ -1,7 +1,8 @@
 import * as https from "https";
 import PQueue from "p-queue";
 import { fileTypeFromBuffer } from "file-type";
-import { build_url, eLog, str_lower, str_val } from "../utils/util";
+import { build_url, str_lower, str_val } from "../utils/util";
+import { eLog } from "../libs/lib";
 import { LIMIT_TELEGRAM_FILE_SIZE } from "../constants";
 import controller_telegram from "../controller/controller_telegram";
 import FileStore, { IFileStore } from "../models/model_file_store";
@@ -155,7 +156,7 @@ class QueuesExecutFile {
                     if (total > ConfigQueuesExecutFile.SCAN_BYTES) {
                         const allowed = chunk.subarray(0, chunk.length - (total - ConfigQueuesExecutFile.SCAN_BYTES));
                         if (allowed.length) chunks.push(allowed);
-                        res.destroy(); // Stops downloading early
+                        res.destroy();
                         return;
                     }
                     chunks.push(chunk);

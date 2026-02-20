@@ -2,7 +2,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ensureUserLogin } from "@/libs/lib";
 import Shell from "@/components/layout/Shell";
 import { SocketProvider } from "@/contexts/SocketContext";
-import cryptoService from "@/libs/crypto";
+import {cryptoService} from "@/libs/crypto";
 
 export default async function ProtectedLayout({
   children,

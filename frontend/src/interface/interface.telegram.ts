@@ -1,6 +1,11 @@
 import { AssetType } from "@/types/type.telegram";
 import { SetStateProps } from "@/interface";
 
+export interface ApiResponse<T = unknown> {
+    code: number;
+    message: string;
+    data: T;
+}
 
 export interface ManagedAsset {
   id: number;

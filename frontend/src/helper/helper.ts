@@ -1,4 +1,5 @@
 
+import { SetTokenCookies } from "@/interface";
 import Swal from "sweetalert2";
 
 export async function request_sweet_alert<T>(
@@ -89,5 +90,16 @@ export function withTimeout<T>(promise: Promise<T>, seconds: number): Promise<T>
                 clearTimeout(timeoutId);
                 reject(error);
             });
+    });
+}
+
+export const setTokenCookie = (option: SetTokenCookies) => {
+    const { res, name, value, maxAge, secure } = option;
+    res.cookies.set(name, value, {
+        httpOnly: true,
+        secure,
+        path: "/",
+        sameSite: "strict",
+        maxAge,
     });
 }

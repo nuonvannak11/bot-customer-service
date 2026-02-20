@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { getProtects } from "@/libs/data";
 import TelegramProtectPage from "@/components/telegram/TelegramProtectPage";
 import { prepareProtectData } from "@/libs/lib";
-import cryptoService from "@/libs/crypto";
+import { cryptoService } from "@/libs/crypto";
 import TelegramProtectSkeleton from "@/components/skeleton/TelegramProtectSkeleton";
 
 async function TelegramProtectPageSettings() {

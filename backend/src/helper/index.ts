@@ -1,10 +1,3 @@
-
-import { z } from "zod";
-
-export const RequestSchema = z.object({
-    payload: z.string().regex(/^[0-9a-f]+$/i, "Invalid payload").min(32).max(4096)
-}).strict();
-
 export function make_schema<T extends object>(base: Readonly<T>) {
     const value = { ...base } as T;
     return {
@@ -42,4 +35,14 @@ export function make_schema<T extends object>(base: Readonly<T>) {
             return Object.freeze({ ...value });
         },
     };
+}
+
+export function getErrorMessage(err: unknown): string {
+    if (err instanceof Error) return err.message;
+    if (typeof err === "string") return err;
+    try {
+        return JSON.stringify(err);
+    } catch {
+        return String(err);
+    }
 }

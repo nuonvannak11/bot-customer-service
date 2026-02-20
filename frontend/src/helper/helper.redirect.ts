@@ -8,7 +8,7 @@ import { getServerToken } from "@/libs/lib";
 export async function valid_token(): Promise<string | null> {
     const token = await getServerToken();
     if (!token) return null;
-    const ensureToken = jwtService.verifyToken(token);
+    const ensureToken = await jwtService.verifyToken(token);
     if (!ensureToken) return null;
     return token;
 }

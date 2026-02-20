@@ -9,7 +9,7 @@ router.get("/get_user_profile", async (req: Request, res: Response, next: NextFu
     return await safeWithTimeout(userController.get_user_profile(req, res), next);
 });
 
-router.get("/check-refresh-token", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/refresh_token", async (req: Request, res: Response, next: NextFunction) => {
     return await safeWithTimeout(userController.checkRefreshToken(req, res), next);
 });
 

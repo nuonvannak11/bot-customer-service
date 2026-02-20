@@ -1,8 +1,8 @@
 import express from "express";
-import middlewares from "./middleware";
-import { get_env } from "./utils/get_env";
-import { errorHandler } from "./middleware/errorHandler";
+import { get_env } from "./libs/get_env";
+import { middleware } from "./middleware/middleware";
 import connectDB from "./config/db";
+import "./auto/mongoose_start";
 import { connectRedis } from "./config/redis";
 import setUpRoutes from "./routes";
 import cronJob from "./cron/cron.index";
@@ -11,15 +11,16 @@ import { startSubscribe } from "./connection/connection.redis.subscribe";
 
 const app = express();
 const port = get_env("PORT", "3100");
+const { errorHandler } = middleware;
 
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '15mb' }));
 app.use(express.text());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('.'));
 
 connectDB();
 connectRedis()
-middlewares(app);
+middleware.main_middleware(app);
 setUpRoutes(app);
 startSubscribe();
 cronJob();

@@ -3,7 +3,7 @@ import ProfileClient from "@/components/profile/ProfileClient";
 import BotSettingsSkeleton from "@/components/skeleton/BotSettingsSkeleton";
 import { ensureToken } from "@/hooks/use-redirect";
 import controller_user from "@/controller/controller_user";
-import cryptoService from "@/libs/crypto";
+import {cryptoService} from "@/libs/crypto";
 
 async function SuspenseProfilePage() {
   const token = await ensureToken();
