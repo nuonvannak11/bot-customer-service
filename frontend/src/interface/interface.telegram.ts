@@ -1,4 +1,4 @@
-import { AssetType } from "@/types/type.telegram";
+import { AssetType } from "../../types/type.telegram";
 import { SetStateProps } from "@/interface";
 
 export interface ApiResponse<T = unknown> {

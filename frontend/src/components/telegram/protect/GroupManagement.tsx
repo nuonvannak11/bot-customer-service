@@ -12,7 +12,7 @@ import {
   GroupChannel,
   GroupManagementProps,
 } from "@/interface/interface.telegram";
-import { AssetType } from "@/types/type.telegram";
+import { AssetType } from "../../../../types/type.telegram";
 import { normalizeText, strlower } from "@/utils/util";
 import { ActionButton } from "./entity/ActionButton";
 

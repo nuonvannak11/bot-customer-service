@@ -39,17 +39,20 @@ const googleOAuthClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 class UserController extends ProtectController {
     private readonly phoneRegex = PHONE_REGEX;
+    
     private sess_id(): string {
         return cryptoService.sessionId();
     }
-    private access_token(user_id: string) {
-        return jwtService.signAccessToken({
+
+    private async access_token(user_id: string) {
+        return await jwtService.signAccessToken({
             user_id: str_val(user_id),
             session_id: this.sess_id(),
         });
     }
-    private refresh_token(user_id: string) {
-        return jwtService.signRefreshToken({
+
+    private async refresh_token(user_id: string) {
+        return await jwtService.signRefreshToken({
             user_id: str_val(user_id),
             session_id: this.sess_id(),
         });
@@ -185,11 +188,11 @@ class UserController extends ProtectController {
 
             let finalToken = refresh_token_hash;
             const isTokenValid = finalToken
-                ? jwtService.verifyToken(finalToken)
+                ? await jwtService.verifyToken(finalToken)
                 : false;
 
             if (!isTokenValid) {
-                finalToken = this.refresh_token(user_id);
+                finalToken = await this.refresh_token(user_id);
                 await AppUser.updateOne(
                     { _id: _id },
                     { $set: { refresh_token_hash: finalToken } },
@@ -197,7 +200,7 @@ class UserController extends ProtectController {
             }
             const encrypted = cryptoService.encryptObject({
                 refreshToken: finalToken,
-                accessToken: this.access_token(user_id),
+                accessToken: await this.access_token(user_id),
             });
             response_data(res, 200, "User login successfully", encrypted);
             return;
@@ -328,7 +331,7 @@ class UserController extends ProtectController {
             const { name, passwordHash } = record.tempData;
             const newUserId = nextId();
             const refreshToken = this.refresh_token(newUserId);
-            const accessToken = this.access_token(newUserId);
+            const accessToken = await this.access_token(newUserId);
             const newUser = new AppUser({
                 user_id: newUserId,
                 name,
@@ -442,7 +445,7 @@ class UserController extends ProtectController {
 
             if (!ensureUser) {
                 const newUserId = nextId();
-                finalRefreshToken = this.refresh_token(newUserId);
+                finalRefreshToken = await this.refresh_token(newUserId);
                 const created = await AppUser.create({
                     user_id: newUserId,
                     name,
@@ -456,10 +459,10 @@ class UserController extends ProtectController {
                 ensureUser = created.toObject();
             } else {
                 const isTokenValid = finalRefreshToken
-                    ? jwtService.verifyToken(finalRefreshToken)
+                    ? await jwtService.verifyToken(finalRefreshToken)
                     : false;
                 if (!isTokenValid) {
-                    finalRefreshToken = this.refresh_token(ensureUser.user_id);
+                    finalRefreshToken = await this.refresh_token(ensureUser.user_id);
                     await AppUser.updateOne(
                         { _id: ensureUser._id },
                         {
@@ -474,7 +477,7 @@ class UserController extends ProtectController {
             }
             const collections = cryptoService.encryptObject({
                 refreshToken: finalRefreshToken,
-                accessToken: this.access_token(ensureUser.user_id),
+                accessToken: await this.access_token(ensureUser.user_id),
             });
             response_data(res, 200, "Google login successful", collections);
             return;

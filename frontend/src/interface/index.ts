@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { ConfrimGroupChanel } from "./interface.telegram";
 
+export interface JWTPayload {
+  token: string;
+  user_id?: string;
+  [key: string]: unknown;
+}
+
 export interface TelegramBotSettingsConfig {
   botUsername: string;
   botToken: string;
@@ -49,18 +55,15 @@ export interface SetStateProps<T> {
   setState: React.Dispatch<React.SetStateAction<T>>;
 }
 
-export interface ParseJWTPayload {
+export interface ParseJWTPayload extends JWTPayload {
   user_id: string;
   session_id: string;
 }
 
-export interface ParseTokenProps extends ParseJWTPayload {
-  token: string;
-}
-
-export interface ParseVerifyToken {
-  data: ParseJWTPayload;
-  newToken?: string;
+export interface ParseVerifyToken<T = ParseJWTPayload> {
+  success: boolean;
+  message?: string;
+  data?: T;
 }
 
 export interface EnsureUserLoginProp {
@@ -72,12 +75,6 @@ export interface EnsureUserLoginProp {
 export interface SocketPayload {
   token: string;
   socket_url: string;
-}
-
-export interface JWTPayload {
-  token: string;
-  user_id?: string;
-  [key: string]: unknown;
 }
 
 export interface AlertRule {

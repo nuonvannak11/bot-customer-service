@@ -67,3 +67,13 @@ export function getErrorMessage(err: unknown): string {
 
 export const cn = (...classes: (string | undefined | null | false)[]) =>
     classes.filter(Boolean).join(" ");
+
+export const eLog = (data: unknown, ...args: unknown[]): void => {
+  if (process.env.NODE_ENV === "development") {
+    console.log(data, ...args);
+  }
+};
+
+export const get_env = (key: string, defaultValue: string = ""): string => {
+  return process.env[key] || defaultValue;
+};

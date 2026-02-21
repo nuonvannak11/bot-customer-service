@@ -4,7 +4,6 @@ import { empty, getErrorMessage, strlower } from "@/utils/util";
 import { cookies } from "next/headers";
 import { GroupChannel, PreparedData, ProtectData } from "@/interface/interface.telegram";
 import jwtService from "./jwt";
-import { redirect } from "next/navigation";
 import controller_user from "@/controller/controller_user";
 import { CheckAuthResponse, EnsureUserLoginProp } from "@/interface";
 
@@ -122,16 +121,6 @@ export async function getCookie(name: string): Promise<string | null> {
     return value;
 }
 
-export async function getAccessToken(): Promise<string | null> {
-    const token = await getCookie("access_token");
-    return token || null;
-}
-
-export async function getRefreshToken(): Promise<string | null> {
-    const token = await getCookie("refresh_token");
-    return token || null;
-}
-
 export async function getServerToken(cookiesObj?: Record<string, string>): Promise<string | null> {
     const token = cookiesObj ? cookiesObj["access_token"] : await getCookie("access_token");
     return token || null;
@@ -139,16 +128,16 @@ export async function getServerToken(cookiesObj?: Record<string, string>): Promi
 
 export async function ensureValidToken(cookiesObj?: Record<string, string>): Promise<string | null> {
     const candidate = await getServerToken(cookiesObj);
-    return candidate && await jwtService.verifyToken(candidate) ? candidate : null;
+    const ensureVerfy = await jwtService.verifyToken(candidate || "");
+    if (ensureVerfy.success) return candidate;
+    return null;
 }
 
 export async function ensureUserLogin(): Promise<EnsureUserLoginProp> {
     const cookiesObj = await getAllCookies();
-    const token = await ensureValidToken(cookiesObj);
-    if (!token) redirect("/login");
-    const ensureUser = await controller_user.check_auth(token);
-    if (!ensureUser) redirect("/login");
-    return { user: ensureUser as CheckAuthResponse, token, cookiesObj };
+    const token = await getServerToken(cookiesObj);
+    const ensureUser = await controller_user.check_auth(token || "");
+    return { user: ensureUser as CheckAuthResponse, token: token || "", cookiesObj };
 }
 
 

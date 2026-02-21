@@ -83,3 +83,9 @@ export function generateSessionId(): string {
     const hash = crypto.createHash("sha256").update(random).update(time).digest("hex");
     return hash.slice(0, 16);
 }
+
+export function getErrorMessage(err: unknown): string {
+    if (err instanceof Error) return err.message
+    if (typeof err === "string") return err
+    return JSON.stringify(err)
+}

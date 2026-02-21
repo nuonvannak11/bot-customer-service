@@ -1,4 +1,4 @@
-import { ProtectAction } from "@/types/type.telegram";
+import { ProtectAction } from "../../types/type.telegram";
 import { Method } from "axios";
 
 export const ACTION_CONFIG: Record<ProtectAction, { method: Method; endpoint: string }> = {

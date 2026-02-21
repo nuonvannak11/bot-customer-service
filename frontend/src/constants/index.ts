@@ -26,3 +26,21 @@ export const dangerousKeys = new Set([
     "$set", "$unset", "$push", "$pop"
 ]);
 
+export const protect_routes = [
+  "/dashboard",
+  "/profile",
+  "/reports",
+  "/settings",
+  "/telegram",
+  "/facebook",
+  "/alerts",
+  "/pages",
+];
+
+export const protected_api_routes = [
+  "/api/settings",
+  "/api/telegram",
+  "/api/user",
+];
+
+export const login_routes = ["/login", "/register"];

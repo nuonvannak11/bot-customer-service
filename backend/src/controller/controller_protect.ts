@@ -39,7 +39,7 @@ export class ProtectController {
         let queryData: Partial<T> = {};
 
         if (options.requireAuth) {
-            const ensureToken = this.extractToken(req);
+            const ensureToken = await this.extractToken(req);
             if (!ensureToken) {
                 response_data(res, 401, "Unauthorized", []);
                 return false;
@@ -105,12 +105,12 @@ export class ProtectController {
         return { success: true, data: parsedData };
     }
 
-    public extractToken(req: Request): AuthData | null {
+    public async extractToken(req: Request): Promise<AuthData | null> {
         const header = req.headers.authorization || req.headers.Authorization;
         if (!header || typeof header !== "string") return null;
         const [scheme, token] = header.trim().split(/\s+/);
         if (str_lower(scheme) !== "bearer" || !token) return null;
-        const verify = jwtService.verifyToken<AuthData>(token);
+        const verify = await jwtService.verifyToken(token);
         if (!verify) return null;
         const { user_id, session_id } = verify;
         return { user_id, session_id, token };

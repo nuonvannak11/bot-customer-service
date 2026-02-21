@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
-import { eLog } from "./lib";
+import { eLog } from "@/utils/util";
 
 export type QueryParams = Record<string, unknown>;
 

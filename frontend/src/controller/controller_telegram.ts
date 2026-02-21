@@ -12,7 +12,7 @@ import { ProtectData, ApiResponse } from "@/interface/interface.telegram";
 import { ProtectRequestSchema, telegramPayloadSchema, botActionSchema } from "@/schema/zod.telegram";
 import { TelegramBotSettingsConfig } from "@/interface";
 import { getErrorMessage } from "@/utils/util";
-import { BotAction, ProtectAction } from "@/types/type.telegram";
+import { BotAction, ProtectAction } from "../../types/type.telegram";
 import { cryptoService } from "@/libs/crypto";
 
 

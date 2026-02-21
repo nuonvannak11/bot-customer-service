@@ -257,7 +257,7 @@ const LoginRegister = ({ hash_data }: Props) => {
           <div className="relative flex items-center gap-2 rounded-full border border-white/10 bg-white/5 p-1 text-sm font-semibold">
             <div
               ref={gliderRef}
-              className="absolute top-1 left-0 h-[calc(100%-8px)] rounded-full bg-white shadow-lg"
+              className="absolute top-1 left-0 w-1/2 h-[calc(100%-8px)] rounded-full bg-white shadow-lg"
             />
             <button
               ref={loginButtonRef}
@@ -267,7 +267,8 @@ const LoginRegister = ({ hash_data }: Props) => {
                   ? "text-slate-900"
                   : "text-slate-200 hover:text-white"
               }`}
-              onClick={() => setFormType("login")}>
+              onClick={() => setFormType("login")}
+            >
               {t("login")}
             </button>
             <button
@@ -278,7 +279,8 @@ const LoginRegister = ({ hash_data }: Props) => {
                   ? "text-slate-900"
                   : "text-slate-200 hover:text-white"
               }`}
-              onClick={() => setFormType("register")}>
+              onClick={() => setFormType("register")}
+            >
               {t("register")}
             </button>
           </div>
@@ -288,7 +290,8 @@ const LoginRegister = ({ hash_data }: Props) => {
               id="login-form"
               className="space-y-5 absolute top-0 left-0 w-full"
               ref={loginFormRef}
-              onSubmit={handleLogin}>
+              onSubmit={handleLogin}
+            >
               <SettingsInput
                 id="login-phone"
                 label={t("Phone number")}
@@ -310,7 +313,8 @@ const LoginRegister = ({ hash_data }: Props) => {
               />
               <button
                 type="submit"
-                className="w-full rounded-2xl bg-linear-to-r from-indigo-500 via-purple-500 to-cyan-400 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-900/40 transition hover:brightness-110 cursor-pointer">
+                className="w-full rounded-2xl bg-linear-to-r from-indigo-500 via-purple-500 to-cyan-400 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-900/40 transition hover:brightness-110 cursor-pointer"
+              >
                 {t("log_in")}
               </button>
               <input type="hidden" value={hash_data} name="hash_key" />
@@ -320,7 +324,13 @@ const LoginRegister = ({ hash_data }: Props) => {
               onSubmit={handleRegister}
               id="register-form"
               className="space-y-5 absolute top-0 left-0 w-full"
-              ref={registerFormRef}>
+              style={{
+                opacity: 0,
+                visibility: "hidden",
+                transform: "translateY(20px) scale(0.98)",
+              }}
+              ref={registerFormRef}
+            >
               <SettingsInput
                 id="register-name"
                 label={t("Username")}
@@ -351,7 +361,8 @@ const LoginRegister = ({ hash_data }: Props) => {
               />
               <button
                 type="submit"
-                className="w-full rounded-2xl bg-linear-to-r from-emerald-400 via-teal-400 to-cyan-400 px-4 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-emerald-900/30 transition hover:brightness-110 cursor-pointer">
+                className="w-full rounded-2xl bg-linear-to-r from-emerald-400 via-teal-400 to-cyan-400 px-4 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-emerald-900/30 transition hover:brightness-110 cursor-pointer"
+              >
                 {t("Register account")}
               </button>
               <input type="hidden" value={hash_data} name="hash_key" />

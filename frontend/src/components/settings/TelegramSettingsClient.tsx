@@ -24,7 +24,7 @@ import { TelegramBotSettingsConfig } from "@/interface/index";
 import Toggle from "@/components/ui/ToggleCheckBox";
 import SettingsInput from "@/components/SettingsInput";
 import { getErrorMessage, strlower } from "@/utils/util";
-import { ApiResponse } from "@/types/type";
+import { ApiResponse } from "../../../types/type";
 
 interface Props {
   hash_key: string;

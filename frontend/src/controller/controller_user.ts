@@ -7,9 +7,9 @@ import {
     check_header,
     response_data,
 } from "@/libs/lib";
-import { empty,  } from "@/utils/util";
+import { empty, } from "@/utils/util";
 import { EMAIL_REGEX, REQUEST_TIMEOUT_MS, SAFE_USER_NAME } from "@/constants";
-import { ApiResponse, AuthResponse, DataLogin } from "@/types/type";
+import { ApiResponse, AuthResponse, DataLogin } from "../../types/type";
 import { CheckAuthResponse, UserProfileConfig } from "@/interface";
 import { ProtectController } from "./controller_protector";
 import {
@@ -83,27 +83,6 @@ class UserController extends ProtectController {
         }
     }
 
-    public async ensureAcessToken(refresh_token: string): Promise<string | null> {
-        try {
-            if (!refresh_token) return null;
-            const response = await request_get<ApiResponse<string>>({
-                url: get_url("refresh_token"),
-                timeout: REQUEST_TIMEOUT_MS,
-                headers: this.getHeaders(refresh_token),
-            });
-            if (!response.success) return null;
-            const { code, message, data } = response.data;
-            if (code !== 200) {
-                eLog("[refresh_token] Error:", message);
-                return null;
-            }
-            return data;
-        } catch (err: unknown) {
-            eLog("[refresh_token] Failed:", err);
-            return null;
-        }
-    }
-
     public async login(req: NextRequest) {
         try {
             const Schema = z.object(JSON_PROTECTOR).strict();
@@ -133,14 +112,13 @@ class UserController extends ProtectController {
                 return response_data(400, 400, "Failed to decrypt payload", []);
             }
             const { refreshToken, accessToken } = decrypted;
+            console.log(decrypted);
             const res = response_data(code, code, message, decrypted);
             const secure = get_env("NODE_ENV") === "production";
             const collection = (name: string, value: string, maxAge: number) => {
                 return { res, name, value, maxAge, secure };
             };
-            setTokenCookie(
-                collection("refresh_token", refreshToken, this.expireAt(7)),
-            );
+            setTokenCookie(collection("refresh_token", refreshToken, this.expireAt(7)));
             setTokenCookie(collection("access_token", accessToken, this.expireAt(1)));
             return res;
         } catch (err: unknown) {

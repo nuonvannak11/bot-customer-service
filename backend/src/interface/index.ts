@@ -90,3 +90,8 @@ export interface UploadAvatarRequest {
     path:string;
     file?: Express.Multer.File;
 }
+
+export interface ParseJWTPayload extends JWTPayload {
+  user_id: string;
+  session_id: string;
+}

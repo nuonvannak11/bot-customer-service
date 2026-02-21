@@ -1,3 +1,5 @@
+import { JWTPayload } from "jose";
+
 export interface ConfrimGroupChanel {
     data_time: string;
     sender: {
@@ -13,4 +15,10 @@ export interface ConfrimGroupChanel {
     },
     user_id: string;
     event: string;
+}
+
+
+export interface ParseJWTPayload extends JWTPayload {
+  user_id: string;
+  session_id: string;
 }

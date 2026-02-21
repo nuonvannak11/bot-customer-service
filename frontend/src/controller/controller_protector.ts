@@ -1,29 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 import { eLog, response_data, check_header } from "@/libs/lib";
-import jwtService from "@/libs/jwt";
 import { cryptoService } from "@/libs/crypto";
 import { RateLimiter } from "@/helper/ratelimit";
 import { fileTypeFromBuffer } from "file-type";
-import { ParseJWTPayload, ParseTokenProps, ProtectFileOptions } from "@/interface";
+import { ParseJWTPayload, ProtectFileOptions } from "@/interface";
 import { dangerousKeys, default_extensions_img } from "@/constants";
-
-type ProtectSuccess<TData> = { ok: true; data: TData; form: FormData | null; };
-type ProtectFailure = { ok: false; response: NextResponse };
-type ProtectResult<TData> = ProtectSuccess<TData> | ProtectFailure;
-
-type ShapeRecord = Record<string, z.ZodType>;
-type ShapeOutput<T extends ShapeRecord> = { [K in keyof T]: z.output<T[K]> };
-
-type ProtectData<T extends ShapeRecord> = ShapeOutput<T> & { hash_key: string; token?: string; };
-type ProtectDataSchema<TSchema extends z.ZodObject<z.ZodRawShape>> = z.output<TSchema> & { hash_key: string; token?: string; };
-
-type ProtectDataFor<T> = T extends z.ZodObject<z.ZodRawShape> ? ProtectDataSchema<T> : T extends ShapeRecord ? ProtectData<T> : never;
-type ProtectDataWithToken<T> = ProtectDataFor<T> & { token: string; };
-
-const isZodObject = (value: unknown): value is z.ZodObject<z.ZodRawShape> => {
-    return typeof value === "object" && value !== null && "shape" in value && "safeParse" in value;
-};
+import { isZodObject } from "@/schema/zod";
+import { ProtectDataFor, ProtectDataWithToken, ProtectResult, ShapeRecord } from "../../types/type";
+import jwtService from "@/libs/jwt";
 
 export class ProtectController {
     public expireAt(days: number): number {
@@ -116,13 +101,11 @@ export class ProtectController {
         return req.cookies.get("access_token")?.value || null;
     }
 
-    public async parse_token(token: string): Promise<ParseTokenProps | null> {
+    public async parse_token(token: string): Promise<ParseJWTPayload | null> {
         if (!token) return null;
-        const ensureToken = await jwtService.verifyToken<ParseJWTPayload>(token);
-        if (!ensureToken) return null;
-        const newToken = ensureToken?.newToken;
-        const pickToken = newToken ? newToken : token;
-        return { ...ensureToken.data, token: pickToken };
+        const ensureToken = await jwtService.verifyToken(token);
+        if (!ensureToken.success || !ensureToken.data) return null;
+        return ensureToken.data;
     }
 
     public async protect<T extends ShapeRecord | z.ZodObject<z.ZodRawShape>>(req: NextRequest, json_protector: T, ratlimit?: number, check_token?: false, time_limit?: number): Promise<ProtectResult<ProtectDataFor<T>>>;
@@ -189,7 +172,7 @@ export class ProtectController {
         if (!parseToken) {
             return { ok: false, response: response_data(401, 401, "Unauthorized", []) };
         }
-        
+
         const response = response_data(200, 200, "OK", { token: parseToken.token });
         // Set new token in response cookies if it was refreshed
         if (parseToken.token !== token) {

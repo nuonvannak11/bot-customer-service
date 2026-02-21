@@ -1,4 +1,4 @@
-import { get_env } from "./lib";
+import { get_env } from "@/utils/util";
 
 export function get_url(name: string) {
     switch (name) {
